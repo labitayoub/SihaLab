@@ -1,6 +1,6 @@
 <mxfile host="65bd71144e">
     <diagram id="dossier_medical_v2" name="Dossier Medical UML">
-        <mxGraphModel dx="749" dy="593" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1200" math="0" shadow="0">
+        <mxGraphModel dx="827" dy="533" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1200" math="0" shadow="0">
             <root>
                 <mxCell id="0"/>
                 <mxCell id="1" parent="0"/>
@@ -142,32 +142,21 @@
                 <mxCell id="availability-attr" value="_id: ObjectId&#xa;medcinId: ObjectId&#xa;horaires: object&#xa;" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" parent="1" vertex="1">
                     <mxGeometry x="160" y="300" width="200" height="60" as="geometry"/>
                 </mxCell>
-                <mxCell id="livraison" value="Livraison" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;fillColor=#d5e8d4;strokeColor=#82b366;rounded=1;" vertex="1" parent="1">
+                <mxCell id="livraison" value="Livraison" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;fillColor=#d5e8d4;strokeColor=#82b366;rounded=1;" parent="1" vertex="1">
                     <mxGeometry x="640" y="730" width="240" height="200" as="geometry"/>
                 </mxCell>
-                <mxCell id="livraison-attr" value="_id: ObjectId&#xa;ordonnanceId: ObjectId&#xa;pharmacienId: ObjectId&#xa;patientId: ObjectId&#xa;adresseLivraison: String&#xa;dateLivraison: Date&#xa;statut: Enum (&#39;en_attente&#39;, &#39;en_cours&#39;,&#xa;                  &#39;livree&#39;, &#39;annulee&#39;)&#xa;livreurNom: String&#xa;livreurTel: String&#xa;" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="livraison">
+                <mxCell id="livraison-attr" value="_id: ObjectId&#xa;ordonnanceId: ObjectId&#xa;pharmacienId: ObjectId&#xa;patientId: ObjectId&#xa;adresseLivraison: String&#xa;dateLivraison: Date&#xa;statut: Enum (&#39;en_attente&#39;, &#39;en_cours&#39;,&#xa;                  &#39;livree&#39;, &#39;annulee&#39;)&#xa;livreurNom: String&#xa;livreurTel: String&#xa;" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" parent="livraison" vertex="1">
                     <mxGeometry y="30" width="240" height="170" as="geometry"/>
                 </mxCell>
-                <mxCell id="rel-livraison-ordonnance" value="" style="endArrow=none;endFill=0;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="ordonnance-attr" target="livraison-attr">
+                <mxCell id="rel-livraison-ordonnance" value="" style="endArrow=none;endFill=0;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="ordonnance-attr" target="livraison-attr" edge="1">
                     <mxGeometry width="160" relative="1" as="geometry">
                         <mxPoint x="900" y="820" as="sourcePoint"/>
                         <mxPoint x="1060" y="820" as="targetPoint"/>
                     </mxGeometry>
                 </mxCell>
-                <mxCell id="rel-livraison-ordonnance-label" value="0..1" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" connectable="0" vertex="1" parent="rel-livraison-ordonnance">
-                    <mxGeometry x="-0.7" y="1" relative="1" as="geometry">
-                        <mxPoint x="-10" y="-10" as="offset"/>
-                    </mxGeometry>
-                </mxCell>
-                <mxCell id="rel-livraison-patient" value="" style="endArrow=none;endFill=0;html=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="livraison" target="dossier">
-                    <mxGeometry width="160" relative="1" as="geometry">
-                        <mxPoint x="600" y="680" as="sourcePoint"/>
-                        <mxPoint x="760" y="680" as="targetPoint"/>
-                    </mxGeometry>
-                </mxCell>
-                <mxCell id="rel-livraison-patient-label" value="0..*" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" connectable="0" vertex="1" parent="rel-livraison-patient">
-                    <mxGeometry x="0.6" y="1" relative="1" as="geometry">
-                        <mxPoint x="10" as="offset"/>
+                <mxCell id="2" value="0..*" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" connectable="0" vertex="1" parent="1">
+                    <mxGeometry x="939.9971843614445" y="539.9967415549804" as="geometry">
+                        <mxPoint x="83" y="267" as="offset"/>
                     </mxGeometry>
                 </mxCell>
             </root>

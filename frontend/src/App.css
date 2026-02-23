@@ -1,0 +1,38 @@
+.App {
+  text-align: center;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: #282c34;
+}
+
+.App-header {
+  color: white;
+  padding: 20px;
+}
+
+.App-header h1 {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+  color: #61dafb;
+}
+
+.App-header p {
+  font-size: 1.2rem;
+  margin: 0.5rem 0;
+}
+
+.backend-message {
+  margin-top: 2rem;
+  padding: 1rem;
+  background-color: #3a3f47;
+  border-radius: 8px;
+  border-left: 4px solid #61dafb;
+}
+
+.backend-message p {
+  color: #61dafb;
+  font-weight: bold;
+}
