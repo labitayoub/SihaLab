@@ -1,9 +1,9 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { User } from './user.entity';
-import { AppointmentStatus } from '../common/enums/status.enum';
+import { Appointment } from './appointment.entity';
 
-@Entity('appointments')
-export class Appointment {
+@Entity('consultations')
+export class Consultation {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
@@ -13,6 +13,9 @@ export class Appointment {
   @Column('uuid')
   doctorId: string;
 
+  @Column('uuid', { nullable: true })
+  appointmentId: string;
+
   @ManyToOne(() => User)
   @JoinColumn({ name: 'patientId' })
   patient: User;
@@ -21,20 +24,24 @@ export class Appointment {
   @JoinColumn({ name: 'doctorId' })
   doctor: User;
 
-  @Column({ type: 'date' })
+  @ManyToOne(() => Appointment, { nullable: true })
+  @JoinColumn({ name: 'appointmentId' })
+  appointment: Appointment;
+
+  @Column({ type: 'timestamp' })
   date: Date;
 
-  @Column({ type: 'time' })
-  time: string;
-
-  @Column({ type: 'enum', enum: AppointmentStatus, default: AppointmentStatus.EN_ATTENTE })
-  status: AppointmentStatus;
-
-  @Column({ nullable: true })
+  @Column({ type: 'text' })
   motif: string;
 
   @Column({ type: 'text', nullable: true })
+  diagnostic: string;
+
+  @Column({ type: 'text', nullable: true })
   notes: string;
+
+  @Column({ type: 'jsonb', nullable: true })
+  examenClinique: any;
 
   @CreateDateColumn()
   createdAt: Date;

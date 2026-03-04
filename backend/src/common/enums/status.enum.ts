@@ -1,4 +1,4 @@
-export enum AppointementStatus {
+export enum AppointmentStatus {
     EN_ATTENTE = 'en_attente',
     CONFIRME = 'confirme',
     TERMINE = 'termine',
