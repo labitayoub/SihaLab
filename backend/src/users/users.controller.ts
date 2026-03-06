@@ -6,24 +6,26 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { UserRole } from '../common/enums/role.enum';
-import { ApiTags } from '@nestjs/swagger';
-import { User } from '../entities/user.entity';
+import { UserRole, User } from '../entities/user.entity';
+import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 
 @ApiTags('Users')
 @Controller('users')
 @UseGuards(JwtAuthGuard, RolesGuard)
+@ApiBearerAuth()
 export class UsersController {
   constructor(private usersService: UsersService) {}
 
   @Post()
   @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Create user (Admin only)' })
   create(@Body() createUserDto: CreateUserDto) {
     return this.usersService.create(createUserDto);
   }
 
   @Get()
   @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Get all users (Admin only)' })
   findAll(
     @Query('page') page: number,
     @Query('limit') limit: number,
@@ -34,34 +36,40 @@ export class UsersController {
   }
 
   @Get('me')
+  @ApiOperation({ summary: 'Get current user profile' })
   getMe(@CurrentUser() user: User) {
     const { password, ...result } = user;
     return result;
   }
 
   @Patch('me')
+  @ApiOperation({ summary: 'Update current user profile' })
   updateMe(@CurrentUser() user: User, @Body() updateUserDto: UpdateUserDto) {
     return this.usersService.update(user.id, updateUserDto);
   }
 
   @Get('doctors')
+  @ApiOperation({ summary: 'Get all doctors' })
   getDoctors() {
     return this.usersService.findByRole(UserRole.MEDECIN);
   }
 
   @Get(':id')
+  @ApiOperation({ summary: 'Get user by ID' })
   findOne(@Param('id') id: string) {
     return this.usersService.findOne(id);
   }
 
   @Patch(':id')
   @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Update user (Admin only)' })
   update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
     return this.usersService.update(id, updateUserDto);
   }
 
   @Delete(':id')
   @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Deactivate user (Admin only)' })
   remove(@Param('id') id: string) {
     return this.usersService.remove(id);
   }

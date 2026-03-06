@@ -1,6 +1,14 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
-import { UserRole } from '../common/enums/role.enum';
 import { Exclude } from 'class-transformer';
+
+export enum UserRole {
+  ADMIN = 'admin',
+  MEDECIN = 'medecin',
+  PATIENT = 'patient',
+  PHARMACIEN = 'pharmacien',
+  LABORATOIRE = 'laboratoire',
+  INFIRMIER = 'infirmier',
+}
 
 @Entity('users')
 export class User {

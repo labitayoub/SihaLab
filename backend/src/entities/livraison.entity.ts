@@ -1,7 +1,15 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { User } from './user.entity';
 import { Ordonnance } from './ordonnance.entity';
-import { LivraisonStatus } from '../common/enums/status.enum';
+
+export enum LivraisonStatus {
+  EN_PREPARATION = 'en_preparation',
+  PRETE = 'prete',
+  EN_COURS = 'en_cours',
+  LIVREE = 'livree',
+  ANNULEE = 'annulee',
+  ECHEC = 'echec',
+}
 
 @Entity('livraisons')
 export class Livraison {
@@ -17,15 +25,15 @@ export class Livraison {
   @Column('uuid')
   patientId: string;
 
-  @ManyToOne(() => Ordonnance)
+  @ManyToOne(() => Ordonnance, { eager: true })
   @JoinColumn({ name: 'ordonnanceId' })
   ordonnance: Ordonnance;
 
-  @ManyToOne(() => User)
+  @ManyToOne(() => User, { eager: true })
   @JoinColumn({ name: 'pharmacieId' })
   pharmacie: User;
 
-  @ManyToOne(() => User)
+  @ManyToOne(() => User, { eager: true })
   @JoinColumn({ name: 'patientId' })
   patient: User;
 

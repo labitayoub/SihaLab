@@ -1,11 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { User } from '../entities/user.entity';
+import { User, UserRole } from '../entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import * as bcrypt from 'bcrypt';
-import { UserRole } from '../common/enums/role.enum';
 
 @Injectable()
 export class UsersService {
@@ -64,7 +63,9 @@ export class UsersService {
   }
 
   async findByRole(role: UserRole) {
-    const users = await this.userRepository.find({ where: { role, isActive: true } });
+    const users = await this.userRepository.find({ 
+      where: { role, isActive: true } 
+    });
     return users.map(({ password, ...user }) => user);
   }
 

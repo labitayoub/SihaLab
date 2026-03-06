@@ -16,11 +16,11 @@ export class Consultation {
   @Column('uuid', { nullable: true })
   appointmentId: string;
 
-  @ManyToOne(() => User)
+  @ManyToOne(() => User, { eager: true })
   @JoinColumn({ name: 'patientId' })
   patient: User;
 
-  @ManyToOne(() => User)
+  @ManyToOne(() => User, { eager: true })
   @JoinColumn({ name: 'doctorId' })
   doctor: User;
 
