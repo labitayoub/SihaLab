@@ -104,4 +104,23 @@ export interface Analyse {
   resultat?: string;
   resultatFileUrl?: string;
   dateResultat?: string;
-  createdAt
+  createdAt: string;
+}
+
+export interface Livraison {
+  id: string;
+  ordonnanceId: string;
+  ordonnance?: Ordonnance;
+  pharmacieId: string;
+  pharmacie?: User;
+  patientId: string;
+  patient?: User;
+  codeSuivi: string;
+  statut: LivraisonStatus;
+  adresseLivraison: string;
+  fraisLivraison: number;
+  livreurNom?: string;
+  livreurTelephone?: string;
+  dateLivraison?: string;
+  createdAt: string;
+}
