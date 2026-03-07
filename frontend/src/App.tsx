@@ -19,6 +19,7 @@ import Livraisons from './pages/Livraisons';
 import Documents from './pages/Documents';
 import Users from './pages/Users';
 import Infirmiers from './pages/Infirmiers';
+import DoctorSchedule from './pages/DoctorSchedule';
 import Profile from './pages/Profile';
 
 const theme = createTheme({
@@ -85,6 +86,11 @@ function App() {
               <Route path="infirmiers" element={
                 <ProtectedRoute roles={[UserRole.MEDECIN]}>
                   <Infirmiers />
+                </ProtectedRoute>
+              } />
+              <Route path="schedule" element={
+                <ProtectedRoute roles={[UserRole.MEDECIN]}>
+                  <DoctorSchedule />
                 </ProtectedRoute>
               } />
               <Route path="profile" element={<Profile />} />
