@@ -16,9 +16,11 @@ export class ConsultationsController {
   constructor(private consultationsService: ConsultationsService) {}
 
   @Post()
-  @Roles(UserRole.MEDECIN)
+  @Roles(UserRole.MEDECIN, UserRole.INFIRMIER)
   create(@CurrentUser() user: User, @Body() createConsultationDto: CreateConsultationDto) {
-    return this.consultationsService.create(user.id, createConsultationDto);
+    // Infirmier crée la consultation au nom de son médecin
+    const doctorId = user.role === UserRole.INFIRMIER ? user.createdBy : user.id;
+    return this.consultationsService.create(doctorId, createConsultationDto);
   }
 
   @Get()
@@ -38,7 +40,7 @@ export class ConsultationsController {
   }
 
   @Patch(':id')
-  @Roles(UserRole.MEDECIN)
+  @Roles(UserRole.MEDECIN, UserRole.INFIRMIER)
   update(@Param('id') id: string, @Body() updateData: Partial<CreateConsultationDto>) {
     return this.consultationsService.update(id, updateData);
   }

@@ -17,7 +17,7 @@ export class AnalysesController {
   constructor(private analysesService: AnalysesService) {}
 
   @Post()
-  @Roles(UserRole.MEDECIN)
+  @Roles(UserRole.MEDECIN, UserRole.INFIRMIER)
   create(@Body() createAnalyseDto: CreateAnalyseDto) {
     return this.analysesService.create(createAnalyseDto);
   }

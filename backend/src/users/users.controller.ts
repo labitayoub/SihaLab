@@ -62,6 +62,27 @@ export class UsersController {
     return this.usersService.findByRole(UserRole.MEDECIN);
   }
 
+  @Get('infirmiers')
+  @Roles(UserRole.MEDECIN)
+  @ApiOperation({ summary: 'Get infirmiers of current doctor' })
+  getInfirmiers(@CurrentUser() user: User) {
+    return this.usersService.findInfirmiersByMedecin(user.id);
+  }
+
+  @Post('infirmiers')
+  @Roles(UserRole.MEDECIN)
+  @ApiOperation({ summary: 'Create infirmier for current doctor' })
+  createInfirmier(@CurrentUser() user: User, @Body() createUserDto: CreateUserDto) {
+    return this.usersService.createInfirmier(user.id, createUserDto);
+  }
+
+  @Patch('infirmiers/:id/toggle-active')
+  @Roles(UserRole.MEDECIN)
+  @ApiOperation({ summary: 'Toggle infirmier active status' })
+  toggleInfirmierActive(@CurrentUser() user: User, @Param('id') id: string) {
+    return this.usersService.toggleInfirmierActive(user.id, id);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get user by ID' })
   findOne(@Param('id') id: string) {

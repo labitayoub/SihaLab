@@ -17,7 +17,7 @@ export class OrdonnancesController {
   constructor(private ordonnancesService: OrdonnancesService) {}
 
   @Post()
-  @Roles(UserRole.MEDECIN)
+  @Roles(UserRole.MEDECIN, UserRole.INFIRMIER)
   create(@Body() createOrdonnanceDto: CreateOrdonnanceDto) {
     return this.ordonnancesService.create(createOrdonnanceDto);
   }
@@ -28,6 +28,7 @@ export class OrdonnancesController {
     @Query('status') status: OrdonnanceStatus,
   ) {
     const pharmacienId = user.role === UserRole.PHARMACIEN ? user.id : undefined;
+    // Infirmier voit les ordonnances du médecin via les consultations
     return this.ordonnancesService.findAll(status, pharmacienId);
   }
 

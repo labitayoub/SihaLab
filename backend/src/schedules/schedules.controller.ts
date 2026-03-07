@@ -39,9 +39,11 @@ export class SchedulesController {
    * GET /schedules/me — Médecin consulte ses propres horaires
    */
   @Get('me')
-  @Roles(UserRole.MEDECIN)
+  @Roles(UserRole.MEDECIN, UserRole.INFIRMIER)
   findMySchedules(@CurrentUser() user: User) {
-    return this.schedulesService.findByDoctor(user.id);
+    // Infirmier voit les horaires de son médecin
+    const doctorId = user.role === UserRole.INFIRMIER ? user.createdBy : user.id;
+    return this.schedulesService.findByDoctor(doctorId);
   }
 
   /**
