@@ -3,7 +3,8 @@ import { Box, Button, Card, Typography, Dialog, DialogTitle, DialogContent, Text
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { Add } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
-import { Livraison, LivraisonStatus, UserRole } from '../types';
+import { UserRole } from '../types/user.types';
+import { Livraison, LivraisonStatus } from '../types/livraison.types';
 import api from '../config/api';
 import { toast } from 'react-toastify';
 

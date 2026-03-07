@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import api from '../config/api';
-import { User } from '../types';
+import { User } from '../types/user.types';
 import { toast } from 'react-toastify';
 
 interface AuthContextType {

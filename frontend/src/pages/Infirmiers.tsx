@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Box, Button, Card, Typography, Dialog, DialogTitle, DialogContent, TextField, Chip, IconButton, Tooltip } from '@mui/material';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { Add, ToggleOn, ToggleOff } from '@mui/icons-material';
-import { User } from '../types';
+import { User } from '../types/user.types';
 import api from '../config/api';
 import { toast } from 'react-toastify';
 

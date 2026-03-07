@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Box, Card, TextField, Button, Typography, Container, MenuItem, Grid } from '@mui/material';
 import { useAuth } from '../context/AuthContext';
-import { UserRole } from '../types';
+import { UserRole } from '../types/user.types';
 import { toast } from 'react-toastify';
 
 export default function Register() {

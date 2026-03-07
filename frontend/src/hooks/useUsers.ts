@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { User } from '../types';
+import { User } from '../types/user.types';
 import api from '../config/api';
 
 export const useUsers = () => {
