@@ -10,7 +10,7 @@ const dataSource = new DataSource({
   password: 'postgres',
   database: 'sihatilab',
   entities: [User],
-  synchronize: false,
+  synchronize: true,
 });
 
 async function seed() {
