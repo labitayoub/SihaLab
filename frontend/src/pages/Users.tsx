@@ -155,7 +155,7 @@ export default function Users() {
           </TextField>
 
           <Grid container spacing={2}>
-            <Grid size={{ xs: 6 }}>
+            <Grid item xs={6}>
               <TextField
                 fullWidth
                 label="Prénom"
@@ -164,7 +164,7 @@ export default function Users() {
                 margin="normal"
               />
             </Grid>
-            <Grid size={{ xs: 6 }}>
+            <Grid item xs={6}>
               <TextField
                 fullWidth
                 label="Nom"
@@ -202,7 +202,7 @@ export default function Users() {
 
           {isMedecin && (
             <Grid container spacing={2}>
-              <Grid size={{ xs: 6 }}>
+              <Grid item xs={6}>
                 <TextField
                   fullWidth
                   label="Spécialité"
@@ -211,7 +211,7 @@ export default function Users() {
                   margin="normal"
                 />
               </Grid>
-              <Grid size={{ xs: 6 }}>
+              <Grid item xs={6}>
                 <TextField
                   fullWidth
                   label="N° Ordre"

@@ -36,11 +36,16 @@ export default function Layout() {
             SihatiLab
           </Typography>
           <IconButton color="inherit" onClick={(e) => setAnchorEl(e.currentTarget)}>
-            <Avatar sx={{ width: 32, height: 32 }}>{user?.firstName[0]}</Avatar>
+            <Avatar
+              src={user?.avatarUrl}
+              sx={{ width: 32, height: 32 }}
+            >
+              {!user?.avatarUrl && user?.firstName[0]}
+            </Avatar>
           </IconButton>
           <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={() => setAnchorEl(null)}>
             <MenuItem onClick={() => { navigate('/profile'); setAnchorEl(null); }}>
-              <AccountCircle sx={{ mr: 1 }} /> Profil
+              <AccountCircle sx={{ mr: 1 }} /> Mon Profil
             </MenuItem>
             <MenuItem onClick={() => { logout(); navigate('/login'); }}>Déconnexion</MenuItem>
           </Menu>

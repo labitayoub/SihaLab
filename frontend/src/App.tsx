@@ -19,6 +19,7 @@ import Livraisons from './pages/Livraisons';
 import Documents from './pages/Documents';
 import Users from './pages/Users';
 import Infirmiers from './pages/Infirmiers';
+import Profile from './pages/Profile';
 
 const theme = createTheme({
   palette: {
@@ -86,6 +87,7 @@ function App() {
                   <Infirmiers />
                 </ProtectedRoute>
               } />
+              <Route path="profile" element={<Profile />} />
             </Route>
 
             {/* Fallback */}

@@ -16,6 +16,10 @@ export interface User {
   phone?: string;
   address?: string;
   specialite?: string;
+  numeroOrdre?: string;
+  avatarUrl?: string;
   isActive: boolean;
+  createdBy?: string;
   createdAt: string;
+  updatedAt?: string;
 }
