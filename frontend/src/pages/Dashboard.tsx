@@ -1,14 +1,15 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Grid, Card, CardContent, Typography, Box, Button, Alert, Chip, Divider, Stack,
+  Grid, Card, CardContent, Typography, Box, Button, Alert, Chip, Divider, Stack, Paper,
 } from '@mui/material';
 import {
   CalendarMonth, MedicalServices, LocalPharmacy, Science, Schedule,
   AccessTime, CheckCircle, Warning, ArrowForward, WbSunny, NightsStay,
+  FolderShared, People,
 } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
-import { UserRole } from '../types/user.types';
+import { UserRole, User } from '../types/user.types';
 import { DoctorSchedule, DAY_LABELS } from '../types/schedule.types';
 import { Appointment, AppointmentStatus } from '../types/appointment.types';
 import api from '../config/api';
@@ -20,6 +21,7 @@ export default function Dashboard() {
   const [schedules, setSchedules] = useState<DoctorSchedule[]>([]);
   const [todayAppointments, setTodayAppointments] = useState<Appointment[]>([]);
   const [pendingCount, setPendingCount] = useState(0);
+  const [myPatients, setMyPatients] = useState<User[]>([]);
 
   const isDoctor = user?.role === UserRole.MEDECIN;
   const isInfirmier = user?.role === UserRole.INFIRMIER;
@@ -29,6 +31,7 @@ export default function Dashboard() {
     loadStats();
     if (isDoctorOrInfirmier) {
       loadDoctorData();
+      loadMyPatients();
     }
   }, []);
 
@@ -63,6 +66,15 @@ export default function Dashboard() {
     try {
       const { data } = await api.get<DoctorSchedule[]>('/schedules/me');
       setSchedules(data);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const loadMyPatients = async () => {
+    try {
+      const { data } = await api.get('/consultations/my-patients');
+      setMyPatients(data);
     } catch (error) {
       console.error(error);
     }
@@ -143,6 +155,7 @@ export default function Dashboard() {
 
       {/* ── Section médecin / infirmier : Disponibilités + RDV du jour ── */}
       {isDoctorOrInfirmier && (
+        <>
         <Grid container spacing={3} sx={{ mt: 1 }}>
           {/* Carte Mes Disponibilités */}
           <Grid item xs={12} md={6}>
@@ -293,6 +306,54 @@ export default function Dashboard() {
             </Card>
           </Grid>
         </Grid>
+
+        {/* ═══ Mes Patients ═══ */}
+        <Box sx={{ mt: 4 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+            <People sx={{ fontSize: 28 }} />
+            <Typography variant="h5" fontWeight="bold">Mes Patients</Typography>
+          </Box>
+
+          {myPatients.length === 0 ? (
+            <Paper variant="outlined" sx={{ p: 4, textAlign: 'center', borderRadius: 2 }}>
+              <People sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
+              <Typography color="text.secondary">
+                Aucun patient pour le moment. Les patients apparaîtront ici après leur première consultation.
+              </Typography>
+            </Paper>
+          ) : (
+            myPatients.map((patient) => (
+              <Paper
+                key={patient.id}
+                variant="outlined"
+                sx={{ p: 2.5, mb: 1.5, borderRadius: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+              >
+                <Box>
+                  <Typography variant="subtitle1" fontWeight="bold">
+                    {patient.firstName} {patient.lastName}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {patient.email}
+                  </Typography>
+                  {patient.phone && (
+                    <Typography variant="body2" color="text.secondary">
+                      {patient.phone}
+                    </Typography>
+                  )}
+                </Box>
+                <Button
+                  variant="contained"
+                  startIcon={<FolderShared />}
+                  onClick={() => navigate(`/dossier-medical/${patient.id}`)}
+                  sx={{ textTransform: 'uppercase', fontWeight: 'bold', borderRadius: 2 }}
+                >
+                  Dossier Médical
+                </Button>
+              </Paper>
+            ))
+          )}
+        </Box>
+        </>
       )}
     </Box>
   );
