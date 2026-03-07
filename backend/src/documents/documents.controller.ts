@@ -1,10 +1,9 @@
-import { Controller, Get, Post, Body, Param, Delete, Query, UseGuards, UseInterceptors, UploadedFile } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { Controller, Get, Post, Body, Param, Delete, Query, UseGuards } from '@nestjs/common';
 import { DocumentsService } from './documents.service';
 import { CreateDocumentDto } from './dto/create-document.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { DocumentType } from '../common/enums/status.enum';
+import { DocumentType } from '../entities/document.entity';
 import { ApiTags } from '@nestjs/swagger';
 import { User } from '../entities/user.entity';
 
@@ -15,15 +14,16 @@ export class DocumentsController {
   constructor(private documentsService: DocumentsService) {}
 
   @Post('upload')
-  @UseInterceptors(FileInterceptor('file'))
   async upload(
     @CurrentUser() user: User,
-    @UploadedFile() file: Express.Multer.File,
-    @Body() createDocumentDto: CreateDocumentDto,
+    @Body() createDocumentDto: CreateDocumentDto & { fileName: string; mimeType: string; fileSize: number },
   ) {
-    // Simulate file upload (in real app, upload to MinIO)
-    const fileUrl = `/uploads/${Date.now()}-${file.originalname}`;
-    return this.documentsService.create(user.id, { ...createDocumentDto, fileUrl, mimeType: file.mimetype }, file.size);
+    const fileUrl = `/uploads/${Date.now()}-${createDocumentDto.fileName}`;
+    return this.documentsService.create(
+      user.id, 
+      { ...createDocumentDto, fileUrl }, 
+      createDocumentDto.fileSize
+    );
   }
 
   @Get()

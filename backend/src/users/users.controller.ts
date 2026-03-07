@@ -50,12 +50,9 @@ export class UsersController {
   }
 
   @Post('me/avatar')
-  @ApiOperation({ summary: 'Upload avatar for current user' })
   @UseInterceptors(FileInterceptor('avatar'))
-  uploadAvatar(
-    @CurrentUser() user: User,
-    @UploadedFile() file: Express.Multer.File,
-  ) {
+  @ApiOperation({ summary: 'Upload avatar' })
+  async uploadAvatar(@CurrentUser() user: User, @UploadedFile() file: Express.Multer.File) {
     return this.usersService.uploadAvatar(user.id, file.buffer, file.mimetype);
   }
 
@@ -63,27 +60,6 @@ export class UsersController {
   @ApiOperation({ summary: 'Get all doctors' })
   getDoctors() {
     return this.usersService.findByRole(UserRole.MEDECIN);
-  }
-
-  @Post('infirmiers')
-  @Roles(UserRole.MEDECIN)
-  @ApiOperation({ summary: 'Create infirmier (Médecin only)' })
-  createInfirmier(@CurrentUser() user: User, @Body() createUserDto: CreateUserDto) {
-    return this.usersService.createInfirmier(user.id, createUserDto);
-  }
-
-  @Get('infirmiers')
-  @Roles(UserRole.MEDECIN)
-  @ApiOperation({ summary: 'Get my infirmiers (Médecin only)' })
-  getMyInfirmiers(@CurrentUser() user: User) {
-    return this.usersService.findInfirmiersByMedecin(user.id);
-  }
-
-  @Patch('infirmiers/:id/toggle-active')
-  @Roles(UserRole.MEDECIN)
-  @ApiOperation({ summary: 'Activate/Deactivate infirmier (Médecin only)' })
-  toggleInfirmierActive(@CurrentUser() user: User, @Param('id') id: string) {
-    return this.usersService.toggleInfirmierActive(user.id, id);
   }
 
   @Get(':id')
