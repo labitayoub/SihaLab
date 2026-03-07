@@ -7,6 +7,7 @@ import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import {
   Add, ChevronLeft, ChevronRight, AccessTime, EventBusy, LocationOn,
 } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { UserRole } from '../types/user.types';
 import { Appointment, AppointmentStatus } from '../types/appointment.types';
@@ -35,6 +36,7 @@ function fmt(d: Date) {
 
 export default function Appointments() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [doctors, setDoctors] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
@@ -162,11 +164,25 @@ export default function Appointments() {
 
   const handleConfirm = async (id: string) => {
     try {
-      await api.post(`/appointments/${id}/confirm`);
-      toast.success('Rendez-vous confirmé');
+      const { data } = await api.post(`/appointments/${id}/confirm`);
+      toast.success(
+        '✅ Rendez-vous confirmé ! Un dossier médical (consultation) a été créé automatiquement.',
+        { autoClose: 5000 },
+      );
       loadAppointments();
+      // Si une consultation a été créée, proposer de la voir
+      if (data?.consultation?.id) {
+        setTimeout(() => {
+          const goToConsultation = window.confirm(
+            'Un dossier médical a été créé pour ce patient. Voulez-vous le voir maintenant ?',
+          );
+          if (goToConsultation) {
+            navigate('/consultations');
+          }
+        }, 500);
+      }
     } catch (error) {
-      toast.error('Erreur');
+      toast.error('Erreur lors de la confirmation');
     }
   };
 
@@ -238,6 +254,11 @@ export default function Appointments() {
               <Button size="small" onClick={() => handleConfirm(params.row.id)}>Confirmer</Button>
               <Button size="small" color="error" onClick={() => handleCancel(params.row.id)}>Annuler</Button>
             </>
+          )}
+          {(user?.role === UserRole.MEDECIN || user?.role === UserRole.INFIRMIER) && params.row.status === AppointmentStatus.CONFIRME && (
+            <Button size="small" color="success" onClick={() => navigate(`/dossier-medical/${params.row.patientId}`)}>
+              Dossier médical
+            </Button>
           )}
           {user?.role === UserRole.PATIENT && params.row.status === AppointmentStatus.EN_ATTENTE && (
             <Button size="small" color="error" onClick={() => handleCancel(params.row.id)}>Annuler</Button>

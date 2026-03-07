@@ -13,5 +13,6 @@ export interface Consultation {
   motif: string;
   diagnostic?: string;
   notes?: string;
+  examenClinique?: any;
   createdAt: string;
 }

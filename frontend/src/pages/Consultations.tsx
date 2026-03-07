@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Box, Button, Card, Typography, Dialog, DialogTitle, DialogContent, TextField, MenuItem } from '@mui/material';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
-import { Add } from '@mui/icons-material';
+import { Add, FolderShared } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
 import { UserRole } from '../types/user.types';
 import { Consultation } from '../types/consultation.types';
@@ -10,6 +11,7 @@ import { toast } from 'react-toastify';
 
 export default function Consultations() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [consultations, setConsultations] = useState<Consultation[]>([]);
   const [open, setOpen] = useState(false);
   const [patients, setPatients] = useState<any[]>([]);
@@ -73,6 +75,24 @@ export default function Consultations() {
     },
     { field: 'motif', headerName: 'Motif', width: 250 },
     { field: 'diagnostic', headerName: 'Diagnostic', width: 250 },
+    {
+      field: 'actions',
+      headerName: 'Actions',
+      width: 180,
+      renderCell: (params) => (
+        <Box>
+          {(user?.role === UserRole.MEDECIN || user?.role === UserRole.INFIRMIER) && (
+            <Button
+              size="small"
+              startIcon={<FolderShared />}
+              onClick={() => navigate(`/dossier-medical/${params.row.patientId}`)}
+            >
+              Dossier
+            </Button>
+          )}
+        </Box>
+      ),
+    },
   ];
 
   return (
