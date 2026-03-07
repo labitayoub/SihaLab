@@ -18,6 +18,10 @@ export class AuthService {
   ) {}
 
   async register(registerDto: RegisterDto) {
+    if (registerDto.role === 'infirmier') {
+      throw new ConflictException('Les infirmiers doivent être créés par un médecin');
+    }
+
     const existingUser = await this.userRepository.findOne({ 
       where: { email: registerDto.email } 
     });

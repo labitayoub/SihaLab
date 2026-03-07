@@ -52,6 +52,9 @@ export class User {
   @Column({ nullable: true })
   numeroOrdre: string;
 
+  @Column({ nullable: true })
+  createdBy: string;
+
   @CreateDateColumn()
   createdAt: Date;
 

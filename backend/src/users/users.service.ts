@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User, UserRole } from '../entities/user.entity';
@@ -26,6 +26,8 @@ export class UsersService {
   }
 
   async findAll(page = 1, limit = 20, role?: UserRole, search?: string) {
+    const currentPage = Number(page) || 1;
+    const currentLimit = Number(limit) || 20;
     const query = this.userRepository.createQueryBuilder('user');
 
     if (role) {
@@ -40,16 +42,16 @@ export class UsersService {
     }
 
     const [users, total] = await query
-      .skip((page - 1) * limit)
-      .take(limit)
+      .skip((currentPage - 1) * currentLimit)
+      .take(currentLimit)
       .getManyAndCount();
 
     return {
       data: users.map(({ password, ...user }) => user),
       total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
+      page: currentPage,
+      limit: currentLimit,
+      totalPages: Math.ceil(total / currentLimit),
     };
   }
 
@@ -77,6 +79,42 @@ export class UsersService {
     Object.assign(user, updateUserDto);
     await this.userRepository.save(user);
     const { password, ...result } = user;
+    return result;
+  }
+
+  async createInfirmier(medecinId: string, createUserDto: CreateUserDto) {
+    const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
+    const user = this.userRepository.create({
+      ...createUserDto,
+      role: UserRole.INFIRMIER,
+      password: hashedPassword,
+      emailVerified: true,
+      isActive: false,
+      createdBy: medecinId,
+    });
+    await this.userRepository.save(user);
+    const { password, ...result } = user;
+    return result;
+  }
+
+  async findInfirmiersByMedecin(medecinId: string) {
+    const infirmiers = await this.userRepository.find({
+      where: { role: UserRole.INFIRMIER, createdBy: medecinId },
+    });
+    return infirmiers.map(({ password, ...user }) => user);
+  }
+
+  async toggleInfirmierActive(medecinId: string, infirmierId: string) {
+    const infirmier = await this.userRepository.findOne({ where: { id: infirmierId } });
+    if (!infirmier) {
+      throw new NotFoundException('Infirmier not found');
+    }
+    if (infirmier.createdBy !== medecinId) {
+      throw new ForbiddenException('Vous ne pouvez gérer que vos propres infirmiers');
+    }
+    infirmier.isActive = !infirmier.isActive;
+    await this.userRepository.save(infirmier);
+    const { password, ...result } = infirmier;
     return result;
   }
 
