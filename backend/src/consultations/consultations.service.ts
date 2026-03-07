@@ -71,6 +71,48 @@ export class ConsultationsService {
   }
 
   /**
+   * Récupérer les patients uniques d'un médecin (via ses consultations et appointments)
+   */
+  async getMyPatients(doctorId: string) {
+    const consultations = await this.consultationRepository.find({
+      where: { doctorId },
+      relations: ['patient'],
+      order: { date: 'DESC' },
+    });
+
+    // Dédupliquer par patientId
+    const patientMap = new Map<string, any>();
+    for (const c of consultations) {
+      if (c.patient && !patientMap.has(c.patientId)) {
+        const { password, ...patient } = c.patient as any;
+        patientMap.set(c.patientId, patient);
+      }
+    }
+    return Array.from(patientMap.values());
+  }
+
+  /**
+   * Récupérer les consultations d'un médecin avec ordonnances et analyses liées
+   */
+  async findAllWithDetails(doctorId?: string, patientId?: string) {
+    const query = this.consultationRepository
+      .createQueryBuilder('consultation')
+      .leftJoinAndSelect('consultation.patient', 'patient')
+      .leftJoinAndSelect('consultation.doctor', 'doctor')
+      .leftJoinAndSelect('consultation.ordonnances', 'ordonnances')
+      .leftJoinAndSelect('consultation.analyses', 'analyses');
+
+    if (doctorId) {
+      query.andWhere('consultation.doctorId = :doctorId', { doctorId });
+    }
+    if (patientId) {
+      query.andWhere('consultation.patientId = :patientId', { patientId });
+    }
+
+    return query.orderBy('consultation.date', 'DESC').getMany();
+  }
+
+  /**
    * Dossier Médical complet d'un patient :
    * - Toutes les consultations avec le médecin
    * - Les ordonnances liées à chaque consultation

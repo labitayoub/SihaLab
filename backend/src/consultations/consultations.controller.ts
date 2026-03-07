@@ -24,8 +24,28 @@ export class ConsultationsController {
   }
 
   @Get()
-  findAll(@Query('patientId') patientId: string, @Query('doctorId') doctorId: string) {
+  findAll(
+    @CurrentUser() user: User,
+    @Query('patientId') patientId: string,
+    @Query('doctorId') doctorId: string,
+  ) {
+    // Si médecin ou infirmier, filtrer par doctorId automatiquement et retourner avec détails
+    if (user.role === UserRole.MEDECIN || user.role === UserRole.INFIRMIER) {
+      const effectiveDoctorId = user.role === UserRole.INFIRMIER ? user.createdBy : user.id;
+      return this.consultationsService.findAllWithDetails(effectiveDoctorId, patientId);
+    }
+    // Patient voit ses propres consultations avec détails
+    if (user.role === UserRole.PATIENT) {
+      return this.consultationsService.findAllWithDetails(undefined, user.id);
+    }
     return this.consultationsService.findAll(patientId, doctorId);
+  }
+
+  @Get('my-patients')
+  @Roles(UserRole.MEDECIN, UserRole.INFIRMIER)
+  getMyPatients(@CurrentUser() user: User) {
+    const doctorId = user.role === UserRole.INFIRMIER ? user.createdBy : user.id;
+    return this.consultationsService.getMyPatients(doctorId);
   }
 
   @Get('patient/:patientId/history')
