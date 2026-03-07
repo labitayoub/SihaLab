@@ -15,14 +15,14 @@ export class SchedulesService {
 
   /**
    * Créer ou remplacer les horaires d'un médecin (bulk)
-   * Supprime les anciens horaires et les remplace par les nouveaux
+   * Chaque jour peut avoir 2 entrées : morning + afternoon
    */
   async bulkCreate(doctorId: string, bulkDto: BulkCreateScheduleDto) {
     // Valider que endTime > startTime pour chaque entrée
     for (const schedule of bulkDto.schedules) {
       if (schedule.startTime >= schedule.endTime) {
         throw new BadRequestException(
-          `L'heure de fin doit être après l'heure de début pour le jour ${schedule.dayOfWeek}`,
+          `L'heure de fin doit être après l'heure de début pour le jour ${schedule.dayOfWeek} (${schedule.period})`,
         );
       }
     }
@@ -51,13 +51,12 @@ export class SchedulesService {
       throw new BadRequestException("L'heure de fin doit être après l'heure de début");
     }
 
-    // Vérifier s'il existe déjà un horaire pour ce jour
+    // Vérifier s'il existe déjà un horaire pour ce jour + période
     const existing = await this.scheduleRepository.findOne({
-      where: { doctorId, dayOfWeek: createScheduleDto.dayOfWeek },
+      where: { doctorId, dayOfWeek: createScheduleDto.dayOfWeek, period: createScheduleDto.period },
     });
 
     if (existing) {
-      // Mettre à jour l'existant
       Object.assign(existing, createScheduleDto);
       return this.scheduleRepository.save(existing);
     }
@@ -76,7 +75,7 @@ export class SchedulesService {
   async findByDoctor(doctorId: string) {
     return this.scheduleRepository.find({
       where: { doctorId, isActive: true },
-      order: { dayOfWeek: 'ASC' },
+      order: { dayOfWeek: 'ASC', period: 'ASC' },
     });
   }
 
@@ -133,5 +132,16 @@ export class SchedulesService {
     }
 
     return slots;
+  }
+
+  /**
+   * Générer les créneaux pour plusieurs périodes (morning + afternoon)
+   */
+  generateSlotsFromSchedules(schedules: DoctorSchedule[]): string[] {
+    const allSlots: string[] = [];
+    for (const schedule of schedules) {
+      allSlots.push(...this.generateSlotsFromSchedule(schedule));
+    }
+    return allSlots.sort();
   }
 }

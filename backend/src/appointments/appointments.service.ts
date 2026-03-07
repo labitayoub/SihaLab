@@ -99,26 +99,29 @@ export class AppointmentsService {
     const requestedDate = new Date(date);
     const dayOfWeek = requestedDate.getDay(); // 0=Dim, 1=Lun, ..., 6=Sam
 
-    // 1. Récupérer l'horaire du médecin pour ce jour de la semaine
-    const schedule = await this.scheduleRepository.findOne({
+    // 1. Récupérer tous les horaires du médecin pour ce jour (matin + après-midi)
+    const daySchedules = await this.scheduleRepository.find({
       where: { doctorId, dayOfWeek, isActive: true },
+      order: { period: 'ASC' },
     });
 
-    if (!schedule) {
+    if (daySchedules.length === 0) {
       return {
         date,
         dayOfWeek,
         hasSchedule: false,
         availableSlots: [],
         bookedSlots: [],
+        morningSlots: [],
+        afternoonSlots: [],
         schedule: null,
       };
     }
 
-    // 2. Générer tous les créneaux possibles à partir de l'horaire du médecin
-    const allSlots = this.schedulesService.generateSlotsFromSchedule(schedule);
+    // 2. Générer tous les créneaux pour toutes les périodes
+    const allSlots = this.schedulesService.generateSlotsFromSchedules(daySchedules);
 
-    // 3. Récupérer les RDV déjà pris (EN_ATTENTE ou CONFIRME) pour ce médecin ce jour
+    // 3. Récupérer les RDV déjà pris (EN_ATTENTE ou CONFIRME)
     const appointments = await this.appointmentRepository.find({
       where: {
         doctorId,
@@ -130,16 +133,32 @@ export class AppointmentsService {
     const bookedSlots = appointments.map((apt) => apt.time);
     const availableSlots = allSlots.filter((slot) => !bookedSlots.includes(slot));
 
+    // 4. Séparer les créneaux par période pour l'affichage frontend
+    const morningSchedule = daySchedules.find((s) => s.period === 'morning');
+    const afternoonSchedule = daySchedules.find((s) => s.period === 'afternoon');
+
+    const morningAllSlots = morningSchedule
+      ? this.schedulesService.generateSlotsFromSchedule(morningSchedule)
+      : [];
+    const afternoonAllSlots = afternoonSchedule
+      ? this.schedulesService.generateSlotsFromSchedule(afternoonSchedule)
+      : [];
+
     return {
       date,
       dayOfWeek,
       hasSchedule: true,
       availableSlots,
       bookedSlots,
+      morningSlots: morningAllSlots.filter((s) => !bookedSlots.includes(s)),
+      afternoonSlots: afternoonAllSlots.filter((s) => !bookedSlots.includes(s)),
       schedule: {
-        startTime: schedule.startTime,
-        endTime: schedule.endTime,
-        slotDuration: schedule.slotDuration,
+        morning: morningSchedule
+          ? { startTime: morningSchedule.startTime, endTime: morningSchedule.endTime, slotDuration: morningSchedule.slotDuration }
+          : null,
+        afternoon: afternoonSchedule
+          ? { startTime: afternoonSchedule.startTime, endTime: afternoonSchedule.endTime, slotDuration: afternoonSchedule.slotDuration }
+          : null,
       },
     };
   }

@@ -17,6 +17,10 @@ export class DoctorSchedule {
   @Column({ type: 'int' })
   dayOfWeek: number;
 
+  /** 'morning' ou 'afternoon' */
+  @Column({ type: 'varchar', default: 'morning' })
+  period: string;
+
   /** Heure de début au format "HH:mm" */
   @Column({ type: 'time' })
   startTime: string;
