@@ -79,7 +79,7 @@ export default function Livraisons() {
       field: 'patient', 
       headerName: 'Patient', 
       width: 200,
-      valueGetter: (params) => `${params.row.patient?.firstName} ${params.row.patient?.lastName}`,
+      valueGetter: (_value: any, row: any) => `${row.patient?.firstName} ${row.patient?.lastName}`,
     },
     { field: 'adresseLivraison', headerName: 'Adresse', width: 250 },
     { field: 'fraisLivraison', headerName: 'Frais', width: 100, valueFormatter: (params) => `${params} DH` },

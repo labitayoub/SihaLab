@@ -28,7 +28,7 @@ export default function Documents() {
       field: 'patient', 
       headerName: 'Patient', 
       width: 200,
-      valueGetter: (params) => `${params.row.patient?.firstName} ${params.row.patient?.lastName}`,
+      valueGetter: (_value: any, row: any) => `${row.patient?.firstName} ${row.patient?.lastName}`,
     },
     { field: 'createdAt', headerName: 'Date', width: 180, valueFormatter: (params) => new Date(params).toLocaleString('fr-FR') },
     {

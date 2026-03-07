@@ -84,13 +84,13 @@ export default function Appointments() {
       field: 'patient', 
       headerName: 'Patient', 
       width: 200,
-      valueGetter: (params) => `${params.row.patient?.firstName} ${params.row.patient?.lastName}`,
+      valueGetter: (_value: any, row: any) => `${row.patient?.firstName} ${row.patient?.lastName}`,
     },
     { 
       field: 'doctor', 
       headerName: 'Médecin', 
       width: 200,
-      valueGetter: (params) => `Dr. ${params.row.doctor?.firstName} ${params.row.doctor?.lastName}`,
+      valueGetter: (_value: any, row: any) => `Dr. ${row.doctor?.firstName} ${row.doctor?.lastName}`,
     },
     { field: 'motif', headerName: 'Motif', width: 200 },
     {

@@ -1,3 +1,4 @@
+import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider, createTheme, CssBaseline } from '@mui/material';
 import { ToastContainer } from 'react-toastify';
@@ -26,7 +27,7 @@ const theme = createTheme({
   },
 });
 
-function PrivateRoute({ children }: { children: JSX.Element }) {
+function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, loading } = useAuth();
   
   if (loading) {

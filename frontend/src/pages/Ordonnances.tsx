@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Box, Button, Card, Typography, Dialog, DialogTitle, DialogContent, TextField, Chip, IconButton } from '@mui/material';
+import { Box, Button, Card, Typography, Dialog, DialogTitle, DialogContent, TextField, Chip, IconButton, MenuItem } from '@mui/material';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { Add, Delete } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
@@ -43,6 +43,18 @@ export default function Ordonnances() {
     }
   };
 
+  const handleCreate = async () => {
+    try {
+      await api.post('/ordonnances', formData);
+      toast.success('Ordonnance créée');
+      setOpen(false);
+      loadOrdonnances();
+      setFormData({ consultationId: '', medicaments: [{ nom: '', dosage: '', frequence: '', duree: '' }] });
+    } catch (error) {
+      toast.error('Erreur');
+    }
+  };
+
     const handleDelivrer = async (id: string) => {
     try {
       await api.post(`/ordonnances/${id}/delivrer`);
@@ -77,19 +89,19 @@ export default function Ordonnances() {
       field: 'patient', 
       headerName: 'Patient', 
       width: 200,
-      valueGetter: (params) => `${params.row.consultation?.patient?.firstName} ${params.row.consultation?.patient?.lastName}`,
+      valueGetter: (_value: any, row: any) => `${row.consultation?.patient?.firstName} ${row.consultation?.patient?.lastName}`,
     },
     { 
       field: 'doctor', 
       headerName: 'Médecin', 
       width: 200,
-      valueGetter: (params) => `Dr. ${params.row.consultation?.doctor?.firstName} ${params.row.consultation?.doctor?.lastName}`,
+      valueGetter: (_value: any, row: any) => `Dr. ${row.consultation?.doctor?.firstName} ${row.consultation?.doctor?.lastName}`,
     },
     { 
       field: 'medicaments', 
       headerName: 'Médicaments', 
       width: 250,
-      valueGetter: (params) => params.row.medicaments?.map((m: any) => m.nom).join(', '),
+      valueGetter: (_value: any, row: any) => row.medicaments?.map((m: any) => m.nom).join(', '),
     },
     {
       field: 'status',

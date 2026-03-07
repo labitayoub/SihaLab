@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Box, Button, Card, Typography, Dialog, DialogTitle, DialogContent, TextField, Chip } from '@mui/material';
+import { Box, Button, Card, Typography, Dialog, DialogTitle, DialogContent, TextField, Chip, MenuItem } from '@mui/material';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { Add, Upload } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
@@ -79,7 +79,7 @@ export default function Analyses() {
       field: 'patient', 
       headerName: 'Patient', 
       width: 200,
-      valueGetter: (params) => `${params.row.consultation?.patient?.firstName} ${params.row.consultation?.patient?.lastName}`,
+      valueGetter: (_value: any, row: any) => `${row.consultation?.patient?.firstName} ${row.consultation?.patient?.lastName}`,
     },
     { field: 'description', headerName: 'Description', width: 300 },
     {
