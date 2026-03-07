@@ -1,22 +1,43 @@
 import { useEffect, useState } from 'react';
-import { Box, Button, Card, Typography, Dialog, DialogTitle, DialogContent, TextField, MenuItem, Chip } from '@mui/material';
+import { Box, Button, Card, Typography, Dialog, DialogTitle, DialogContent, TextField, MenuItem, Chip, Grid } from '@mui/material';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { Add } from '@mui/icons-material';
 import { User, UserRole } from '../types/user.types';
 import api from '../config/api';
 import { toast } from 'react-toastify';
 
+const ADMIN_ALLOWED_ROLES = [
+  { value: UserRole.MEDECIN, label: 'Médecin' },
+  { value: UserRole.PHARMACIEN, label: 'Pharmacien' },
+  { value: UserRole.LABORATOIRE, label: 'Laboratoire' },
+  { value: UserRole.PATIENT, label: 'Patient' },
+];
+
+const ROLE_LABELS: Record<string, string> = {
+  [UserRole.ADMIN]: 'Admin',
+  [UserRole.MEDECIN]: 'Médecin',
+  [UserRole.PATIENT]: 'Patient',
+  [UserRole.PHARMACIEN]: 'Pharmacien',
+  [UserRole.LABORATOIRE]: 'Laboratoire',
+  [UserRole.INFIRMIER]: 'Infirmier',
+};
+
+const initialFormData = {
+  email: '',
+  password: '',
+  role: UserRole.PATIENT,
+  firstName: '',
+  lastName: '',
+  phone: '',
+  address: '',
+  specialite: '',
+  numeroOrdre: '',
+};
+
 export default function Users() {
   const [users, setUsers] = useState<User[]>([]);
   const [open, setOpen] = useState(false);
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-    role: UserRole.PATIENT,
-    firstName: '',
-    lastName: '',
-    phone: '',
-  });
+  const [formData, setFormData] = useState(initialFormData);
 
   useEffect(() => {
     loadUsers();
@@ -34,12 +55,12 @@ export default function Users() {
   const handleCreate = async () => {
     try {
       await api.post('/users', formData);
-      toast.success('Utilisateur créé');
+      toast.success('Utilisateur créé avec succès');
       setOpen(false);
       loadUsers();
-      setFormData({ email: '', password: '', role: UserRole.PATIENT, firstName: '', lastName: '', phone: '' });
-    } catch (error) {
-      toast.error('Erreur');
+      setFormData(initialFormData);
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Erreur lors de la création');
     }
   };
 
@@ -53,16 +74,41 @@ export default function Users() {
     }
   };
 
+  const handleRoleChange = (role: UserRole) => {
+    setFormData({
+      ...formData,
+      role,
+      specialite: '',
+      numeroOrdre: '',
+    });
+  };
+
+  const isMedecin = formData.role === UserRole.MEDECIN;
+  const isPharmacienOrLabo = [UserRole.PHARMACIEN, UserRole.LABORATOIRE].includes(formData.role);
+
   const columns: GridColDef[] = [
-    { field: 'firstName', headerName: 'Prénom', width: 150 },
-    { field: 'lastName', headerName: 'Nom', width: 150 },
-    { field: 'email', headerName: 'Email', width: 250 },
-    { field: 'role', headerName: 'Rôle', width: 150 },
-    { field: 'phone', headerName: 'Téléphone', width: 150 },
+    { field: 'firstName', headerName: 'Prénom', flex: 1, minWidth: 120 },
+    { field: 'lastName', headerName: 'Nom', flex: 1, minWidth: 120 },
+    { field: 'email', headerName: 'Email', flex: 1.5, minWidth: 200 },
+    {
+      field: 'role',
+      headerName: 'Rôle',
+      width: 140,
+      renderCell: (params) => (
+        <Chip label={ROLE_LABELS[params.value] || params.value} size="small" variant="outlined" />
+      ),
+    },
+    { field: 'phone', headerName: 'Téléphone', width: 140 },
+    {
+      field: 'specialite',
+      headerName: 'Spécialité / Établissement',
+      width: 200,
+      renderCell: (params) => params.value || '—',
+    },
     {
       field: 'isActive',
       headerName: 'Statut',
-      width: 120,
+      width: 110,
       renderCell: (params) => (
         <Chip label={params.value ? 'Actif' : 'Inactif'} color={params.value ? 'success' : 'error'} size="small" />
       ),
@@ -70,7 +116,7 @@ export default function Users() {
     {
       field: 'actions',
       headerName: 'Actions',
-      width: 150,
+      width: 140,
       renderCell: (params) => (
         <Button size="small" onClick={() => handleToggleActive(params.row.id, params.row.isActive)}>
           {params.row.isActive ? 'Désactiver' : 'Activer'}
@@ -93,34 +139,42 @@ export default function Users() {
       </Card>
 
       <Dialog open={open} onClose={() => setOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Nouvel Utilisateur</DialogTitle>
+        <DialogTitle>Créer un compte</DialogTitle>
         <DialogContent>
           <TextField
             select
             fullWidth
             label="Rôle"
             value={formData.role}
-            onChange={(e) => setFormData({ ...formData, role: e.target.value as UserRole })}
+            onChange={(e) => handleRoleChange(e.target.value as UserRole)}
             margin="normal"
           >
-            {Object.values(UserRole).map((role) => (
-              <MenuItem key={role} value={role}>{role}</MenuItem>
+            {ADMIN_ALLOWED_ROLES.map((r) => (
+              <MenuItem key={r.value} value={r.value}>{r.label}</MenuItem>
             ))}
           </TextField>
-          <TextField
-            fullWidth
-            label="Prénom"
-            value={formData.firstName}
-            onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-            margin="normal"
-          />
-          <TextField
-            fullWidth
-            label="Nom"
-            value={formData.lastName}
-            onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-            margin="normal"
-          />
+
+          <Grid container spacing={2}>
+            <Grid size={{ xs: 6 }}>
+              <TextField
+                fullWidth
+                label="Prénom"
+                value={formData.firstName}
+                onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                margin="normal"
+              />
+            </Grid>
+            <Grid size={{ xs: 6 }}>
+              <TextField
+                fullWidth
+                label="Nom"
+                value={formData.lastName}
+                onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                margin="normal"
+              />
+            </Grid>
+          </Grid>
+
           <TextField
             fullWidth
             label="Email"
@@ -138,14 +192,58 @@ export default function Users() {
           />
           <TextField
             fullWidth
+            label="Adresse"
+            value={formData.address}
+            onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+            margin="normal"
+            multiline
+            rows={2}
+          />
+
+          {isMedecin && (
+            <Grid container spacing={2}>
+              <Grid size={{ xs: 6 }}>
+                <TextField
+                  fullWidth
+                  label="Spécialité"
+                  value={formData.specialite}
+                  onChange={(e) => setFormData({ ...formData, specialite: e.target.value })}
+                  margin="normal"
+                />
+              </Grid>
+              <Grid size={{ xs: 6 }}>
+                <TextField
+                  fullWidth
+                  label="N° Ordre"
+                  value={formData.numeroOrdre}
+                  onChange={(e) => setFormData({ ...formData, numeroOrdre: e.target.value })}
+                  margin="normal"
+                />
+              </Grid>
+            </Grid>
+          )}
+
+          {isPharmacienOrLabo && (
+            <TextField
+              fullWidth
+              label={formData.role === UserRole.PHARMACIEN ? 'Nom de la pharmacie' : 'Nom du laboratoire'}
+              value={formData.specialite}
+              onChange={(e) => setFormData({ ...formData, specialite: e.target.value })}
+              margin="normal"
+            />
+          )}
+
+          <TextField
+            fullWidth
             label="Mot de passe"
             type="password"
             value={formData.password}
             onChange={(e) => setFormData({ ...formData, password: e.target.value })}
             margin="normal"
           />
+
           <Button fullWidth variant="contained" onClick={handleCreate} sx={{ mt: 2 }}>
-            Créer
+            Créer le compte
           </Button>
         </DialogContent>
       </Dialog>

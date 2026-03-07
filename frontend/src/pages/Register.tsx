@@ -21,14 +21,21 @@ export default function Register() {
   const navigate = useNavigate();
 
   const isMedecin = formData.role === UserRole.MEDECIN;
+  const isPharmacienOrLabo = [UserRole.PHARMACIEN, UserRole.LABORATOIRE].includes(formData.role);
+
+  const handleRoleChange = (role: UserRole) => {
+    setFormData({ ...formData, role, specialite: '', numeroOrdre: '' });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       const dataToSend = { ...formData };
       if (!isMedecin) {
-        delete (dataToSend as any).specialite;
         delete (dataToSend as any).numeroOrdre;
+      }
+      if (!isMedecin && !isPharmacienOrLabo) {
+        delete (dataToSend as any).specialite;
       }
       await register(dataToSend);
       navigate('/login');
@@ -50,7 +57,7 @@ export default function Register() {
               fullWidth
               label="Rôle"
               value={formData.role}
-              onChange={(e) => setFormData({ ...formData, role: e.target.value as UserRole })}
+              onChange={(e) => handleRoleChange(e.target.value as UserRole)}
               margin="normal"
             >
               <MenuItem value={UserRole.PATIENT}>Patient</MenuItem>
@@ -126,6 +133,15 @@ export default function Register() {
                   />
                 </Grid>
               </Grid>
+            )}
+            {isPharmacienOrLabo && (
+              <TextField
+                fullWidth
+                label={formData.role === UserRole.PHARMACIEN ? 'Nom de la pharmacie' : 'Nom du laboratoire'}
+                value={formData.specialite}
+                onChange={(e) => setFormData({ ...formData, specialite: e.target.value })}
+                margin="normal"
+              />
             )}
             <TextField
               fullWidth
