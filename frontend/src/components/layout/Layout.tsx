@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import { AppBar, Toolbar, Typography, IconButton, Drawer, List, ListItemButton, ListItemIcon, ListItemText, Box, Avatar, Menu, MenuItem } from '@mui/material';
 import { Menu as MenuIcon, Dashboard, CalendarMonth, MedicalServices, LocalPharmacy, Science, LocalShipping, Description, People, AccountCircle, GroupAdd } from '@mui/icons-material';
-import { useAuth } from '../context/AuthContext';
-import { UserRole } from '../types';
+import { useAuth } from '../../context/AuthContext';
+import { UserRole } from '../../types';
 
 export default function Layout() {
   const [drawerOpen, setDrawerOpen] = useState(false);
