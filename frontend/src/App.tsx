@@ -15,6 +15,7 @@ import Analyses from './pages/Analyses';
 import Livraisons from './pages/Livraisons';
 import Documents from './pages/Documents';
 import Users from './pages/Users';
+import Infirmiers from './pages/Infirmiers';
 
 const theme = createTheme({
   palette: {
@@ -56,6 +57,7 @@ function App() {
               <Route path="livraisons" element={<Livraisons />} />
               <Route path="documents" element={<Documents />} />
               <Route path="users" element={<Users />} />
+              <Route path="infirmiers" element={<Infirmiers />} />
             </Route>
           </Routes>
         </BrowserRouter>

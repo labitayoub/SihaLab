@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import { AppBar, Toolbar, Typography, IconButton, Drawer, List, ListItemButton, ListItemIcon, ListItemText, Box, Avatar, Menu, MenuItem } from '@mui/material';
-import { Menu as MenuIcon, Dashboard, CalendarMonth, MedicalServices, LocalPharmacy, Science, LocalShipping, Description, People, AccountCircle } from '@mui/icons-material';
+import { Menu as MenuIcon, Dashboard, CalendarMonth, MedicalServices, LocalPharmacy, Science, LocalShipping, Description, People, AccountCircle, GroupAdd } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
 import { UserRole } from '../types';
 
@@ -19,6 +19,7 @@ export default function Layout() {
     { text: 'Analyses', icon: <Science />, path: '/analyses', roles: [UserRole.MEDECIN, UserRole.PATIENT, UserRole.LABORATOIRE] },
     { text: 'Livraisons', icon: <LocalShipping />, path: '/livraisons', roles: [UserRole.PATIENT, UserRole.PHARMACIEN] },
     { text: 'Documents', icon: <Description />, path: '/documents', roles: [UserRole.MEDECIN, UserRole.PATIENT] },
+    { text: 'Mes Infirmiers', icon: <GroupAdd />, path: '/infirmiers', roles: [UserRole.MEDECIN] },
     { text: 'Utilisateurs', icon: <People />, path: '/users', roles: [UserRole.ADMIN] },
   ];
 
