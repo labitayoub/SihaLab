@@ -36,8 +36,9 @@ api.interceptors.response.use(
           throw new Error('No refresh token');
         }
 
+        const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1';
         const { data } = await axios.post(
-          `${import.meta.env.VITE_API_URL}/auth/refresh`,
+          `${baseURL}/auth/refresh`,
           { refreshToken }
         );
 

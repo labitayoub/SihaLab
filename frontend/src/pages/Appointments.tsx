@@ -6,7 +6,6 @@ import { useAuth } from '../context/AuthContext';
 import { Appointment, AppointmentStatus, UserRole } from '../types';
 import api from '../config/api';
 import { toast } from 'react-toastify';
-import { format } from 'date-fns';
 
 export default function Appointments() {
   const { user } = useAuth();
