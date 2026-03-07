@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { User, UserRole } from '../entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { MinioService } from '../common/minio/minio.service';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
@@ -11,6 +12,7 @@ export class UsersService {
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>,
+    private minioService: MinioService,
   ) {}
 
   async create(createUserDto: CreateUserDto) {
@@ -123,6 +125,25 @@ export class UsersService {
     await this.userRepository.save(infirmier);
     const { password, ...result } = infirmier;
     return result;
+  }
+
+  async uploadAvatar(userId: string, buffer: Buffer, mimeType: string): Promise<{ avatarUrl: string }> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) throw new NotFoundException('User not found');
+
+    // Delete old avatar from MinIO if exists
+    if (user.avatarUrl) {
+      const oldKey = user.avatarUrl.split('/').slice(-1)[0];
+      await this.minioService.deleteFile(`avatars/${oldKey}`);
+    }
+
+    const ext = mimeType.split('/')[1] || 'jpg';
+    const objectName = `avatars/${userId}-${Date.now()}.${ext}`;
+    const avatarUrl = await this.minioService.uploadFile(objectName, buffer, mimeType);
+
+    user.avatarUrl = avatarUrl;
+    await this.userRepository.save(user);
+    return { avatarUrl };
   }
 
   async remove(id: string) {

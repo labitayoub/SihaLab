@@ -1,4 +1,5 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -46,6 +47,16 @@ export class UsersController {
   @ApiOperation({ summary: 'Update current user profile' })
   updateMe(@CurrentUser() user: User, @Body() updateUserDto: UpdateUserDto) {
     return this.usersService.update(user.id, updateUserDto);
+  }
+
+  @Post('me/avatar')
+  @ApiOperation({ summary: 'Upload avatar for current user' })
+  @UseInterceptors(FileInterceptor('avatar'))
+  uploadAvatar(
+    @CurrentUser() user: User,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    return this.usersService.uploadAvatar(user.id, file.buffer, file.mimetype);
   }
 
   @Get('doctors')
