@@ -14,6 +14,13 @@ export class UsersService {
   ) {}
 
   async create(createUserDto: CreateUserDto) {
+    const forbiddenRoles = [UserRole.INFIRMIER, UserRole.ADMIN];
+    if (forbiddenRoles.includes(createUserDto.role as UserRole)) {
+      throw new ForbiddenException(
+        'Impossible de créer un compte avec ce rôle. Les infirmiers doivent être créés par un médecin.',
+      );
+    }
+
     const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
     const user = this.userRepository.create({
       ...createUserDto,

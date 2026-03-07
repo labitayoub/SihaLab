@@ -18,8 +18,9 @@ export class AuthService {
   ) {}
 
   async register(registerDto: RegisterDto) {
-    if (registerDto.role === 'infirmier') {
-      throw new ConflictException('Les infirmiers doivent être créés par un médecin');
+    const blockedRoles = ['infirmier', 'admin'];
+    if (blockedRoles.includes(registerDto.role)) {
+      throw new ConflictException('Inscription non autorisée avec ce rôle');
     }
 
     const existingUser = await this.userRepository.findOne({ 
