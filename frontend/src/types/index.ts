@@ -35,6 +35,13 @@ export enum LivraisonStatus {
   ECHEC = 'echec',
 }
 
+export enum DocumentType {
+  ANALYSE = 'analyse',
+  ORDONNANCE = 'ordonnance',
+  CONSULTATION = 'consultation',
+  AUTRE = 'autre',
+}
+
 export interface User {
   id: string;
   email: string;
@@ -75,6 +82,13 @@ export interface Consultation {
   createdAt: string;
 }
 
+export interface Medicament {
+  nom: string;
+  dosage: string;
+  frequence: string;
+  duree: string;
+}
+
 export interface Ordonnance {
   id: string;
   consultationId: string;
@@ -82,12 +96,7 @@ export interface Ordonnance {
   pharmacienId?: string;
   pharmacien?: User;
   status: OrdonnanceStatus;
-  medicaments: Array<{
-    nom: string;
-    dosage: string;
-    frequence: string;
-    duree: string;
-  }>;
+  medicaments: Medicament[];
   qrCode?: string;
   dateDelivrance?: string;
   createdAt: string;
@@ -122,5 +131,20 @@ export interface Livraison {
   livreurNom?: string;
   livreurTelephone?: string;
   dateLivraison?: string;
+  createdAt: string;
+}
+
+export interface Document {
+  id: string;
+  patientId: string;
+  patient?: User;
+  uploadedBy: string;
+  uploader?: User;
+  type: DocumentType;
+  fileName: string;
+  fileUrl: string;
+  mimeType: string;
+  fileSize: number;
+  description?: string;
   createdAt: string;
 }

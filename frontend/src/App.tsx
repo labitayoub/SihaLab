@@ -1,5 +1,4 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider, createTheme, CssBaseline } from '@mui/material';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -16,8 +15,6 @@ import Livraisons from './pages/Livraisons';
 import Documents from './pages/Documents';
 import Users from './pages/Users';
 
-const queryClient = new QueryClient();
-
 const theme = createTheme({
   palette: {
     primary: { main: '#1976d2' },
@@ -31,37 +28,39 @@ const theme = createTheme({
 
 function PrivateRoute({ children }: { children: JSX.Element }) {
   const { isAuthenticated, loading } = useAuth();
-  if (loading) return <div>Loading...</div>;
+  
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+  
   return isAuthenticated ? children : <Navigate to="/login" />;
 }
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider theme={theme}>
-        <CssBaseline />
-        <AuthProvider>
-          <BrowserRouter>
-            <Routes>
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>
-                <Route index element={<Navigate to="/dashboard" />} />
-                <Route path="dashboard" element={<Dashboard />} />
-                <Route path="appointments" element={<Appointments />} />
-                <Route path="consultations" element={<Consultations />} />
-                <Route path="ordonnances" element={<Ordonnances />} />
-                <Route path="analyses" element={<Analyses />} />
-                <Route path="livraisons" element={<Livraisons />} />
-                <Route path="documents" element={<Documents />} />
-                <Route path="users" element={<Users />} />
-              </Route>
-            </Routes>
-          </BrowserRouter>
-          <ToastContainer position="top-right" autoClose={3000} />
-        </AuthProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <AuthProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>
+              <Route index element={<Navigate to="/dashboard" />} />
+              <Route path="dashboard" element={<Dashboard />} />
+              <Route path="appointments" element={<Appointments />} />
+              <Route path="consultations" element={<Consultations />} />
+              <Route path="ordonnances" element={<Ordonnances />} />
+              <Route path="analyses" element={<Analyses />} />
+              <Route path="livraisons" element={<Livraisons />} />
+              <Route path="documents" element={<Documents />} />
+              <Route path="users" element={<Users />} />
+            </Route>
+          </Routes>
+        </BrowserRouter>
+        <ToastContainer position="top-right" autoClose={3000} />
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 
