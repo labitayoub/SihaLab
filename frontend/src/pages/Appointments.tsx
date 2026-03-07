@@ -184,7 +184,7 @@ export default function Appointments() {
       width: 200,
       renderCell: (params) => (
         <Box>
-          {user?.role === UserRole.MEDECIN && params.row.status === AppointmentStatus.EN_ATTENTE && (
+          {(user?.role === UserRole.MEDECIN || user?.role === UserRole.INFIRMIER) && params.row.status === AppointmentStatus.EN_ATTENTE && (
             <>
               <Button size="small" onClick={() => handleConfirm(params.row.id)}>Confirmer</Button>
               <Button size="small" color="error" onClick={() => handleCancel(params.row.id)}>Annuler</Button>

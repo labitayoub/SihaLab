@@ -22,10 +22,12 @@ export default function Dashboard() {
   const [pendingCount, setPendingCount] = useState(0);
 
   const isDoctor = user?.role === UserRole.MEDECIN;
+  const isInfirmier = user?.role === UserRole.INFIRMIER;
+  const isDoctorOrInfirmier = isDoctor || isInfirmier;
 
   useEffect(() => {
     loadStats();
-    if (isDoctor) {
+    if (isDoctorOrInfirmier) {
       loadDoctorData();
     }
   }, []);
@@ -46,7 +48,7 @@ export default function Dashboard() {
       });
 
       // Compter les RDV en attente et ceux d'aujourd'hui
-      if (isDoctor) {
+      if (isDoctorOrInfirmier) {
         const today = new Date().toISOString().split('T')[0];
         const allAppts: Appointment[] = appointments.data;
         setTodayAppointments(allAppts.filter((a) => a.date === today && a.status !== AppointmentStatus.ANNULE));
@@ -139,8 +141,8 @@ export default function Dashboard() {
         ))}
       </Grid>
 
-      {/* ── Section médecin : Disponibilités + RDV du jour ── */}
-      {isDoctor && (
+      {/* ── Section médecin / infirmier : Disponibilités + RDV du jour ── */}
+      {isDoctorOrInfirmier && (
         <Grid container spacing={3} sx={{ mt: 1 }}>
           {/* Carte Mes Disponibilités */}
           <Grid item xs={12} md={6}>
@@ -149,16 +151,18 @@ export default function Dashboard() {
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <Schedule color="primary" />
-                    <Typography variant="h6">Mes Disponibilités</Typography>
+                    <Typography variant="h6">{isInfirmier ? 'Disponibilités du Médecin' : 'Mes Disponibilités'}</Typography>
                   </Box>
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    onClick={() => navigate('/schedule')}
-                    endIcon={<ArrowForward />}
-                  >
-                    {hasSchedule ? 'Modifier' : 'Configurer'}
-                  </Button>
+                  {isDoctor && (
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      onClick={() => navigate('/schedule')}
+                      endIcon={<ArrowForward />}
+                    >
+                      {hasSchedule ? 'Modifier' : 'Configurer'}
+                    </Button>
+                  )}
                 </Box>
 
                 {hasSchedule ? (

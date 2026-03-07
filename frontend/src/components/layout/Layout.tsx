@@ -12,15 +12,15 @@ export default function Layout() {
   const navigate = useNavigate();
 
   const menuItems = [
-    { text: 'Dashboard', icon: <Dashboard />, path: '/dashboard', roles: [UserRole.ADMIN, UserRole.MEDECIN, UserRole.PATIENT, UserRole.PHARMACIEN, UserRole.LABORATOIRE] },
-    { text: 'Rendez-vous', icon: <CalendarMonth />, path: '/appointments', roles: [UserRole.MEDECIN, UserRole.PATIENT] },
+    { text: 'Dashboard', icon: <Dashboard />, path: '/dashboard', roles: [UserRole.ADMIN, UserRole.MEDECIN, UserRole.PATIENT, UserRole.PHARMACIEN, UserRole.LABORATOIRE, UserRole.INFIRMIER] },
+    { text: 'Rendez-vous', icon: <CalendarMonth />, path: '/appointments', roles: [UserRole.MEDECIN, UserRole.PATIENT, UserRole.INFIRMIER] },
     { text: 'Consultations', icon: <MedicalServices />, path: '/consultations', roles: [UserRole.MEDECIN, UserRole.PATIENT, UserRole.INFIRMIER] },
-    { text: 'Ordonnances', icon: <LocalPharmacy />, path: '/ordonnances', roles: [UserRole.MEDECIN, UserRole.PATIENT, UserRole.PHARMACIEN] },
-    { text: 'Analyses', icon: <Science />, path: '/analyses', roles: [UserRole.MEDECIN, UserRole.PATIENT, UserRole.LABORATOIRE] },
+    { text: 'Ordonnances', icon: <LocalPharmacy />, path: '/ordonnances', roles: [UserRole.MEDECIN, UserRole.PATIENT, UserRole.PHARMACIEN, UserRole.INFIRMIER] },
+    { text: 'Analyses', icon: <Science />, path: '/analyses', roles: [UserRole.MEDECIN, UserRole.PATIENT, UserRole.LABORATOIRE, UserRole.INFIRMIER] },
     { text: 'Livraisons', icon: <LocalShipping />, path: '/livraisons', roles: [UserRole.PATIENT, UserRole.PHARMACIEN] },
-    { text: 'Documents', icon: <Description />, path: '/documents', roles: [UserRole.MEDECIN, UserRole.PATIENT] },
+    { text: 'Documents', icon: <Description />, path: '/documents', roles: [UserRole.MEDECIN, UserRole.PATIENT, UserRole.INFIRMIER] },
     { text: 'Mes Infirmiers', icon: <GroupAdd />, path: '/infirmiers', roles: [UserRole.MEDECIN] },
-    { text: 'Mes Disponibilités', icon: <Schedule />, path: '/schedule', roles: [UserRole.MEDECIN] },
+    { text: 'Disponibilités', icon: <Schedule />, path: '/schedule', roles: [UserRole.MEDECIN, UserRole.INFIRMIER] },
     { text: 'Utilisateurs', icon: <People />, path: '/users', roles: [UserRole.ADMIN] },
   ];
 

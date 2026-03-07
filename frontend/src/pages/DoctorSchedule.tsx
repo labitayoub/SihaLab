@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Box, Typography, Card, CardContent, Switch, TextField, Button, Grid,
   FormControlLabel, Divider, Chip, Alert, CircularProgress, Stack,
 } from '@mui/material';
 import { Schedule, Save, WbSunny, NightsStay, Restaurant } from '@mui/icons-material';
 import { DoctorSchedule as DoctorScheduleType, DayScheduleForm, DAY_LABELS } from '../types/schedule.types';
+import { useAuth } from '../context/AuthContext';
+import { UserRole } from '../types/user.types';
 import api from '../config/api';
 import { toast } from 'react-toastify';
 
@@ -21,6 +24,9 @@ const DEFAULT_SCHEDULES: DayScheduleForm[] = [
 const DISPLAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
 
 export default function DoctorSchedulePage() {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const isReadOnly = user?.role === UserRole.INFIRMIER;
   const [schedules, setSchedules] = useState<DayScheduleForm[]>(DEFAULT_SCHEDULES);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -120,6 +126,7 @@ export default function DoctorSchedulePage() {
     try {
       await api.post('/schedules/bulk', { schedules: bulkSchedules });
       toast.success('Horaires sauvegardés avec succès');
+      navigate('/dashboard');
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Erreur lors de la sauvegarde');
     } finally {
@@ -153,17 +160,19 @@ export default function DoctorSchedulePage() {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <Schedule color="primary" sx={{ fontSize: 32 }} />
-          <Typography variant="h4">Mes Disponibilités</Typography>
+          <Typography variant="h4">{isReadOnly ? 'Disponibilités du Médecin' : 'Mes Disponibilités'}</Typography>
         </Box>
-        <Button
-          variant="contained"
-          startIcon={saving ? <CircularProgress size={20} color="inherit" /> : <Save />}
-          onClick={handleSave}
-          disabled={saving}
-          size="large"
-        >
-          {saving ? 'Enregistrement...' : 'Enregistrer'}
-        </Button>
+        {!isReadOnly && (
+          <Button
+            variant="contained"
+            startIcon={saving ? <CircularProgress size={20} color="inherit" /> : <Save />}
+            onClick={handleSave}
+            disabled={saving}
+            size="large"
+          >
+            {saving ? 'Enregistrement...' : 'Enregistrer'}
+          </Button>
+        )}
       </Box>
 
       <Alert severity="info" sx={{ mb: 3 }}>
@@ -199,6 +208,7 @@ export default function DoctorSchedulePage() {
                             checked={entry.isActive}
                             onChange={(e) => updateSchedule(day, 'isActive', e.target.checked)}
                             color="primary"
+                            disabled={isReadOnly}
                           />
                         }
                         label={
@@ -218,6 +228,7 @@ export default function DoctorSchedulePage() {
                             onChange={(e) => updateSchedule(day, 'slotDuration', Number(e.target.value))}
                             fullWidth
                             size="small"
+                            disabled={isReadOnly}
                             SelectProps={{ native: true }}
                           >
                             <option value={15}>15 min</option>
@@ -258,6 +269,7 @@ export default function DoctorSchedulePage() {
                                   onChange={(e) => updateSchedule(day, 'morningActive', e.target.checked)}
                                   color="warning"
                                   size="small"
+                                  disabled={isReadOnly}
                                 />
                               }
                               label={
@@ -276,6 +288,7 @@ export default function DoctorSchedulePage() {
                                   onChange={(e) => updateSchedule(day, 'morningStart', e.target.value)}
                                   size="small"
                                   InputLabelProps={{ shrink: true }}
+                                  disabled={isReadOnly}
                                   fullWidth
                                 />
                                 <TextField
@@ -285,6 +298,7 @@ export default function DoctorSchedulePage() {
                                   onChange={(e) => updateSchedule(day, 'morningEnd', e.target.value)}
                                   size="small"
                                   InputLabelProps={{ shrink: true }}
+                                  disabled={isReadOnly}
                                   fullWidth
                                 />
                               </Stack>
@@ -304,6 +318,7 @@ export default function DoctorSchedulePage() {
                                   onChange={(e) => updateSchedule(day, 'afternoonActive', e.target.checked)}
                                   color="info"
                                   size="small"
+                                  disabled={isReadOnly}
                                 />
                               }
                               label={
@@ -322,6 +337,7 @@ export default function DoctorSchedulePage() {
                                   onChange={(e) => updateSchedule(day, 'afternoonStart', e.target.value)}
                                   size="small"
                                   InputLabelProps={{ shrink: true }}
+                                  disabled={isReadOnly}
                                   fullWidth
                                 />
                                 <TextField
@@ -331,6 +347,7 @@ export default function DoctorSchedulePage() {
                                   onChange={(e) => updateSchedule(day, 'afternoonEnd', e.target.value)}
                                   size="small"
                                   InputLabelProps={{ shrink: true }}
+                                  disabled={isReadOnly}
                                   fullWidth
                                 />
                               </Stack>

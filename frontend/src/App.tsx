@@ -49,7 +49,7 @@ function App() {
               <Route index element={<Navigate to="/dashboard" replace />} />
               <Route path="dashboard" element={<Dashboard />} />
               <Route path="appointments" element={
-                <ProtectedRoute roles={[UserRole.MEDECIN, UserRole.PATIENT]}>
+                <ProtectedRoute roles={[UserRole.MEDECIN, UserRole.PATIENT, UserRole.INFIRMIER]}>
                   <Appointments />
                 </ProtectedRoute>
               } />
@@ -59,12 +59,12 @@ function App() {
                 </ProtectedRoute>
               } />
               <Route path="ordonnances" element={
-                <ProtectedRoute roles={[UserRole.MEDECIN, UserRole.PATIENT, UserRole.PHARMACIEN]}>
+                <ProtectedRoute roles={[UserRole.MEDECIN, UserRole.PATIENT, UserRole.PHARMACIEN, UserRole.INFIRMIER]}>
                   <Ordonnances />
                 </ProtectedRoute>
               } />
               <Route path="analyses" element={
-                <ProtectedRoute roles={[UserRole.MEDECIN, UserRole.PATIENT, UserRole.LABORATOIRE]}>
+                <ProtectedRoute roles={[UserRole.MEDECIN, UserRole.PATIENT, UserRole.LABORATOIRE, UserRole.INFIRMIER]}>
                   <Analyses />
                 </ProtectedRoute>
               } />
@@ -74,7 +74,7 @@ function App() {
                 </ProtectedRoute>
               } />
               <Route path="documents" element={
-                <ProtectedRoute roles={[UserRole.MEDECIN, UserRole.PATIENT]}>
+                <ProtectedRoute roles={[UserRole.MEDECIN, UserRole.PATIENT, UserRole.INFIRMIER]}>
                   <Documents />
                 </ProtectedRoute>
               } />
@@ -89,7 +89,7 @@ function App() {
                 </ProtectedRoute>
               } />
               <Route path="schedule" element={
-                <ProtectedRoute roles={[UserRole.MEDECIN]}>
+                <ProtectedRoute roles={[UserRole.MEDECIN, UserRole.INFIRMIER]}>
                   <DoctorSchedule />
                 </ProtectedRoute>
               } />
