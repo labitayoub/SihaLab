@@ -21,6 +21,20 @@ export class AppointmentsService {
   async create(patientId: string, createAppointmentDto: CreateAppointmentDto) {
     const { doctorId, date, time } = createAppointmentDto;
 
+    // 0. Vérifier que le patient n'a pas déjà un RDV actif avec ce médecin
+    const existingActive = await this.appointmentRepository.findOne({
+      where: [
+        { patientId, doctorId, status: AppointmentStatus.EN_ATTENTE },
+        { patientId, doctorId, status: AppointmentStatus.CONFIRME },
+      ],
+    });
+
+    if (existingActive) {
+      throw new BadRequestException(
+        'Vous avez déjà un rendez-vous en cours avec ce médecin. Veuillez attendre qu\'il soit terminé ou annulé avant d\'en prendre un nouveau.',
+      );
+    }
+
     // 1. Vérifier la disponibilité du médecin ce jour-là
     const availability = await this.getDoctorAvailability(doctorId, date);
 

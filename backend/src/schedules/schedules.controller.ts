@@ -21,18 +21,20 @@ export class SchedulesController {
    * POST /schedules/bulk — Médecin définit tous ses horaires de la semaine
    */
   @Post('bulk')
-  @Roles(UserRole.MEDECIN)
+  @Roles(UserRole.MEDECIN, UserRole.INFIRMIER)
   bulkCreate(@CurrentUser() user: User, @Body() bulkDto: BulkCreateScheduleDto) {
-    return this.schedulesService.bulkCreate(user.id, bulkDto);
+    const doctorId = user.role === UserRole.INFIRMIER ? user.createdBy : user.id;
+    return this.schedulesService.bulkCreate(doctorId, bulkDto);
   }
 
   /**
    * POST /schedules — Médecin ajoute un créneau pour un jour
    */
   @Post()
-  @Roles(UserRole.MEDECIN)
+  @Roles(UserRole.MEDECIN, UserRole.INFIRMIER)
   create(@CurrentUser() user: User, @Body() createScheduleDto: CreateScheduleDto) {
-    return this.schedulesService.create(user.id, createScheduleDto);
+    const doctorId = user.role === UserRole.INFIRMIER ? user.createdBy : user.id;
+    return this.schedulesService.create(doctorId, createScheduleDto);
   }
 
   /**
@@ -58,21 +60,23 @@ export class SchedulesController {
    * PATCH /schedules/:id — Médecin modifie un de ses créneaux
    */
   @Patch(':id')
-  @Roles(UserRole.MEDECIN)
+  @Roles(UserRole.MEDECIN, UserRole.INFIRMIER)
   update(
     @Param('id') id: string,
     @CurrentUser() user: User,
     @Body() updateScheduleDto: UpdateScheduleDto,
   ) {
-    return this.schedulesService.update(id, user.id, updateScheduleDto);
+    const doctorId = user.role === UserRole.INFIRMIER ? user.createdBy : user.id;
+    return this.schedulesService.update(id, doctorId, updateScheduleDto);
   }
 
   /**
    * DELETE /schedules/:id — Médecin supprime un créneau
    */
   @Delete(':id')
-  @Roles(UserRole.MEDECIN)
+  @Roles(UserRole.MEDECIN, UserRole.INFIRMIER)
   remove(@Param('id') id: string, @CurrentUser() user: User) {
-    return this.schedulesService.remove(id, user.id);
+    const doctorId = user.role === UserRole.INFIRMIER ? user.createdBy : user.id;
+    return this.schedulesService.remove(id, doctorId);
   }
 }
