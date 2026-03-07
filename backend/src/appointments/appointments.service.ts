@@ -1,37 +1,46 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { Appointment } from '../entities/appointment.entity';
+import { DoctorSchedule } from '../entities/doctor-schedule.entity';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
 import { UpdateAppointmentDto } from './dto/update-appointment.dto';
 import { AppointmentStatus } from '../common/enums/status.enum';
+import { SchedulesService } from '../schedules/schedules.service';
 
 @Injectable()
 export class AppointmentsService {
   constructor(
     @InjectRepository(Appointment)
     private appointmentRepository: Repository<Appointment>,
+    @InjectRepository(DoctorSchedule)
+    private scheduleRepository: Repository<DoctorSchedule>,
+    private schedulesService: SchedulesService,
   ) {}
 
   async create(patientId: string, createAppointmentDto: CreateAppointmentDto) {
-    // Check for conflicts
-    const existingAppointment = await this.appointmentRepository.findOne({
-      where: {
-        doctorId: createAppointmentDto.doctorId,
-        date: new Date(createAppointmentDto.date),
-        time: createAppointmentDto.time,
-        status: AppointmentStatus.CONFIRME,
-      },
-    });
+    const { doctorId, date, time } = createAppointmentDto;
 
-    if (existingAppointment) {
-      throw new BadRequestException('Time slot already booked');
+    // 1. Vérifier la disponibilité du médecin ce jour-là
+    const availability = await this.getDoctorAvailability(doctorId, date);
+
+    if (availability.availableSlots.length === 0) {
+      throw new BadRequestException(
+        'Le médecin n\'est pas disponible ce jour-là',
+      );
+    }
+
+    // 2. Vérifier que le créneau demandé fait partie des créneaux disponibles
+    if (!availability.availableSlots.includes(time)) {
+      throw new BadRequestException(
+        'Ce créneau n\'est pas disponible. Veuillez choisir parmi les créneaux disponibles.',
+      );
     }
 
     const appointment = this.appointmentRepository.create({
       ...createAppointmentDto,
       patientId,
-      date: new Date(createAppointmentDto.date),
+      date: new Date(date),
     });
 
     return this.appointmentRepository.save(appointment);
@@ -87,28 +96,52 @@ export class AppointmentsService {
   }
 
   async getDoctorAvailability(doctorId: string, date: string) {
+    const requestedDate = new Date(date);
+    const dayOfWeek = requestedDate.getDay(); // 0=Dim, 1=Lun, ..., 6=Sam
+
+    // 1. Récupérer l'horaire du médecin pour ce jour de la semaine
+    const schedule = await this.scheduleRepository.findOne({
+      where: { doctorId, dayOfWeek, isActive: true },
+    });
+
+    if (!schedule) {
+      return {
+        date,
+        dayOfWeek,
+        hasSchedule: false,
+        availableSlots: [],
+        bookedSlots: [],
+        schedule: null,
+      };
+    }
+
+    // 2. Générer tous les créneaux possibles à partir de l'horaire du médecin
+    const allSlots = this.schedulesService.generateSlotsFromSchedule(schedule);
+
+    // 3. Récupérer les RDV déjà pris (EN_ATTENTE ou CONFIRME) pour ce médecin ce jour
     const appointments = await this.appointmentRepository.find({
       where: {
         doctorId,
         date: new Date(date),
-        status: AppointmentStatus.CONFIRME,
+        status: In([AppointmentStatus.CONFIRME, AppointmentStatus.EN_ATTENTE]),
       },
     });
 
-    const bookedSlots = appointments.map(apt => apt.time);
-    const allSlots = this.generateTimeSlots();
-    const availableSlots = allSlots.filter(slot => !bookedSlots.includes(slot));
+    const bookedSlots = appointments.map((apt) => apt.time);
+    const availableSlots = allSlots.filter((slot) => !bookedSlots.includes(slot));
 
-    return { date, availableSlots, bookedSlots };
-  }
-
-  private generateTimeSlots(): string[] {
-    const slots = [];
-    for (let hour = 8; hour < 18; hour++) {
-      slots.push(`${hour.toString().padStart(2, '0')}:00`);
-      slots.push(`${hour.toString().padStart(2, '0')}:30`);
-    }
-    return slots;
+    return {
+      date,
+      dayOfWeek,
+      hasSchedule: true,
+      availableSlots,
+      bookedSlots,
+      schedule: {
+        startTime: schedule.startTime,
+        endTime: schedule.endTime,
+        slotDuration: schedule.slotDuration,
+      },
+    };
   }
 
   async remove(id: string) {

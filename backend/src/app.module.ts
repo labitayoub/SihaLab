@@ -17,6 +17,8 @@ import { Ordonnance } from './entities/ordonnance.entity';
 import { Analyse } from './entities/analyse.entity';
 import { Livraison, LivraisonHistorique } from './entities/livraison.entity';
 import { Document } from './entities/document.entity';
+import { DoctorSchedule } from './entities/doctor-schedule.entity';
+import { SchedulesModule } from './schedules/schedules.module';
 
 @Module({
   imports: [
@@ -33,7 +35,7 @@ import { Document } from './entities/document.entity';
         username: configService.get('DB_USERNAME', 'postgres'),
         password: configService.get('DB_PASSWORD', 'postgres'),
         database: configService.get('DB_DATABASE', 'sihatilab'),
-        entities: [User, Appointment, Consultation, Ordonnance, Analyse, Livraison, LivraisonHistorique, Document],
+        entities: [User, Appointment, Consultation, Ordonnance, Analyse, Livraison, LivraisonHistorique, Document, DoctorSchedule],
         synchronize: true, // false en production
         logging: false,
         autoLoadEntities: true,
@@ -52,6 +54,7 @@ import { Document } from './entities/document.entity';
     AnalysesModule,
     LivraisonsModule,
     DocumentsModule,
+    SchedulesModule,
   ],
 })
 export class AppModule {}
