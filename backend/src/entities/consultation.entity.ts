@@ -1,6 +1,8 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, OneToMany, JoinColumn } from 'typeorm';
 import { User } from './user.entity';
 import { Appointment } from './appointment.entity';
+import { Ordonnance } from './ordonnance.entity';
+import { Analyse } from './analyse.entity';
 
 @Entity('consultations')
 export class Consultation {
@@ -27,6 +29,12 @@ export class Consultation {
   @ManyToOne(() => Appointment, { nullable: true })
   @JoinColumn({ name: 'appointmentId' })
   appointment: Appointment;
+
+  @OneToMany(() => Ordonnance, (ordonnance) => ordonnance.consultation)
+  ordonnances: Ordonnance[];
+
+  @OneToMany(() => Analyse, (analyse) => analyse.consultation)
+  analyses: Analyse[];
 
   @Column({ type: 'timestamp' })
   date: Date;

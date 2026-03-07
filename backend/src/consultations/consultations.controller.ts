@@ -34,6 +34,12 @@ export class ConsultationsController {
     return this.consultationsService.getPatientHistory(patientId);
   }
 
+  @Get('patient/:patientId/dossier')
+  @Roles(UserRole.MEDECIN, UserRole.PATIENT, UserRole.INFIRMIER)
+  getDossierMedical(@Param('patientId') patientId: string) {
+    return this.consultationsService.getDossierMedical(patientId);
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.consultationsService.findOne(id);

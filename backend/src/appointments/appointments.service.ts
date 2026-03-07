@@ -7,6 +7,7 @@ import { CreateAppointmentDto } from './dto/create-appointment.dto';
 import { UpdateAppointmentDto } from './dto/update-appointment.dto';
 import { AppointmentStatus } from '../common/enums/status.enum';
 import { SchedulesService } from '../schedules/schedules.service';
+import { ConsultationsService } from '../consultations/consultations.service';
 
 @Injectable()
 export class AppointmentsService {
@@ -16,6 +17,7 @@ export class AppointmentsService {
     @InjectRepository(DoctorSchedule)
     private scheduleRepository: Repository<DoctorSchedule>,
     private schedulesService: SchedulesService,
+    private consultationsService: ConsultationsService,
   ) {}
 
   async create(patientId: string, createAppointmentDto: CreateAppointmentDto) {
@@ -102,7 +104,29 @@ export class AppointmentsService {
   }
 
   async confirm(id: string) {
-    return this.update(id, { status: AppointmentStatus.CONFIRME });
+    const appointment = await this.findOne(id);
+
+    // 1. Mettre à jour le statut du rendez-vous
+    appointment.status = AppointmentStatus.CONFIRME;
+    const updatedAppointment = await this.appointmentRepository.save(appointment);
+
+    // 2. Créer automatiquement le dossier médical (consultation) lié à ce rendez-vous
+    let consultation = null;
+    try {
+      consultation = await this.consultationsService.create(appointment.doctorId, {
+        patientId: appointment.patientId,
+        appointmentId: appointment.id,
+        motif: appointment.motif || 'Consultation suite au rendez-vous',
+      });
+    } catch (error) {
+      // Log l'erreur mais ne pas bloquer la confirmation du RDV
+      console.error('Erreur lors de la création automatique de la consultation:', error);
+    }
+
+    return {
+      ...updatedAppointment,
+      consultation,
+    };
   }
 
   async cancel(id: string) {
