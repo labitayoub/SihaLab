@@ -3,8 +3,11 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider, createTheme, CssBaseline } from '@mui/material';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { AuthProvider, useAuth } from './context/AuthContext';
+import { AuthProvider } from './context/AuthContext';
+import { UserRole } from './types';
 import Layout from './components/Layout';
+import ProtectedRoute from './components/auth/ProtectedRoute';
+import GuestRoute from './components/auth/GuestRoute';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
@@ -28,16 +31,6 @@ const theme = createTheme({
   },
 });
 
-function PrivateRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, loading } = useAuth();
-  
-  if (loading) {
-    return <div>Loading...</div>;
-  }
-  
-  return isAuthenticated ? children : <Navigate to="/login" />;
-}
-
 function App() {
   return (
     <ThemeProvider theme={theme}>
@@ -45,20 +38,58 @@ function App() {
       <AuthProvider>
         <BrowserRouter>
           <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>
-              <Route index element={<Navigate to="/dashboard" />} />
+            {/* Routes publiques (redirige vers /dashboard si déjà connecté) */}
+            <Route path="/login" element={<GuestRoute><Login /></GuestRoute>} />
+            <Route path="/register" element={<GuestRoute><Register /></GuestRoute>} />
+
+            {/* Routes protégées */}
+            <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+              <Route index element={<Navigate to="/dashboard" replace />} />
               <Route path="dashboard" element={<Dashboard />} />
-              <Route path="appointments" element={<Appointments />} />
-              <Route path="consultations" element={<Consultations />} />
-              <Route path="ordonnances" element={<Ordonnances />} />
-              <Route path="analyses" element={<Analyses />} />
-              <Route path="livraisons" element={<Livraisons />} />
-              <Route path="documents" element={<Documents />} />
-              <Route path="users" element={<Users />} />
-              <Route path="infirmiers" element={<Infirmiers />} />
+              <Route path="appointments" element={
+                <ProtectedRoute roles={[UserRole.MEDECIN, UserRole.PATIENT]}>
+                  <Appointments />
+                </ProtectedRoute>
+              } />
+              <Route path="consultations" element={
+                <ProtectedRoute roles={[UserRole.MEDECIN, UserRole.PATIENT, UserRole.INFIRMIER]}>
+                  <Consultations />
+                </ProtectedRoute>
+              } />
+              <Route path="ordonnances" element={
+                <ProtectedRoute roles={[UserRole.MEDECIN, UserRole.PATIENT, UserRole.PHARMACIEN]}>
+                  <Ordonnances />
+                </ProtectedRoute>
+              } />
+              <Route path="analyses" element={
+                <ProtectedRoute roles={[UserRole.MEDECIN, UserRole.PATIENT, UserRole.LABORATOIRE]}>
+                  <Analyses />
+                </ProtectedRoute>
+              } />
+              <Route path="livraisons" element={
+                <ProtectedRoute roles={[UserRole.PATIENT, UserRole.PHARMACIEN]}>
+                  <Livraisons />
+                </ProtectedRoute>
+              } />
+              <Route path="documents" element={
+                <ProtectedRoute roles={[UserRole.MEDECIN, UserRole.PATIENT]}>
+                  <Documents />
+                </ProtectedRoute>
+              } />
+              <Route path="users" element={
+                <ProtectedRoute roles={[UserRole.ADMIN]}>
+                  <Users />
+                </ProtectedRoute>
+              } />
+              <Route path="infirmiers" element={
+                <ProtectedRoute roles={[UserRole.MEDECIN]}>
+                  <Infirmiers />
+                </ProtectedRoute>
+              } />
             </Route>
+
+            {/* Fallback */}
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </BrowserRouter>
         <ToastContainer position="top-right" autoClose={3000} />
