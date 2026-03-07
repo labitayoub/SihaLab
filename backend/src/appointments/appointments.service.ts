@@ -145,7 +145,20 @@ export class AppointmentsService {
     });
 
     const bookedSlots = appointments.map((apt) => apt.time);
-    const availableSlots = allSlots.filter((slot) => !bookedSlots.includes(slot));
+
+    // Filtrer les créneaux déjà passés si la date demandée est aujourd'hui
+    const now = new Date();
+    const todayStr = now.toISOString().split('T')[0];
+    const isToday = date === todayStr;
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+    const isPast = (slot: string): boolean => {
+      if (!isToday) return false;
+      const [h, m] = slot.split(':').map(Number);
+      return h * 60 + m <= currentMinutes;
+    };
+
+    const availableSlots = allSlots.filter((slot) => !bookedSlots.includes(slot) && !isPast(slot));
 
     // 4. Séparer les créneaux par période pour l'affichage frontend
     const morningSchedule = daySchedules.find((s) => s.period === 'morning');
@@ -164,8 +177,8 @@ export class AppointmentsService {
       hasSchedule: true,
       availableSlots,
       bookedSlots,
-      morningSlots: morningAllSlots.filter((s) => !bookedSlots.includes(s)),
-      afternoonSlots: afternoonAllSlots.filter((s) => !bookedSlots.includes(s)),
+      morningSlots: morningAllSlots.filter((s) => !bookedSlots.includes(s) && !isPast(s)),
+      afternoonSlots: afternoonAllSlots.filter((s) => !bookedSlots.includes(s) && !isPast(s)),
       schedule: {
         morning: morningSchedule
           ? { startTime: morningSchedule.startTime, endTime: morningSchedule.endTime, slotDuration: morningSchedule.slotDuration }
