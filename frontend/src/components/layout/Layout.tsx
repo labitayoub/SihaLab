@@ -33,7 +33,11 @@ export default function Layout() {
           <IconButton color="inherit" edge="start" onClick={() => setDrawerOpen(true)} sx={{ mr: 2 }}>
             <MenuIcon />
           </IconButton>
-          <Typography variant="h6" sx={{ flexGrow: 1 }}>
+          <Typography
+            variant="h6"
+            sx={{ flexGrow: 1, cursor: 'pointer', userSelect: 'none' }}
+            onClick={() => navigate('/dashboard')}
+          >
             SihatiLab
           </Typography>
           <IconButton color="inherit" onClick={(e) => setAnchorEl(e.currentTarget)}>

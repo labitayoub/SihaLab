@@ -4,7 +4,7 @@ import {
   MenuItem, Chip, CircularProgress, Alert, Grid, Stack, Tooltip,
 } from '@mui/material';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
-import { Add, AccessTime, EventBusy } from '@mui/icons-material';
+import { Add, AccessTime, EventBusy, WbSunny, NightsStay } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
 import { UserRole } from '../types/user.types';
 import { Appointment, AppointmentStatus } from '../types/appointment.types';
@@ -199,9 +199,11 @@ export default function Appointments() {
   ];
 
   // Jours disponibles du médecin pour l'affichage dans le dialog
-  const availableDays = doctorSchedules
-    .filter((s) => s.isActive)
-    .map((s) => DAY_LABELS[s.dayOfWeek])
+  const availableDays = [...new Set(
+    doctorSchedules.filter((s) => s.isActive).map((s) => s.dayOfWeek),
+  )]
+    .sort()
+    .map((d) => DAY_LABELS[d])
     .join(', ');
 
   return (
@@ -288,11 +290,6 @@ export default function Appointments() {
               <Typography variant="subtitle2" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                 <AccessTime fontSize="small" />
                 Créneaux disponibles
-                {availability?.schedule && (
-                  <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
-                    ({availability.schedule.startTime} — {availability.schedule.endTime}, {availability.schedule.slotDuration} min)
-                  </Typography>
-                )}
               </Typography>
 
               {loadingSlots ? (
@@ -308,37 +305,113 @@ export default function Appointments() {
                   Tous les créneaux sont pris pour cette date. Veuillez choisir une autre date.
                 </Alert>
               ) : availability ? (
-                <Grid container spacing={1}>
-                  {/* Créneaux disponibles */}
-                  {availability.availableSlots.map((slot) => (
-                    <Grid item key={slot}>
-                      <Chip
-                        label={slot}
-                        onClick={() => setFormData((prev) => ({ ...prev, time: slot }))}
-                        color={formData.time === slot ? 'primary' : 'default'}
-                        variant={formData.time === slot ? 'filled' : 'outlined'}
-                        sx={{
-                          fontWeight: formData.time === slot ? 'bold' : 'normal',
-                          cursor: 'pointer',
-                          '&:hover': { backgroundColor: formData.time === slot ? undefined : 'action.hover' },
-                        }}
-                      />
-                    </Grid>
-                  ))}
-                  {/* Créneaux occupés (affichés en grisé) */}
-                  {availability.bookedSlots.map((slot) => (
-                    <Grid item key={`booked-${slot}`}>
-                      <Tooltip title="Créneau déjà réservé">
-                        <Chip
-                          label={slot}
-                          disabled
-                          variant="outlined"
-                          sx={{ textDecoration: 'line-through' }}
-                        />
-                      </Tooltip>
-                    </Grid>
-                  ))}
-                </Grid>
+                <Box>
+                  {/* ── Matin ── */}
+                  {availability.schedule?.morning && (
+                    <Box sx={{ mb: 2 }}>
+                      <Typography
+                        variant="body2"
+                        fontWeight="bold"
+                        sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1, color: '#ed6c02' }}
+                      >
+                        <WbSunny fontSize="small" />
+                        Matin
+                        <Typography variant="caption" color="text.secondary" sx={{ ml: 0.5 }}>
+                          ({availability.schedule.morning.startTime} — {availability.schedule.morning.endTime}, {availability.schedule.morning.slotDuration} min)
+                        </Typography>
+                      </Typography>
+                      <Grid container spacing={1}>
+                        {availability.morningSlots.map((slot) => {
+                          const isBooked = availability.bookedSlots.includes(slot);
+                          return (
+                            <Grid item key={slot}>
+                              {isBooked ? (
+                                <Tooltip title="Créneau déjà réservé">
+                                  <Chip label={slot} disabled variant="outlined" sx={{ textDecoration: 'line-through' }} />
+                                </Tooltip>
+                              ) : (
+                                <Chip
+                                  label={slot}
+                                  onClick={() => setFormData((prev) => ({ ...prev, time: slot }))}
+                                  color={formData.time === slot ? 'primary' : 'default'}
+                                  variant={formData.time === slot ? 'filled' : 'outlined'}
+                                  sx={{
+                                    fontWeight: formData.time === slot ? 'bold' : 'normal',
+                                    cursor: 'pointer',
+                                    '&:hover': { backgroundColor: formData.time === slot ? undefined : 'action.hover' },
+                                  }}
+                                />
+                              )}
+                            </Grid>
+                          );
+                        })}
+                        {availability.morningSlots.length === 0 && (
+                          <Grid item>
+                            <Typography variant="caption" color="text.secondary">Aucun créneau le matin</Typography>
+                          </Grid>
+                        )}
+                      </Grid>
+                    </Box>
+                  )}
+
+                  {/* ── Pause déjeuner ── */}
+                  {availability.schedule?.morning && availability.schedule?.afternoon && (
+                    <Chip
+                      label={`🍽️ Pause déjeuner : ${availability.schedule.morning.endTime} — ${availability.schedule.afternoon.startTime}`}
+                      size="small"
+                      variant="outlined"
+                      sx={{ mb: 2, color: 'text.secondary' }}
+                    />
+                  )}
+
+                  {/* ── Après-midi ── */}
+                  {availability.schedule?.afternoon && (
+                    <Box sx={{ mb: 1 }}>
+                      <Typography
+                        variant="body2"
+                        fontWeight="bold"
+                        sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1, color: '#1565c0' }}
+                      >
+                        <NightsStay fontSize="small" />
+                        Après-midi
+                        <Typography variant="caption" color="text.secondary" sx={{ ml: 0.5 }}>
+                          ({availability.schedule.afternoon.startTime} — {availability.schedule.afternoon.endTime}, {availability.schedule.afternoon.slotDuration} min)
+                        </Typography>
+                      </Typography>
+                      <Grid container spacing={1}>
+                        {availability.afternoonSlots.map((slot) => {
+                          const isBooked = availability.bookedSlots.includes(slot);
+                          return (
+                            <Grid item key={slot}>
+                              {isBooked ? (
+                                <Tooltip title="Créneau déjà réservé">
+                                  <Chip label={slot} disabled variant="outlined" sx={{ textDecoration: 'line-through' }} />
+                                </Tooltip>
+                              ) : (
+                                <Chip
+                                  label={slot}
+                                  onClick={() => setFormData((prev) => ({ ...prev, time: slot }))}
+                                  color={formData.time === slot ? 'primary' : 'default'}
+                                  variant={formData.time === slot ? 'filled' : 'outlined'}
+                                  sx={{
+                                    fontWeight: formData.time === slot ? 'bold' : 'normal',
+                                    cursor: 'pointer',
+                                    '&:hover': { backgroundColor: formData.time === slot ? undefined : 'action.hover' },
+                                  }}
+                                />
+                              )}
+                            </Grid>
+                          );
+                        })}
+                        {availability.afternoonSlots.length === 0 && (
+                          <Grid item>
+                            <Typography variant="caption" color="text.secondary">Aucun créneau l'après-midi</Typography>
+                          </Grid>
+                        )}
+                      </Grid>
+                    </Box>
+                  )}
+                </Box>
               ) : null}
             </Box>
           )}

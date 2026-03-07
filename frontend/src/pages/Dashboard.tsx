@@ -5,7 +5,7 @@ import {
 } from '@mui/material';
 import {
   CalendarMonth, MedicalServices, LocalPharmacy, Science, Schedule,
-  AccessTime, CheckCircle, Warning, ArrowForward,
+  AccessTime, CheckCircle, Warning, ArrowForward, WbSunny, NightsStay,
 } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
 import { UserRole } from '../types/user.types';
@@ -68,6 +68,14 @@ export default function Dashboard() {
 
   const activeDays = schedules.filter((s) => s.isActive);
   const hasSchedule = activeDays.length > 0;
+
+  // Group schedules by day for display
+  const schedulesByDay = activeDays.reduce<Record<number, { morning?: DoctorSchedule; afternoon?: DoctorSchedule }>>((acc, s) => {
+    if (!acc[s.dayOfWeek]) acc[s.dayOfWeek] = {};
+    acc[s.dayOfWeek][s.period] = s;
+    return acc;
+  }, {});
+  const scheduledDayNumbers = Object.keys(schedulesByDay).map(Number).sort();
 
   const cards = [
     { title: 'Rendez-vous', value: stats.appointments, icon: <CalendarMonth />, color: '#1976d2' },
@@ -157,30 +165,46 @@ export default function Dashboard() {
                   <>
                     <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mb: 2 }}>
                       {[1, 2, 3, 4, 5, 6, 0].map((day) => {
-                        const schedule = activeDays.find((s) => s.dayOfWeek === day);
+                        const hasDay = schedulesByDay[day] !== undefined;
                         return (
                           <Chip
                             key={day}
                             label={DAY_LABELS[day].substring(0, 3)}
                             size="small"
-                            color={schedule ? 'primary' : 'default'}
-                            variant={schedule ? 'filled' : 'outlined'}
-                            icon={schedule ? <CheckCircle /> : undefined}
+                            color={hasDay ? 'primary' : 'default'}
+                            variant={hasDay ? 'filled' : 'outlined'}
+                            icon={hasDay ? <CheckCircle /> : undefined}
                           />
                         );
                       })}
                     </Stack>
                     <Divider sx={{ mb: 1.5 }} />
-                    {activeDays.map((s) => (
-                      <Box key={s.id} sx={{ display: 'flex', justifyContent: 'space-between', py: 0.5 }}>
-                        <Typography variant="body2" fontWeight="bold">
-                          {DAY_LABELS[s.dayOfWeek]}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          {s.startTime.substring(0, 5)} — {s.endTime.substring(0, 5)} • {s.slotDuration} min
-                        </Typography>
-                      </Box>
-                    ))}
+                    {scheduledDayNumbers.map((day) => {
+                      const periods = schedulesByDay[day];
+                      return (
+                        <Box key={day} sx={{ mb: 1.5 }}>
+                          <Typography variant="body2" fontWeight="bold" sx={{ mb: 0.5 }}>
+                            {DAY_LABELS[day]}
+                          </Typography>
+                          {periods.morning && (
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, pl: 1, py: 0.2 }}>
+                              <WbSunny sx={{ fontSize: 16, color: '#ed6c02' }} />
+                              <Typography variant="body2" color="text.secondary">
+                                Matin : {periods.morning.startTime.substring(0, 5)} — {periods.morning.endTime.substring(0, 5)} • {periods.morning.slotDuration} min
+                              </Typography>
+                            </Box>
+                          )}
+                          {periods.afternoon && (
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, pl: 1, py: 0.2 }}>
+                              <NightsStay sx={{ fontSize: 16, color: '#1565c0' }} />
+                              <Typography variant="body2" color="text.secondary">
+                                Après-midi : {periods.afternoon.startTime.substring(0, 5)} — {periods.afternoon.endTime.substring(0, 5)} • {periods.afternoon.slotDuration} min
+                              </Typography>
+                            </Box>
+                          )}
+                        </Box>
+                      );
+                    })}
                   </>
                 ) : (
                   <Box sx={{ textAlign: 'center', py: 3, color: 'text.secondary' }}>
