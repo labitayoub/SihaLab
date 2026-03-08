@@ -291,22 +291,13 @@ export default function ConsultationDetail() {
     } catch { toast.error('Erreur lors de la suppression'); }
   };
 
-  const handleConfirmConsultation = async () => {
-    try {
-      await api.patch(`/consultations/${id}`, { diagnostic, notes });
-      await api.post(`/consultations/${id}/confirm`);
-      toast.success('Consultation terminée — Rendez-vous marqué comme terminé');
-      loadAll();
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Erreur lors de la confirmation');
-    }
-  };
+
 
   const handleCancelConsultation = async () => {
     try {
-      await api.post(`/consultations/${id}/cancel`);
-      toast.success('Consultation annulée');
-      loadAll();
+      await api.delete(`/consultations/${id}/cancel`);
+      toast.success('Consultation annulée — Le rendez-vous est remis en attente');
+      navigate('/consultations');
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Erreur lors de l\'annulation');
     }
@@ -315,8 +306,10 @@ export default function ConsultationDetail() {
   const handleGeneratePdfs = async () => {
     setGenerating(true);
     try {
+      // Save diagnostic & notes before generating PDFs
+      await api.patch(`/consultations/${id}`, { diagnostic, notes });
       const { data } = await api.post(`/consultations/${id}/generate-pdfs`);
-      toast.success(data.message || 'PDF(s) générés avec succès');
+      toast.success(data.message || 'PDF(s) générés — Consultation terminée');
       // Reload consultation to get updated ordonnancePdfUrl / analysePdfUrl
       loadAll();
     } catch (err: any) {
@@ -737,7 +730,7 @@ export default function ConsultationDetail() {
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 Génère les ordonnances et analyses en PDF avec QR code, en-tête médecin et filigrane.
-                Les documents seront stockés et accessibles dans le dossier médical du patient.
+                La consultation sera automatiquement marquée comme <strong>terminée</strong> après la génération.
               </Typography>
             </Box>
             <Button
@@ -754,7 +747,7 @@ export default function ConsultationDetail() {
                 '&:hover': { background: 'linear-gradient(45deg, #0d47a1 30%, #6a1b9a 90%)' },
               }}
             >
-              {generating ? 'Génération...' : 'Générer'}
+              {generating ? 'Génération...' : 'Générer & Terminer'}
             </Button>
           </Box>
         </Paper>
@@ -856,17 +849,6 @@ export default function ConsultationDetail() {
               sx={{ textTransform: 'uppercase' }}
             >
               Annuler la consultation
-            </Button>
-          )}
-          {consultation.status === 'en_cours' && (
-            <Button
-              variant="contained"
-              color="success"
-              startIcon={<CheckCircle />}
-              onClick={handleConfirmConsultation}
-              sx={{ textTransform: 'uppercase' }}
-            >
-              Terminer la consultation
             </Button>
           )}
         </Box>
