@@ -256,11 +256,14 @@ export default function Appointments() {
             </>
           )}
           {(user?.role === UserRole.MEDECIN || user?.role === UserRole.INFIRMIER) && params.row.status === AppointmentStatus.CONFIRME && (
-            <Button size="small" color="success" onClick={() => navigate(`/dossier-medical/${params.row.patientId}`)}>
-              Dossier médical
-            </Button>
+            <Box sx={{ display: 'flex', gap: 0.5 }}>
+              <Button size="small" color="success" onClick={() => navigate(`/dossier-medical/${params.row.patientId}`)}>
+                Dossier
+              </Button>
+              <Button size="small" color="error" onClick={() => handleCancel(params.row.id)}>Annuler</Button>
+            </Box>
           )}
-          {user?.role === UserRole.PATIENT && params.row.status === AppointmentStatus.EN_ATTENTE && (
+          {user?.role === UserRole.PATIENT && (params.row.status === AppointmentStatus.EN_ATTENTE || params.row.status === AppointmentStatus.CONFIRME) && (
             <Button size="small" color="error" onClick={() => handleCancel(params.row.id)}>Annuler</Button>
           )}
         </Box>

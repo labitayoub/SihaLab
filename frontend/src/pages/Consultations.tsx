@@ -201,7 +201,7 @@ export default function Consultations() {
                 <Button
                   variant="outlined"
                   size="small"
-                  onClick={() => navigate(`/dossier-medical/${c.patientId}`)}
+                  onClick={() => navigate(`/consultations/${c.id}`)}
                   sx={{ ml: 2, whiteSpace: 'nowrap', textTransform: 'uppercase', fontWeight: 'bold' }}
                 >
                   Détails

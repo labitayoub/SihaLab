@@ -22,6 +22,7 @@ import Infirmiers from './pages/Infirmiers';
 import DoctorSchedule from './pages/DoctorSchedule';
 import DossierMedical from './pages/DossierMedical';
 import MesPatients from './pages/MesPatients';
+import ConsultationDetail from './pages/ConsultationDetail';
 import Profile from './pages/Profile';
 
 const theme = createTheme({
@@ -58,6 +59,11 @@ function App() {
               <Route path="consultations" element={
                 <ProtectedRoute roles={[UserRole.MEDECIN, UserRole.PATIENT, UserRole.INFIRMIER]}>
                   <Consultations />
+                </ProtectedRoute>
+              } />
+              <Route path="consultations/:id" element={
+                <ProtectedRoute roles={[UserRole.MEDECIN, UserRole.INFIRMIER]}>
+                  <ConsultationDetail />
                 </ProtectedRoute>
               } />
               <Route path="ordonnances" element={

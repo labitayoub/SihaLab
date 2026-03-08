@@ -113,7 +113,7 @@ export default function Dashboard() {
 
   const loadMyPatients = async () => {
     try {
-      const { data } = await api.get('/consultations/my-patients');
+      const { data } = await api.get('/appointments/my-patients');
       setMyPatients(data);
     } catch (error) {
       console.error(error);
