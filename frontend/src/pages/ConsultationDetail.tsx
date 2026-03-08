@@ -5,7 +5,7 @@ import {
   IconButton, CircularProgress, Alert, Chip, Dialog, DialogTitle,
   DialogContent, DialogActions,
 } from '@mui/material';
-import { Delete, Add, Save, CheckCircle, Edit, PictureAsPdf, Cancel } from '@mui/icons-material';
+import { Delete, Add, Save, CheckCircle, Edit, PictureAsPdf, Cancel, Download, Visibility } from '@mui/icons-material';
 import { toast } from 'react-toastify';
 import api from '../config/api';
 
@@ -44,6 +44,22 @@ function getAnalyseStatusColor(status: string): 'warning' | 'success' | 'info' {
   switch (status) {
     case 'terminee': return 'success';
     case 'en_cours': return 'info';
+    default: return 'warning';
+  }
+}
+
+function getConsultationStatusLabel(status: string) {
+  switch (status) {
+    case 'terminee': return 'Terminée';
+    case 'annulee': return 'Annulée';
+    default: return 'En cours';
+  }
+}
+
+function getConsultationStatusColor(status: string): 'warning' | 'success' | 'error' {
+  switch (status) {
+    case 'terminee': return 'success';
+    case 'annulee': return 'error';
     default: return 'warning';
   }
 }
@@ -279,10 +295,20 @@ export default function ConsultationDetail() {
     try {
       await api.patch(`/consultations/${id}`, { diagnostic, notes });
       await api.post(`/consultations/${id}/confirm`);
-      toast.success('Consultation confirmée — Rendez-vous marqué comme terminé');
-      setTimeout(() => navigate('/consultations'), 1500);
-    } catch {
-      toast.error('Erreur lors de la confirmation');
+      toast.success('Consultation terminée — Rendez-vous marqué comme terminé');
+      loadAll();
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Erreur lors de la confirmation');
+    }
+  };
+
+  const handleCancelConsultation = async () => {
+    try {
+      await api.post(`/consultations/${id}/cancel`);
+      toast.success('Consultation annulée');
+      loadAll();
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Erreur lors de l\'annulation');
     }
   };
 
@@ -290,8 +316,8 @@ export default function ConsultationDetail() {
     setGenerating(true);
     try {
       const { data } = await api.post(`/consultations/${id}/generate-pdfs`);
-      const total = (data.ordonnances?.length || 0) + (data.analyses?.length || 0);
-      toast.success(`${total} document(s) PDF générés avec succès`);
+      toast.success(data.message || 'PDF(s) générés avec succès');
+      // Reload consultation to get updated ordonnancePdfUrl / analysePdfUrl
       loadAll();
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Erreur lors de la génération des PDFs');
@@ -334,7 +360,27 @@ export default function ConsultationDetail() {
           <Typography variant="body2">
             <strong>Patient:</strong> {consultation.patient?.firstName} {consultation.patient?.lastName}
           </Typography>
+          <Box sx={{ mt: 1 }}>
+            <strong>Statut :</strong>{' '}
+            <Chip
+              label={getConsultationStatusLabel(consultation.status)}
+              size="small"
+              color={getConsultationStatusColor(consultation.status)}
+              sx={{ fontWeight: 'bold' }}
+            />
+          </Box>
         </Alert>
+
+        {consultation.status === 'terminee' && (
+          <Alert severity="success" sx={{ mb: 2 }}>
+            Cette consultation est terminée. Les modifications ne sont plus possibles.
+          </Alert>
+        )}
+        {consultation.status === 'annulee' && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            Cette consultation a été annulée.
+          </Alert>
+        )}
 
         {!editMode && (consultation.diagnostic || consultation.notes) ? (
           <Box sx={{ bgcolor: '#f5faf5', border: '1px solid #c8e6c9', borderRadius: 1, p: 2, mb: 2 }}>
@@ -342,14 +388,16 @@ export default function ConsultationDetail() {
               <Typography variant="body2" color="success.dark" fontWeight="bold">
                 Informations actuelles
               </Typography>
-              <Button
-                size="small"
-                startIcon={<Edit />}
-                onClick={() => setEditMode(true)}
-                sx={{ textTransform: 'uppercase', fontSize: '0.7rem', color: 'primary.main', p: 0 }}
-              >
-                Modifier
-              </Button>
+              {consultation.status === 'en_cours' && (
+                <Button
+                  size="small"
+                  startIcon={<Edit />}
+                  onClick={() => setEditMode(true)}
+                  sx={{ textTransform: 'uppercase', fontSize: '0.7rem', color: 'primary.main', p: 0 }}
+                >
+                  Modifier
+                </Button>
+              )}
             </Box>
             {consultation.diagnostic && (
               <Typography variant="body2">
@@ -364,7 +412,7 @@ export default function ConsultationDetail() {
           </Box>
         ) : null}
 
-        {(editMode || (!consultation.diagnostic && !consultation.notes)) && (
+        {consultation.status === 'en_cours' && (editMode || (!consultation.diagnostic && !consultation.notes)) && (
           <>
             <TextField
               fullWidth
@@ -457,8 +505,12 @@ export default function ConsultationDetail() {
                         Prescription en cours - Statut:{' '}
                         <Chip label={getOrdonnanceStatusLabel(o.status)} size="small" color={getOrdonnanceStatusColor(o.status)} sx={{ fontWeight: 'bold' }} />
                       </Typography>
-                      <Button size="small" variant="outlined" startIcon={<Edit />} onClick={() => startEditOrd(o)}>Modifier / Ajouter Médicaments</Button>
-                      <IconButton size="small" color="error" onClick={() => confirmDelete('ordonnance', o.id, `l'ordonnance`)} title="Supprimer l'ordonnance"><Delete /></IconButton>
+                      {consultation.status === 'en_cours' && (
+                        <>
+                          <Button size="small" variant="outlined" startIcon={<Edit />} onClick={() => startEditOrd(o)}>Modifier / Ajouter Médicaments</Button>
+                          <IconButton size="small" color="error" onClick={() => confirmDelete('ordonnance', o.id, `l'ordonnance`)} title="Supprimer l'ordonnance"><Delete /></IconButton>
+                        </>
+                      )}
                     </Box>
                     {o.medicaments?.map((med: any, mi: number) => (
                       <Typography key={mi} variant="body2" sx={{ pl: 4, py: 0.5, color: '#333', borderBottom: mi !== o.medicaments.length - 1 ? '1px dashed #e0e0e0' : 'none' }}>
@@ -472,8 +524,8 @@ export default function ConsultationDetail() {
           </Box>
         )}
 
-        {/* New ordonnance form (only if 0 ordonnances) */}
-        {ordonnances.length === 0 && (
+        {/* New ordonnance form (only if 0 ordonnances and consultation en_cours) */}
+        {ordonnances.length === 0 && consultation.status === 'en_cours' && (
           <Box>
             <Divider sx={{ mb: 3 }} />
             <Typography variant="subtitle2" sx={{ mb: 2, color: 'text.secondary' }}>Nouvelle ordonnance</Typography>
@@ -591,8 +643,12 @@ export default function ConsultationDetail() {
                         Analyse en cours - Statut:{' '}
                         <Chip label={getAnalyseStatusLabel(a.status)} size="small" color={getAnalyseStatusColor(a.status)} sx={{ fontWeight: 'bold' }} />
                       </Typography>
-                      <Button size="small" variant="outlined" startIcon={<Edit />} onClick={() => startEditAn(a)}>Modifier les analyses</Button>
-                      <IconButton size="small" color="error" onClick={() => confirmDelete('analyse', a.id, `l'analyse`)} title="Supprimer l'analyse"><Delete /></IconButton>
+                      {consultation.status === 'en_cours' && (
+                        <>
+                          <Button size="small" variant="outlined" startIcon={<Edit />} onClick={() => startEditAn(a)}>Modifier les analyses</Button>
+                          <IconButton size="small" color="error" onClick={() => confirmDelete('analyse', a.id, `l'analyse`)} title="Supprimer l'analyse"><Delete /></IconButton>
+                        </>
+                      )}
                     </Box>
                     <Box sx={{ pl: 4, py: 1 }}>
                       <Typography variant="body2" sx={{ color: 'text.secondary', whiteSpace: 'pre-line' }}>
@@ -620,7 +676,7 @@ export default function ConsultationDetail() {
         )}
 
         {/* New analyse form */}
-        {analyses.length === 0 && (
+        {analyses.length === 0 && consultation.status === 'en_cours' && (
           <Box>
             <Divider sx={{ mb: 3 }} />
             <Typography variant="subtitle2" sx={{ mb: 2, color: 'text.secondary' }}>Prescrire une nouvelle analyse</Typography>
@@ -664,7 +720,7 @@ export default function ConsultationDetail() {
       </Paper>
 
       {/* ── Generate PDFs ── */}
-      {(ordonnances.length > 0 || analyses.length > 0) && (
+      {consultation.status === 'en_cours' && (ordonnances.length > 0 || analyses.length > 0) && (
         <Paper
           variant="outlined"
           sx={{
@@ -704,17 +760,116 @@ export default function ConsultationDetail() {
         </Paper>
       )}
 
+      {/* ── Documents PDF générés ── */}
+      {(consultation.ordonnancePdfUrl || consultation.analysePdfUrl) && (
+        <Paper variant="outlined" sx={{ p: 3, mb: 3, borderRadius: 2, bgcolor: '#fafafa' }}>
+          <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 2 }}>
+            📄 Documents PDF générés
+          </Typography>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+            {consultation.ordonnancePdfUrl && (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 1.5, borderRadius: 1, bgcolor: '#e8f5e9', border: '1px solid #c8e6c9' }}>
+                <PictureAsPdf sx={{ color: '#d32f2f', fontSize: 28 }} />
+                <Box sx={{ flex: 1 }}>
+                  <Typography variant="body2" fontWeight="bold" color="text.primary">
+                    Ordonnance médicale
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {consultation.patient?.lastName} {consultation.patient?.firstName} — {formattedDate}
+                  </Typography>
+                </Box>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  startIcon={<Visibility />}
+                  href={consultation.ordonnancePdfUrl}
+                  target="_blank"
+                  sx={{ textTransform: 'none', mr: 1 }}
+                >
+                  Voir
+                </Button>
+                <Button
+                  size="small"
+                  variant="contained"
+                  startIcon={<Download />}
+                  href={consultation.ordonnancePdfUrl}
+                  download
+                  sx={{ textTransform: 'none' }}
+                >
+                  Télécharger
+                </Button>
+              </Box>
+            )}
+            {consultation.analysePdfUrl && (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 1.5, borderRadius: 1, bgcolor: '#e3f2fd', border: '1px solid #bbdefb' }}>
+                <PictureAsPdf sx={{ color: '#d32f2f', fontSize: 28 }} />
+                <Box sx={{ flex: 1 }}>
+                  <Typography variant="body2" fontWeight="bold" color="text.primary">
+                    Demande d'analyses
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {consultation.patient?.lastName} {consultation.patient?.firstName} — {formattedDate}
+                  </Typography>
+                </Box>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  startIcon={<Visibility />}
+                  href={consultation.analysePdfUrl}
+                  target="_blank"
+                  sx={{ textTransform: 'none', mr: 1 }}
+                >
+                  Voir
+                </Button>
+                <Button
+                  size="small"
+                  variant="contained"
+                  startIcon={<Download />}
+                  href={consultation.analysePdfUrl}
+                  download
+                  sx={{ textTransform: 'none' }}
+                >
+                  Télécharger
+                </Button>
+              </Box>
+            )}
+          </Box>
+        </Paper>
+      )}
+
       {/* ── Footer buttons ── */}
       <Divider sx={{ mb: 2 }} />
       <Box sx={{ display: 'flex', gap: 2, justifyContent: 'space-between' }}>
         <Button
-          fullWidth
           variant="outlined"
           onClick={() => navigate('/consultations')}
           sx={{ textTransform: 'uppercase' }}
         >
           Retour
         </Button>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          {consultation.status === 'en_cours' && (
+            <Button
+              variant="outlined"
+              color="error"
+              onClick={handleCancelConsultation}
+              sx={{ textTransform: 'uppercase' }}
+            >
+              Annuler la consultation
+            </Button>
+          )}
+          {consultation.status === 'en_cours' && (
+            <Button
+              variant="contained"
+              color="success"
+              startIcon={<CheckCircle />}
+              onClick={handleConfirmConsultation}
+              sx={{ textTransform: 'uppercase' }}
+            >
+              Terminer la consultation
+            </Button>
+          )}
+        </Box>
       </Box>
 
       {/* ── Delete confirmation dialog ── */}
