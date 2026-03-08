@@ -296,8 +296,8 @@ export default function ConsultationDetail() {
   const handleCancelConsultation = async () => {
     try {
       await api.delete(`/consultations/${id}/cancel`);
-      toast.success('Consultation annulée — Le rendez-vous est remis en attente');
-      navigate('/consultations');
+      toast.success('Consultation annulée — Le rendez-vous est annulé', { autoClose: 3000 });
+      navigate('/dashboard');
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Erreur lors de l\'annulation');
     }

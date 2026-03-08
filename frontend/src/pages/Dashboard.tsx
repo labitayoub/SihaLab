@@ -136,9 +136,61 @@ export default function Dashboard() {
     { title: 'Ordonnances', value: stats.ordonnances, icon: <LocalPharmacy />, color: '#ff9800' },
     { title: 'Analyses', value: stats.analyses, icon: <Science />, color: '#9c27b0' },
   ];
+  const doctorQuickLinks = [
+    { title: 'Rendez-vous',   desc: 'Gérer les rendez-vous',    icon: <CalendarMonth sx={{ fontSize: 36 }} />,  path: '/appointments',  color: '#1565c0', bg: '#e3f2fd' },
+    { title: 'Consultations', desc: 'Mes consultations',        icon: <MedicalServices sx={{ fontSize: 36 }} />, path: '/consultations', color: '#2e7d32', bg: '#e8f5e9' },
+    { title: 'Mes Patients',  desc: 'Dossiers patients',        icon: <People sx={{ fontSize: 36 }} />,          path: '/mes-patients',  color: '#00695c', bg: '#e0f2f1' },
+    { title: 'Mon Planning',  desc: 'Créneaux de consultation', icon: <Schedule sx={{ fontSize: 36 }} />,        path: '/schedule',      color: '#e65100', bg: '#fff3e0' },
+    { title: 'Ordonnances',   desc: 'Gérer les ordonnances',    icon: <LocalPharmacy sx={{ fontSize: 36 }} />,   path: '/ordonnances',   color: '#6a1b9a', bg: '#f3e5f5' },
+    { title: 'Analyses',      desc: 'Résultats d\'analyses',    icon: <Science sx={{ fontSize: 36 }} />,         path: '/analyses',      color: '#b71c1c', bg: '#ffebee' },
+  ];
 
+  const patientQuickLinks = [
+    { title: 'Mes RDV',     desc: 'Prendre un rendez-vous', icon: <CalendarMonth sx={{ fontSize: 36 }} />,  path: '/appointments',    color: '#1565c0', bg: '#e3f2fd' },
+    { title: 'Ordonnances', desc: 'Mes prescriptions',      icon: <LocalPharmacy sx={{ fontSize: 36 }} />,  path: '/ordonnances',     color: '#6a1b9a', bg: '#f3e5f5' },
+    { title: 'Analyses',    desc: 'Mes résultats',          icon: <Science sx={{ fontSize: 36 }} />,        path: '/analyses',        color: '#b71c1c', bg: '#ffebee' },
+    { title: 'Mon Dossier', desc: 'Dossier médical complet', icon: <FolderShared sx={{ fontSize: 36 }} />, path: '/dossier-medical', color: '#2e7d32', bg: '#e8f5e9' },
+  ];
+
+  const quickLinks = isPatient ? patientQuickLinks : isDoctorOrInfirmier ? doctorQuickLinks : [];
   return (
     <Box>
+      {/* ═══════════════ ACCÈS RAPIDE ═══════════════ */}
+      {quickLinks.length > 0 && (
+        <Box sx={{ mb: 4 }}>
+          <Typography variant="h6" fontWeight="bold" gutterBottom sx={{ mb: 2 }}>Accès rapide</Typography>
+          <Grid container spacing={2}>
+            {quickLinks.map((item) => (
+              <Grid item xs={6} sm={4} md={Math.floor(12 / quickLinks.length)} key={item.title}>
+                <Paper
+                  elevation={0}
+                  onClick={() => navigate(item.path)}
+                  sx={{
+                    p: 2.5,
+                    textAlign: 'center',
+                    cursor: 'pointer',
+                    borderRadius: 3,
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    backgroundColor: item.bg,
+                    transition: 'transform 0.18s ease, box-shadow 0.18s ease',
+                    '&:hover': { transform: 'translateY(-5px)', boxShadow: 5 },
+                  }}
+                >
+                  <Box sx={{ color: item.color, mb: 1.5 }}>{item.icon}</Box>
+                  <Typography variant="body2" fontWeight="bold" sx={{ color: item.color, mb: 0.5 }}>
+                    {item.title}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary" display="block">
+                    {item.desc}
+                  </Typography>
+                </Paper>
+              </Grid>
+            ))}
+          </Grid>
+        </Box>
+      )}
+
       {/* ═══════════════ PATIENT DASHBOARD ═══════════════ */}
       {isPatient && (() => {
         const today = new Date().toISOString().split('T')[0];
@@ -440,51 +492,6 @@ export default function Dashboard() {
                 </Grid>
               </Grid>
 
-              <Box sx={{ mt: 4 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                  <People sx={{ fontSize: 28 }} />
-                  <Typography variant="h5" fontWeight="bold">Mes Patients</Typography>
-                </Box>
-
-                {myPatients.length === 0 ? (
-                  <Paper variant="outlined" sx={{ p: 4, textAlign: 'center', borderRadius: 2 }}>
-                    <People sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
-                    <Typography color="text.secondary">
-                      Aucun patient pour le moment. Les patients apparaîtront ici après leur première consultation.
-                    </Typography>
-                  </Paper>
-                ) : (
-                  myPatients.map((patient) => (
-                    <Paper
-                      key={patient.id}
-                      variant="outlined"
-                      sx={{ p: 2.5, mb: 1.5, borderRadius: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
-                    >
-                      <Box>
-                        <Typography variant="subtitle1" fontWeight="bold">
-                          {patient.firstName} {patient.lastName}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          {patient.email}
-                        </Typography>
-                        {patient.phone && (
-                          <Typography variant="body2" color="text.secondary">
-                            {patient.phone}
-                          </Typography>
-                        )}
-                      </Box>
-                      <Button
-                        variant="contained"
-                        startIcon={<FolderShared />}
-                        onClick={() => navigate(`/dossier-medical/${patient.id}`)}
-                        sx={{ textTransform: 'uppercase', fontWeight: 'bold', borderRadius: 2 }}
-                      >
-                        Dossier Médical
-                      </Button>
-                    </Paper>
-                  ))
-                )}
-              </Box>
             </>
           )}
         </Box>
