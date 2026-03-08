@@ -71,6 +71,20 @@ export class AppointmentsService {
       );
     }
 
+    // 3. Vérification atomique : aucun RDV actif ne doit exister sur ce créneau exact
+    const slotTaken = await this.appointmentRepository.findOne({
+      where: [
+        { doctorId, date: new Date(date), time, status: AppointmentStatus.EN_ATTENTE },
+        { doctorId, date: new Date(date), time, status: AppointmentStatus.CONFIRME },
+      ],
+    });
+
+    if (slotTaken) {
+      throw new BadRequestException(
+        'Ce créneau vient d\'être réservé par un autre patient. Veuillez en choisir un autre.',
+      );
+    }
+
     const appointment = this.appointmentRepository.create({
       ...createAppointmentDto,
       patientId,
@@ -202,7 +216,7 @@ export class AppointmentsService {
       },
     });
 
-    const bookedSlots = appointments.map((apt) => apt.time);
+    const bookedSlots = appointments.map((apt) => apt.time.substring(0, 5));
 
     // Filtrer les créneaux déjà passés si la date demandée est aujourd'hui
     const now = new Date();
