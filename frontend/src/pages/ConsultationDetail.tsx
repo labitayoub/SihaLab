@@ -89,6 +89,9 @@ export default function ConsultationDetail() {
   // Confirm delete dialog
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; type: 'ordonnance' | 'analyse'; id: string; label: string } | null>(null);
 
+  // PDF generation
+  const [generating, setGenerating] = useState(false);
+
   useEffect(() => {
     Promise.all([
       loadConsultation(),
@@ -280,6 +283,20 @@ export default function ConsultationDetail() {
       setTimeout(() => navigate('/consultations'), 1500);
     } catch {
       toast.error('Erreur lors de la confirmation');
+    }
+  };
+
+  const handleGeneratePdfs = async () => {
+    setGenerating(true);
+    try {
+      const { data } = await api.post(`/consultations/${id}/generate-pdfs`);
+      const total = (data.ordonnances?.length || 0) + (data.analyses?.length || 0);
+      toast.success(`${total} document(s) PDF générés avec succès`);
+      loadAll();
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Erreur lors de la génération des PDFs');
+    } finally {
+      setGenerating(false);
     }
   };
 
@@ -636,6 +653,47 @@ export default function ConsultationDetail() {
           Prescrire analyse
         </Button>
       </Paper>
+
+      {/* ── Generate PDFs ── */}
+      {(ordonnances.length > 0 || analyses.length > 0) && (
+        <Paper
+          variant="outlined"
+          sx={{
+            p: 3, mb: 3, borderRadius: 2,
+            background: 'linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%)',
+            border: '1px solid #90caf9',
+          }}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <PictureAsPdf sx={{ fontSize: 40, color: '#d32f2f' }} />
+            <Box sx={{ flex: 1 }}>
+              <Typography variant="subtitle1" fontWeight="bold">
+                Générer les documents PDF
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Génère les ordonnances et analyses en PDF avec QR code, en-tête médecin et filigrane.
+                Les documents seront stockés et accessibles dans le dossier médical du patient.
+              </Typography>
+            </Box>
+            <Button
+              variant="contained"
+              size="large"
+              startIcon={generating ? <CircularProgress size={20} color="inherit" /> : <PictureAsPdf />}
+              onClick={handleGeneratePdfs}
+              disabled={generating}
+              sx={{
+                textTransform: 'uppercase',
+                fontWeight: 'bold',
+                px: 4, py: 1.5,
+                background: 'linear-gradient(45deg, #1565c0 30%, #7b1fa2 90%)',
+                '&:hover': { background: 'linear-gradient(45deg, #0d47a1 30%, #6a1b9a 90%)' },
+              }}
+            >
+              {generating ? 'Génération...' : 'Générer'}
+            </Button>
+          </Box>
+        </Paper>
+      )}
 
       {/* ── Footer buttons ── */}
       <Divider sx={{ mb: 2 }} />
