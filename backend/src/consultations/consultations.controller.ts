@@ -77,6 +77,12 @@ export class ConsultationsController {
     return this.consultationsService.confirmConsultation(id);
   }
 
+  @Post(':id/cancel')
+  @Roles(UserRole.MEDECIN, UserRole.INFIRMIER)
+  cancel(@Param('id') id: string) {
+    return this.consultationsService.cancelConsultation(id);
+  }
+
   @Post(':id/generate-pdfs')
   @Roles(UserRole.MEDECIN, UserRole.INFIRMIER)
   generatePdfs(@Param('id') id: string, @CurrentUser() user: User) {

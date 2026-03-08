@@ -17,6 +17,12 @@ export enum AnalyseStatus {
     TERMINEE = 'terminee',
 }
 
+export enum ConsultationStatus {
+  EN_COURS = 'en_cours',
+  TERMINEE = 'terminee',
+  ANNULEE = 'annulee',
+}
+
 export enum LivraisonStatus {
   EN_PREPARATION = 'en_preparation',
   PRETE = 'prete',

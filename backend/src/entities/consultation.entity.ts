@@ -3,6 +3,7 @@ import { User } from './user.entity';
 import { Appointment } from './appointment.entity';
 import { Ordonnance } from './ordonnance.entity';
 import { Analyse } from './analyse.entity';
+import { ConsultationStatus } from '../common/enums/status.enum';
 
 @Entity('consultations')
 export class Consultation {
@@ -39,6 +40,9 @@ export class Consultation {
   @Column({ type: 'timestamp' })
   date: Date;
 
+  @Column({ type: 'enum', enum: ConsultationStatus, default: ConsultationStatus.EN_COURS })
+  status: ConsultationStatus;
+
   @Column({ type: 'text' })
   motif: string;
 
@@ -50,6 +54,12 @@ export class Consultation {
 
   @Column({ type: 'jsonb', nullable: true })
   examenClinique: any;
+
+  @Column({ nullable: true })
+  ordonnancePdfUrl: string;
+
+  @Column({ nullable: true })
+  analysePdfUrl: string;
 
   @CreateDateColumn()
   createdAt: Date;

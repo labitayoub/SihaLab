@@ -2,10 +2,11 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
 import { Appointment } from '../entities/appointment.entity';
+import { Consultation } from '../entities/consultation.entity';
 import { DoctorSchedule } from '../entities/doctor-schedule.entity';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
 import { UpdateAppointmentDto } from './dto/update-appointment.dto';
-import { AppointmentStatus } from '../common/enums/status.enum';
+import { AppointmentStatus, ConsultationStatus } from '../common/enums/status.enum';
 import { SchedulesService } from '../schedules/schedules.service';
 import { ConsultationsService } from '../consultations/consultations.service';
 
@@ -16,6 +17,8 @@ export class AppointmentsService {
     private appointmentRepository: Repository<Appointment>,
     @InjectRepository(DoctorSchedule)
     private scheduleRepository: Repository<DoctorSchedule>,
+    @InjectRepository(Consultation)
+    private consultationRepository: Repository<Consultation>,
     private schedulesService: SchedulesService,
     private consultationsService: ConsultationsService,
   ) {}
@@ -34,6 +37,21 @@ export class AppointmentsService {
     if (existingActive) {
       throw new BadRequestException(
         'Vous avez déjà un rendez-vous en cours avec ce médecin. Veuillez attendre qu\'il soit terminé ou annulé avant d\'en prendre un nouveau.',
+      );
+    }
+
+    // 0b. Vérifier que le patient n'a pas de consultation EN_COURS avec ce médecin
+    const activeConsultation = await this.consultationRepository.findOne({
+      where: {
+        patientId,
+        doctorId,
+        status: ConsultationStatus.EN_COURS,
+      },
+    });
+
+    if (activeConsultation) {
+      throw new BadRequestException(
+        'Vous avez une consultation en cours avec ce médecin. Elle doit être terminée ou annulée avant de prendre un nouveau rendez-vous.',
       );
     }
 
