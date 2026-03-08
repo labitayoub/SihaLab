@@ -4,10 +4,12 @@ import { Repository } from 'typeorm';
 import { Consultation } from '../entities/consultation.entity';
 import { Ordonnance } from '../entities/ordonnance.entity';
 import { Analyse } from '../entities/analyse.entity';
-import { Document } from '../entities/document.entity';
+import { Document, DocumentType } from '../entities/document.entity';
 import { Appointment } from '../entities/appointment.entity';
 import { CreateConsultationDto } from './dto/create-consultation.dto';
 import { AppointmentStatus } from '../common/enums/status.enum';
+import { PdfGeneratorService } from './pdf-generator.service';
+import { MinioService } from '../common/minio/minio.service';
 
 @Injectable()
 export class ConsultationsService {
@@ -22,6 +24,8 @@ export class ConsultationsService {
     private documentRepository: Repository<Document>,
     @InjectRepository(Appointment)
     private appointmentRepository: Repository<Appointment>,
+    private pdfGeneratorService: PdfGeneratorService,
+    private minioService: MinioService,
   ) {}
 
   async create(doctorId: string, createConsultationDto: CreateConsultationDto) {
@@ -193,6 +197,91 @@ export class ConsultationsService {
       ordonnances: allOrdonnances,
       analyses: allAnalyses,
       documents,
+    };
+  }
+
+  /**
+   * Générer les PDFs pour les ordonnances et analyses d'une consultation
+   * - Upload vers MinIO
+   * - Sauvegarde des URLs dans ordonnance.pdfUrl et dans la table documents
+   */
+  async generatePdfs(consultationId: string, doctorId: string) {
+    const consultation = await this.consultationRepository
+      .createQueryBuilder('consultation')
+      .leftJoinAndSelect('consultation.patient', 'patient')
+      .leftJoinAndSelect('consultation.doctor', 'doctor')
+      .leftJoinAndSelect('consultation.ordonnances', 'ordonnances')
+      .leftJoinAndSelect('consultation.analyses', 'analyses')
+      .where('consultation.id = :consultationId', { consultationId })
+      .getOne();
+
+    if (!consultation) {
+      throw new NotFoundException('Consultation not found');
+    }
+
+    const results: { ordonnances: string[]; analyses: string[] } = {
+      ordonnances: [],
+      analyses: [],
+    };
+
+    const timestamp = Date.now();
+
+    // ── Generate ordonnance PDFs ──
+    for (let i = 0; i < consultation.ordonnances.length; i++) {
+      const ord = consultation.ordonnances[i];
+      const pdfBuffer = await this.pdfGeneratorService.generateOrdonnancePdf(
+        ord, consultation, i + 1,
+      );
+
+      const objectName = `consultations/${consultationId}/ordonnance_${i + 1}_${timestamp}.pdf`;
+      const fileUrl = await this.minioService.uploadFile(objectName, pdfBuffer, 'application/pdf');
+
+      // Update ordonnance pdfUrl
+      await this.ordonnanceRepository.update(ord.id, { pdfUrl: fileUrl });
+
+      // Create document record
+      await this.documentRepository.save(this.documentRepository.create({
+        patientId: consultation.patientId,
+        uploadedBy: doctorId,
+        type: DocumentType.ORDONNANCE,
+        fileName: `Ordonnance_${i + 1}_${new Date(consultation.date).toISOString().split('T')[0]}.pdf`,
+        fileUrl,
+        mimeType: 'application/pdf',
+        fileSize: pdfBuffer.length,
+        description: `Ordonnance #${i + 1} — Consultation du ${new Date(consultation.date).toLocaleDateString('fr-FR')}`,
+      }));
+
+      results.ordonnances.push(fileUrl);
+    }
+
+    // ── Generate analyse PDFs ──
+    for (let i = 0; i < consultation.analyses.length; i++) {
+      const an = consultation.analyses[i];
+      const pdfBuffer = await this.pdfGeneratorService.generateAnalysePdf(
+        an, consultation, i + 1,
+      );
+
+      const objectName = `consultations/${consultationId}/analyse_${i + 1}_${timestamp}.pdf`;
+      const fileUrl = await this.minioService.uploadFile(objectName, pdfBuffer, 'application/pdf');
+
+      // Create document record
+      await this.documentRepository.save(this.documentRepository.create({
+        patientId: consultation.patientId,
+        uploadedBy: doctorId,
+        type: DocumentType.ANALYSE,
+        fileName: `Analyse_${i + 1}_${new Date(consultation.date).toISOString().split('T')[0]}.pdf`,
+        fileUrl,
+        mimeType: 'application/pdf',
+        fileSize: pdfBuffer.length,
+        description: `Analyse #${i + 1} — ${an.description} — Consultation du ${new Date(consultation.date).toLocaleDateString('fr-FR')}`,
+      }));
+
+      results.analyses.push(fileUrl);
+    }
+
+    return {
+      message: `${results.ordonnances.length} ordonnance(s) + ${results.analyses.length} analyse(s) PDF générés`,
+      ...results,
     };
   }
 }

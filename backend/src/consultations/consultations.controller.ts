@@ -76,4 +76,11 @@ export class ConsultationsController {
   confirm(@Param('id') id: string) {
     return this.consultationsService.confirmConsultation(id);
   }
+
+  @Post(':id/generate-pdfs')
+  @Roles(UserRole.MEDECIN, UserRole.INFIRMIER)
+  generatePdfs(@Param('id') id: string, @CurrentUser() user: User) {
+    const doctorId = user.role === UserRole.INFIRMIER ? user.createdBy : user.id;
+    return this.consultationsService.generatePdfs(id, doctorId);
+  }
 }
