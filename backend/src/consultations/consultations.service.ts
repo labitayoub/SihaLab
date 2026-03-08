@@ -107,11 +107,11 @@ export class ConsultationsService {
       );
     }
 
-    // Free the linked appointment back to EN_ATTENTE (not cancelled)
+    // Mark the linked appointment as ANNULE
     if (consultation.appointmentId) {
       await this.appointmentRepository.update(
         { id: consultation.appointmentId },
-        { status: AppointmentStatus.EN_ATTENTE },
+        { status: AppointmentStatus.ANNULE },
       );
     }
 
@@ -130,7 +130,7 @@ export class ConsultationsService {
     // Delete the consultation itself
     await this.consultationRepository.delete(id);
 
-    return { message: 'Consultation supprimée — Rendez-vous libéré et remis en attente' };
+    return { message: 'Consultation supprimée — Rendez-vous annulé' };
   }
 
   /**
