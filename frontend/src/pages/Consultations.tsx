@@ -4,7 +4,7 @@ import {
   Box, Button, Card, Typography, Dialog, DialogTitle, DialogContent, TextField,
   MenuItem, Paper, Chip, Divider,
 } from '@mui/material';
-import { Add, FolderShared } from '@mui/icons-material';
+import { Add, FolderShared, PictureAsPdf, Visibility } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
 import { UserRole } from '../types/user.types';
 import { ConsultationWithDetails } from '../types/dossier.types';
@@ -128,10 +128,18 @@ export default function Consultations() {
                 <Typography variant="subtitle1" fontWeight="bold">
                   {c.patient?.firstName} {c.patient?.lastName}
                 </Typography>
-                {/* Date */}
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-                  {formatDate(c.date)}
-                </Typography>
+                {/* Date + Status */}
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+                  <Typography variant="body2" color="text.secondary">
+                    {formatDate(c.date)}
+                  </Typography>
+                  <Chip
+                    label={(c as any).status === 'terminee' ? 'Terminée' : (c as any).status === 'annulee' ? 'Annulée' : 'En cours'}
+                    size="small"
+                    color={(c as any).status === 'terminee' ? 'success' : (c as any).status === 'annulee' ? 'error' : 'warning'}
+                    sx={{ fontWeight: 'bold', fontSize: '0.7rem', height: 22 }}
+                  />
+                </Box>
 
                 {/* Diagnostic */}
                 {c.diagnostic && (
@@ -208,6 +216,39 @@ export default function Consultations() {
                 </Button>
               )}
             </Box>
+
+            {/* PDF links */}
+            {((c as any).ordonnancePdfUrl || (c as any).analysePdfUrl) && (
+              <Box sx={{ display: 'flex', gap: 1, mt: 1.5, pt: 1.5, borderTop: '1px dashed #e0e0e0', flexWrap: 'wrap' }}>
+                <PictureAsPdf sx={{ color: '#d32f2f', fontSize: 20, mt: 0.25 }} />
+                <Typography variant="body2" fontWeight="bold" sx={{ mr: 1, lineHeight: '28px' }}>PDF :</Typography>
+                {(c as any).ordonnancePdfUrl && (
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    startIcon={<Visibility />}
+                    href={(c as any).ordonnancePdfUrl}
+                    target="_blank"
+                    sx={{ textTransform: 'none', fontSize: '0.75rem' }}
+                  >
+                    Ordonnance
+                  </Button>
+                )}
+                {(c as any).analysePdfUrl && (
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    color="info"
+                    startIcon={<Visibility />}
+                    href={(c as any).analysePdfUrl}
+                    target="_blank"
+                    sx={{ textTransform: 'none', fontSize: '0.75rem' }}
+                  >
+                    Analyses
+                  </Button>
+                )}
+              </Box>
+            )}
           </Paper>
         ))
       )}

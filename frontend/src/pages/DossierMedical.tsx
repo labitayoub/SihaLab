@@ -173,7 +173,7 @@ export default function DossierMedical() {
             }}
             elevation={0}
           >
-            {/* ── Accordion Header: date + doctor + badges ── */}
+            {/* ── Accordion Header: date + doctor + status + badges ── */}
             <AccordionSummary expandIcon={<ExpandMore />}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
                 <Typography variant="subtitle1" fontWeight="bold">
@@ -184,6 +184,12 @@ export default function DossierMedical() {
                     — Dr {c.doctor.firstName} {c.doctor.lastName}
                   </Typography>
                 )}
+                <Chip
+                  label={c.status === 'terminee' ? 'Terminée' : c.status === 'annulee' ? 'Annulée' : 'En cours'}
+                  size="small"
+                  color={c.status === 'terminee' ? 'success' : c.status === 'annulee' ? 'error' : 'warning'}
+                  sx={{ fontWeight: 'bold' }}
+                />
                 {c.ordonnances && c.ordonnances.length > 0 && (
                   <Chip
                     icon={<AddIcon />}
@@ -199,6 +205,15 @@ export default function DossierMedical() {
                     label={`${c.analyses.length} Analyse(s)`}
                     size="small"
                     color="error"
+                    sx={{ fontWeight: 'bold' }}
+                  />
+                )}
+                {(c.ordonnancePdfUrl || c.analysePdfUrl) && (
+                  <Chip
+                    icon={<PictureAsPdf />}
+                    label="PDF"
+                    size="small"
+                    color="secondary"
                     sx={{ fontWeight: 'bold' }}
                   />
                 )}
@@ -356,102 +371,32 @@ export default function DossierMedical() {
               )}
 
               {/* ── Documents PDF liés à cette consultation ── */}
-              {(() => {
-                const consultationDocs = documents.filter(
-                  (d: any) => d.description?.includes(formatDate(c.date)) || d.fileUrl?.includes(c.id)
-                );
-                if (consultationDocs.length === 0) return null;
-                return (
-                  <>
-                    <Divider sx={{ my: 2 }} />
-                    <Typography variant="subtitle2" color="secondary.main" fontWeight="bold" sx={{ mb: 1.5, display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                      <Description fontSize="small" /> Documents PDF ({consultationDocs.length})
-                    </Typography>
-                    {consultationDocs.map((doc: any) => (
-                      <Paper
-                        key={doc.id}
-                        variant="outlined"
-                        sx={{ p: 1.5, mb: 1, borderRadius: 2, display: 'flex', alignItems: 'center', gap: 1.5 }}
-                      >
-                        <PictureAsPdf sx={{ color: '#d32f2f', fontSize: 28 }} />
-                        <Box sx={{ flex: 1 }}>
-                          <Typography variant="body2" fontWeight="bold">{doc.fileName}</Typography>
-                          <Typography variant="caption" color="text.secondary">{doc.description}</Typography>
-                        </Box>
-                        <Chip
-                          label={doc.type === 'ordonnance' ? 'Ordonnance' : doc.type === 'analyse' ? 'Analyse' : doc.type}
-                          size="small"
-                          color={doc.type === 'ordonnance' ? 'warning' : 'info'}
-                          sx={{ fontWeight: 'bold', mr: 1 }}
-                        />
-                        <Button
-                          size="small"
-                          variant="outlined"
-                          startIcon={<Visibility />}
-                          href={doc.fileUrl}
-                          target="_blank"
-                          sx={{ textTransform: 'uppercase', fontSize: '0.7rem', mr: 0.5 }}
-                        >
-                          Voir
-                        </Button>
-                        <Button
-                          size="small"
-                          variant="contained"
-                          startIcon={<Print />}
-                          onClick={() => {
-                            const printWin = window.open(doc.fileUrl, '_blank');
-                            if (printWin) {
-                              printWin.addEventListener('load', () => {
-                                printWin.print();
-                              });
-                            }
-                          }}
-                          sx={{ textTransform: 'uppercase', fontSize: '0.7rem' }}
-                        >
-                          Imprimer
-                        </Button>
-                      </Paper>
-                    ))}
-                  </>
-                );
-              })()}
-            </AccordionDetails>
-          </Accordion>
-        ))
-      )}
-
-      {/* ═══ All Documents Section ═══ */}
-      {documents.length > 0 && (
-        <Box sx={{ mt: 4 }}>
-          <Typography variant="h5" fontWeight="bold" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-            <PictureAsPdf sx={{ color: '#d32f2f' }} /> Documents ({documents.length})
-          </Typography>
-          <Grid container spacing={2}>
-            {documents.map((doc: any) => (
-              <Grid item xs={12} sm={6} key={doc.id}>
-                <Card variant="outlined" sx={{ borderRadius: 2 }}>
-                  <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 1.5, pb: '12px !important' }}>
-                    <PictureAsPdf sx={{ color: '#d32f2f', fontSize: 36 }} />
-                    <Box sx={{ flex: 1, minWidth: 0 }}>
-                      <Typography variant="body2" fontWeight="bold" noWrap>{doc.fileName}</Typography>
-                      <Typography variant="caption" color="text.secondary" noWrap>{doc.description}</Typography>
-                      <Box sx={{ mt: 0.5 }}>
-                        <Chip
-                          label={doc.type === 'ordonnance' ? 'Ordonnance' : doc.type === 'analyse' ? 'Analyse' : doc.type}
-                          size="small"
-                          color={doc.type === 'ordonnance' ? 'warning' : 'info'}
-                          sx={{ fontWeight: 'bold', fontSize: '0.65rem', height: 20 }}
-                        />
+              {(c.ordonnancePdfUrl || c.analysePdfUrl) && (
+                <>
+                  <Divider sx={{ my: 2 }} />
+                  <Typography variant="subtitle2" color="secondary.main" fontWeight="bold" sx={{ mb: 1.5, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <Description fontSize="small" /> Documents PDF de cette consultation
+                  </Typography>
+                  {c.ordonnancePdfUrl && (
+                    <Paper
+                      variant="outlined"
+                      sx={{ p: 1.5, mb: 1, borderRadius: 2, display: 'flex', alignItems: 'center', gap: 1.5, bgcolor: '#e8f5e9', border: '1px solid #c8e6c9' }}
+                    >
+                      <PictureAsPdf sx={{ color: '#d32f2f', fontSize: 28 }} />
+                      <Box sx={{ flex: 1 }}>
+                        <Typography variant="body2" fontWeight="bold">Ordonnance médicale</Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {patientInfo?.lastName} {patientInfo?.firstName} — {formatDate(c.date)}
+                        </Typography>
                       </Box>
-                    </Box>
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                      <Chip label="Ordonnance" size="small" color="warning" sx={{ fontWeight: 'bold', mr: 1 }} />
                       <Button
                         size="small"
                         variant="outlined"
                         startIcon={<Visibility />}
-                        href={doc.fileUrl}
+                        href={c.ordonnancePdfUrl}
                         target="_blank"
-                        sx={{ textTransform: 'uppercase', fontSize: '0.65rem', minWidth: 80 }}
+                        sx={{ textTransform: 'uppercase', fontSize: '0.7rem', mr: 0.5 }}
                       >
                         Voir
                       </Button>
@@ -460,23 +405,60 @@ export default function DossierMedical() {
                         variant="contained"
                         startIcon={<Print />}
                         onClick={() => {
-                          const printWin = window.open(doc.fileUrl, '_blank');
-                          if (printWin) {
-                            printWin.addEventListener('load', () => { printWin.print(); });
-                          }
+                          const printWin = window.open(c.ordonnancePdfUrl, '_blank');
+                          if (printWin) { printWin.addEventListener('load', () => { printWin.print(); }); }
                         }}
-                        sx={{ textTransform: 'uppercase', fontSize: '0.65rem', minWidth: 80 }}
+                        sx={{ textTransform: 'uppercase', fontSize: '0.7rem' }}
                       >
                         Imprimer
                       </Button>
-                    </Box>
-                  </CardContent>
-                </Card>
-              </Grid>
-            ))}
-          </Grid>
-        </Box>
+                    </Paper>
+                  )}
+                  {c.analysePdfUrl && (
+                    <Paper
+                      variant="outlined"
+                      sx={{ p: 1.5, mb: 1, borderRadius: 2, display: 'flex', alignItems: 'center', gap: 1.5, bgcolor: '#e3f2fd', border: '1px solid #bbdefb' }}
+                    >
+                      <PictureAsPdf sx={{ color: '#d32f2f', fontSize: 28 }} />
+                      <Box sx={{ flex: 1 }}>
+                        <Typography variant="body2" fontWeight="bold">Demande d'analyses</Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {patientInfo?.lastName} {patientInfo?.firstName} — {formatDate(c.date)}
+                        </Typography>
+                      </Box>
+                      <Chip label="Analyse" size="small" color="info" sx={{ fontWeight: 'bold', mr: 1 }} />
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        startIcon={<Visibility />}
+                        href={c.analysePdfUrl}
+                        target="_blank"
+                        sx={{ textTransform: 'uppercase', fontSize: '0.7rem', mr: 0.5 }}
+                      >
+                        Voir
+                      </Button>
+                      <Button
+                        size="small"
+                        variant="contained"
+                        startIcon={<Print />}
+                        onClick={() => {
+                          const printWin = window.open(c.analysePdfUrl, '_blank');
+                          if (printWin) { printWin.addEventListener('load', () => { printWin.print(); }); }
+                        }}
+                        sx={{ textTransform: 'uppercase', fontSize: '0.7rem' }}
+                      >
+                        Imprimer
+                      </Button>
+                    </Paper>
+                  )}
+                </>
+              )}
+            </AccordionDetails>
+          </Accordion>
+        ))
       )}
+
+
     </Box>
   );
 }

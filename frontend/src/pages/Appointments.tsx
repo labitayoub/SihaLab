@@ -520,43 +520,82 @@ export default function Appointments() {
                         </Box>
                       ) : availability?.hasSchedule === false ? (
                         <Alert severity="warning">Aucun horaire défini pour ce jour.</Alert>
-                      ) : availability && availability.availableSlots.length === 0 ? (
+                      ) : availability && availability.availableSlots.length === 0 && availability.bookedSlots.length === 0 ? (
                         <Alert severity="error" icon={<EventBusy />}>
                           Tous les créneaux sont pris pour cette date. Veuillez choisir une autre date.
                         </Alert>
                       ) : availability ? (
-                        <Grid container spacing={1.5}>
-                          {availability.availableSlots.map((slot) => {
-                            const isSelected = formData.time === slot;
-                            return (
-                              <Grid item xs={3} key={slot}>
-                                <Paper
-                                  elevation={isSelected ? 4 : 0}
-                                  onClick={() => setFormData((prev) => ({ ...prev, time: slot }))}
-                                  sx={{
-                                    py: 1.5,
-                                    textAlign: 'center',
-                                    cursor: 'pointer',
-                                    borderRadius: 2,
-                                    border: '2px solid',
-                                    borderColor: isSelected ? 'primary.main' : 'grey.200',
-                                    bgcolor: isSelected ? 'primary.main' : 'grey.50',
-                                    color: isSelected ? 'white' : 'text.primary',
-                                    transition: 'all 0.15s',
-                                    '&:hover': {
-                                      borderColor: 'primary.main',
-                                      bgcolor: isSelected ? 'primary.dark' : 'primary.50',
-                                    },
-                                  }}
-                                >
-                                  <Typography variant="body1" fontWeight={isSelected ? 'bold' : 'medium'}>
-                                    {slot}
-                                  </Typography>
-                                </Paper>
-                              </Grid>
-                            );
-                          })}
-                        </Grid>
+                        <>
+                          {availability.availableSlots.length === 0 && availability.bookedSlots.length > 0 && (
+                            <Alert severity="warning" sx={{ mb: 2 }} icon={<EventBusy />}>
+                              Tous les créneaux disponibles sont déjà réservés pour cette date.
+                            </Alert>
+                          )}
+                          <Grid container spacing={1.5}>
+                            {[...availability.availableSlots, ...availability.bookedSlots]
+                              .sort((a, b) => a.localeCompare(b))
+                              .map((slot) => {
+                                const isBooked = availability.bookedSlots.includes(slot);
+                                const isSelected = formData.time === slot;
+                                return (
+                                  <Grid item xs={3} key={slot}>
+                                    <Paper
+                                      elevation={isSelected ? 4 : 0}
+                                      onClick={() => !isBooked && setFormData((prev) => ({ ...prev, time: slot }))}
+                                      sx={{
+                                        py: 1.5,
+                                        textAlign: 'center',
+                                        cursor: isBooked ? 'not-allowed' : 'pointer',
+                                        borderRadius: 2,
+                                        border: '2px solid',
+                                        borderColor: isBooked
+                                          ? 'grey.200'
+                                          : isSelected
+                                            ? 'primary.main'
+                                            : 'grey.200',
+                                        bgcolor: isBooked
+                                          ? '#f5f5f5'
+                                          : isSelected
+                                            ? 'primary.main'
+                                            : 'grey.50',
+                                        color: isBooked
+                                          ? 'grey.400'
+                                          : isSelected
+                                            ? 'white'
+                                            : 'text.primary',
+                                        opacity: isBooked ? 0.5 : 1,
+                                        pointerEvents: isBooked ? 'none' : 'auto',
+                                        transition: 'all 0.15s',
+                                        position: 'relative',
+                                        '&:hover': isBooked ? {} : {
+                                          borderColor: 'primary.main',
+                                          bgcolor: isSelected ? 'primary.dark' : 'primary.50',
+                                        },
+                                      }}
+                                    >
+                                      <Typography
+                                        variant="body1"
+                                        fontWeight={isSelected ? 'bold' : 'medium'}
+                                        sx={{
+                                          textDecoration: isBooked ? 'line-through' : 'none',
+                                        }}
+                                      >
+                                        {slot}
+                                      </Typography>
+                                      {isBooked && (
+                                        <Typography
+                                          variant="caption"
+                                          sx={{ color: 'error.main', fontSize: '0.6rem', display: 'block', mt: 0.25 }}
+                                        >
+                                          Réservé
+                                        </Typography>
+                                      )}
+                                    </Paper>
+                                  </Grid>
+                                );
+                              })}
+                          </Grid>
+                        </>
                       ) : null}
                     </Box>
                   )}
