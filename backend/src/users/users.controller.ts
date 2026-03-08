@@ -24,6 +24,13 @@ export class UsersController {
     return this.usersService.create(createUserDto);
   }
 
+  @Post('create-patient')
+  @Roles(UserRole.MEDECIN, UserRole.INFIRMIER)
+  @ApiOperation({ summary: 'Create a patient (Doctor/Infirmier only)' })
+  createPatient(@Body() createUserDto: CreateUserDto) {
+    return this.usersService.createPatient(createUserDto);
+  }
+
   @Get()
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Get all users (Admin only)' })

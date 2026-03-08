@@ -34,6 +34,19 @@ export class UsersService {
     return result;
   }
 
+  async createPatient(dto: Partial<CreateUserDto>) {
+    const hashedPassword = await bcrypt.hash(dto.password || 'SihaLab123!', 10);
+    const user = this.userRepository.create({
+      ...dto,
+      role: UserRole.PATIENT,
+      password: hashedPassword,
+      emailVerified: true,
+    });
+    await this.userRepository.save(user);
+    const { password, ...result } = user as any;
+    return result;
+  }
+
   async findAll(page = 1, limit = 20, role?: UserRole, search?: string) {
     const currentPage = Number(page) || 1;
     const currentLimit = Number(limit) || 20;

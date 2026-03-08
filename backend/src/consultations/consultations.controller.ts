@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Query, Delete, UseGuards } from '@nestjs/common';
 import { ConsultationsService } from './consultations.service';
 import { CreateConsultationDto } from './dto/create-consultation.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -71,13 +71,7 @@ export class ConsultationsController {
     return this.consultationsService.update(id, updateData);
   }
 
-  @Post(':id/confirm')
-  @Roles(UserRole.MEDECIN, UserRole.INFIRMIER)
-  confirm(@Param('id') id: string) {
-    return this.consultationsService.confirmConsultation(id);
-  }
-
-  @Post(':id/cancel')
+  @Delete(':id/cancel')
   @Roles(UserRole.MEDECIN, UserRole.INFIRMIER)
   cancel(@Param('id') id: string) {
     return this.consultationsService.cancelConsultation(id);

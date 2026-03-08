@@ -34,7 +34,17 @@ export class ConsultationsService {
       doctorId,
       date: new Date(),
     });
-    return this.consultationRepository.save(consultation);
+    const saved = await this.consultationRepository.save(consultation);
+
+    // If linked to an appointment, mark it as CONFIRMÉ (in progress)
+    if (createConsultationDto.appointmentId) {
+      await this.appointmentRepository.update(
+        { id: createConsultationDto.appointmentId },
+        { status: AppointmentStatus.CONFIRME },
+      );
+    }
+
+    return saved;
   }
 
   async findAll(patientId?: string, doctorId?: string) {
@@ -82,39 +92,45 @@ export class ConsultationsService {
     return this.consultationRepository.save(consultation);
   }
 
-  async confirmConsultation(id: string) {
-    const consultation = await this.findOne(id);
-    if (consultation.status === ConsultationStatus.TERMINEE) {
-      throw new BadRequestException('Cette consultation est déjà terminée.');
-    }
-    // Mark the linked appointment as TERMINÉ
-    if (consultation.appointmentId) {
-      await this.appointmentRepository.update(
-        { id: consultation.appointmentId },
-        { status: AppointmentStatus.TERMINE },
-      );
-    }
-    // Mark consultation as terminée
-    consultation.status = ConsultationStatus.TERMINEE;
-    return this.consultationRepository.save(consultation);
-  }
-
   async cancelConsultation(id: string) {
-    const consultation = await this.findOne(id);
+    const consultation = await this.consultationRepository
+      .createQueryBuilder('consultation')
+      .leftJoinAndSelect('consultation.ordonnances', 'ordonnances')
+      .leftJoinAndSelect('consultation.analyses', 'analyses')
+      .where('consultation.id = :id', { id })
+      .getOne();
+
+    if (!consultation) throw new NotFoundException('Consultation not found');
     if (consultation.status === ConsultationStatus.TERMINEE) {
       throw new BadRequestException(
         'Impossible d\'annuler une consultation déjà terminée.',
       );
     }
-    consultation.status = ConsultationStatus.ANNULEE;
-    // Also cancel the linked appointment if still active
+
+    // Free the linked appointment back to EN_ATTENTE (not cancelled)
     if (consultation.appointmentId) {
       await this.appointmentRepository.update(
         { id: consultation.appointmentId },
-        { status: AppointmentStatus.ANNULE },
+        { status: AppointmentStatus.EN_ATTENTE },
       );
     }
-    return this.consultationRepository.save(consultation);
+
+    // Delete ordonnances and analyses linked to this consultation
+    if (consultation.ordonnances?.length > 0) {
+      await this.ordonnanceRepository.delete(
+        consultation.ordonnances.map((o) => o.id)
+      );
+    }
+    if (consultation.analyses?.length > 0) {
+      await this.analyseRepository.delete(
+        consultation.analyses.map((a) => a.id)
+      );
+    }
+
+    // Delete the consultation itself
+    await this.consultationRepository.delete(id);
+
+    return { message: 'Consultation supprimée — Rendez-vous libéré et remis en attente' };
   }
 
   /**
@@ -242,6 +258,10 @@ export class ConsultationsService {
 
     if (!consultation) {
       throw new NotFoundException('Consultation not found');
+    }
+
+    if (consultation.status === ConsultationStatus.TERMINEE) {
+      throw new BadRequestException('Cette consultation est déjà terminée. Impossible de regénérer les PDFs.');
     }
 
     const results: { ordonnanceUrl?: string; analyseUrl?: string; ordonnanceFileName?: string; analyseFileName?: string } = {};
