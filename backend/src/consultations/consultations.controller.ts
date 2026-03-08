@@ -70,4 +70,10 @@ export class ConsultationsController {
   update(@Param('id') id: string, @Body() updateData: Partial<CreateConsultationDto>) {
     return this.consultationsService.update(id, updateData);
   }
+
+  @Post(':id/confirm')
+  @Roles(UserRole.MEDECIN, UserRole.INFIRMIER)
+  confirm(@Param('id') id: string) {
+    return this.consultationsService.confirmConsultation(id);
+  }
 }

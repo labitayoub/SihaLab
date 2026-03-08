@@ -133,6 +133,22 @@ export class AppointmentsService {
     return this.update(id, { status: AppointmentStatus.ANNULE });
   }
 
+  async getMyPatients(doctorId: string) {
+    const appointments = await this.appointmentRepository.find({
+      where: { doctorId, status: AppointmentStatus.CONFIRME },
+      relations: ['patient'],
+      order: { date: 'DESC' },
+    });
+    const patientMap = new Map<string, any>();
+    for (const apt of appointments) {
+      if (apt.patient && !patientMap.has(apt.patientId)) {
+        const { password, ...patient } = apt.patient as any;
+        patientMap.set(apt.patientId, patient);
+      }
+    }
+    return Array.from(patientMap.values());
+  }
+
   async getDoctorAvailability(doctorId: string, date: string) {
     const requestedDate = new Date(date);
     const dayOfWeek = requestedDate.getDay(); // 0=Dim, 1=Lun, ..., 6=Sam

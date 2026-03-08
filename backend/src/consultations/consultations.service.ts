@@ -5,7 +5,9 @@ import { Consultation } from '../entities/consultation.entity';
 import { Ordonnance } from '../entities/ordonnance.entity';
 import { Analyse } from '../entities/analyse.entity';
 import { Document } from '../entities/document.entity';
+import { Appointment } from '../entities/appointment.entity';
 import { CreateConsultationDto } from './dto/create-consultation.dto';
+import { AppointmentStatus } from '../common/enums/status.enum';
 
 @Injectable()
 export class ConsultationsService {
@@ -18,6 +20,8 @@ export class ConsultationsService {
     private analyseRepository: Repository<Analyse>,
     @InjectRepository(Document)
     private documentRepository: Repository<Document>,
+    @InjectRepository(Appointment)
+    private appointmentRepository: Repository<Appointment>,
   ) {}
 
   async create(doctorId: string, createConsultationDto: CreateConsultationDto) {
@@ -68,6 +72,18 @@ export class ConsultationsService {
     const consultation = await this.findOne(id);
     Object.assign(consultation, updateData);
     return this.consultationRepository.save(consultation);
+  }
+
+  async confirmConsultation(id: string) {
+    const consultation = await this.findOne(id);
+    // Mark the linked appointment as TERMINÉ
+    if (consultation.appointmentId) {
+      await this.appointmentRepository.update(
+        { id: consultation.appointmentId },
+        { status: AppointmentStatus.TERMINE },
+      );
+    }
+    return consultation;
   }
 
   /**

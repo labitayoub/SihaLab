@@ -35,6 +35,13 @@ export class AppointmentsController {
     return this.appointmentsService.findAll(status, date, effectiveId, effectiveRole);
   }
 
+  @Get('my-patients')
+  @Roles(UserRole.MEDECIN, UserRole.INFIRMIER)
+  getMyPatients(@CurrentUser() user: User) {
+    const doctorId = user.role === UserRole.INFIRMIER ? user.createdBy : user.id;
+    return this.appointmentsService.getMyPatients(doctorId);
+  }
+
   @Get('doctor/:doctorId/availability')
   getDoctorAvailability(@Param('doctorId') doctorId: string, @Query('date') date: string) {
     return this.appointmentsService.getDoctorAvailability(doctorId, date);
