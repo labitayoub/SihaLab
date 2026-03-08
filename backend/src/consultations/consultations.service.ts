@@ -52,7 +52,7 @@ export class ConsultationsService {
   async findOne(id: string) {
     const consultation = await this.consultationRepository.findOne({
       where: { id },
-      relations: ['patient', 'doctor'],
+      relations: ['patient', 'doctor', 'ordonnances', 'analyses'],
     });
     if (!consultation) {
       throw new NotFoundException('Consultation not found');

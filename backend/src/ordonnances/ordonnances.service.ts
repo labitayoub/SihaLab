@@ -60,6 +60,18 @@ export class OrdonnancesService {
     return this.ordonnanceRepository.save(ordonnance);
   }
 
+  async update(id: string, data: { medicaments?: any[]; pharmacienId?: string }) {
+    const ordonnance = await this.findOne(id);
+    if (data.medicaments !== undefined) ordonnance.medicaments = data.medicaments;
+    if (data.pharmacienId !== undefined) ordonnance.pharmacienId = data.pharmacienId;
+    return this.ordonnanceRepository.save(ordonnance);
+  }
+
+  async remove(id: string) {
+    const ordonnance = await this.findOne(id);
+    return this.ordonnanceRepository.remove(ordonnance);
+  }
+
   async getByPatient(patientId: string) {
     return this.ordonnanceRepository.createQueryBuilder('ordonnance')
       .leftJoinAndSelect('ordonnance.consultation', 'consultation')

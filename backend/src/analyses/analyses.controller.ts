@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Patch, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Patch, Delete, Query, UseGuards } from '@nestjs/common';
 import { AnalysesService } from './analyses.service';
 import { CreateAnalyseDto } from './dto/create-analyse.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -54,4 +54,15 @@ export class AnalysesController {
   updateStatus(@Param('id') id: string, @Body('status') status: AnalyseStatus, @CurrentUser() user: User) {
     return this.analysesService.updateStatus(id, status, user.id);
   }
-}
+
+  @Patch(':id')
+  @Roles(UserRole.MEDECIN, UserRole.INFIRMIER)
+  update(@Param('id') id: string, @Body() body: { description?: string; labId?: string }) {
+    return this.analysesService.update(id, body);
+  }
+
+  @Delete(':id')
+  @Roles(UserRole.MEDECIN, UserRole.INFIRMIER)
+  remove(@Param('id') id: string) {
+    return this.analysesService.remove(id);
+  }

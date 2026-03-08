@@ -63,6 +63,18 @@ export class AnalysesService {
     return this.analyseRepository.save(analyse);
   }
 
+  async update(id: string, data: { description?: string; labId?: string }) {
+    const analyse = await this.findOne(id);
+    if (data.description !== undefined) analyse.description = data.description;
+    if (data.labId !== undefined) analyse.labId = data.labId;
+    return this.analyseRepository.save(analyse);
+  }
+
+  async remove(id: string) {
+    const analyse = await this.findOne(id);
+    return this.analyseRepository.remove(analyse);
+  }
+
   async getByPatient(patientId: string) {
     return this.analyseRepository.createQueryBuilder('analyse')
       .leftJoinAndSelect('analyse.consultation', 'consultation')

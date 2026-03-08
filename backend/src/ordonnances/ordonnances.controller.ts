@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
 import { OrdonnancesService } from './ordonnances.service';
 import { CreateOrdonnanceDto } from './dto/create-ordonnance.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -47,5 +47,17 @@ export class OrdonnancesController {
   @Roles(UserRole.PHARMACIEN)
   delivrer(@Param('id') id: string, @CurrentUser() user: User) {
     return this.ordonnancesService.delivrer(id, user.id);
+  }
+
+  @Patch(':id')
+  @Roles(UserRole.MEDECIN, UserRole.INFIRMIER)
+  update(@Param('id') id: string, @Body() body: { medicaments?: any[]; pharmacienId?: string }) {
+    return this.ordonnancesService.update(id, body);
+  }
+
+  @Delete(':id')
+  @Roles(UserRole.MEDECIN, UserRole.INFIRMIER)
+  remove(@Param('id') id: string) {
+    return this.ordonnancesService.remove(id);
   }
 }
