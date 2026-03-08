@@ -171,12 +171,17 @@ export default function DossierMedical() {
             }}
             elevation={0}
           >
-            {/* ── Accordion Header: date + badges ── */}
+            {/* ── Accordion Header: date + doctor + badges ── */}
             <AccordionSummary expandIcon={<ExpandMore />}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
                 <Typography variant="subtitle1" fontWeight="bold">
                   {formatDate(c.date)}
                 </Typography>
+                {c.doctor && (
+                  <Typography variant="body2" color="text.secondary">
+                    — Dr {c.doctor.firstName} {c.doctor.lastName}
+                  </Typography>
+                )}
                 {c.ordonnances && c.ordonnances.length > 0 && (
                   <Chip
                     icon={<AddIcon />}
@@ -200,6 +205,31 @@ export default function DossierMedical() {
 
             {/* ── Accordion Content ── */}
             <AccordionDetails sx={{ pt: 0 }}>
+              {/* Médecin */}
+              {c.doctor && (
+                <Box sx={{ mb: 2 }}>
+                  <Typography variant="subtitle2" color="text.secondary" fontWeight="bold">
+                    Médecin
+                  </Typography>
+                  <Typography variant="body2">
+                    Dr {c.doctor.firstName} {c.doctor.lastName}
+                    {(c.doctor as any).specialite ? ` — ${(c.doctor as any).specialite}` : ''}
+                  </Typography>
+                </Box>
+              )}
+
+              {/* Motif */}
+              {c.motif && (
+                <Box sx={{ mb: 2 }}>
+                  <Typography variant="subtitle2" color="primary.main" fontWeight="bold">
+                    Motif
+                  </Typography>
+                  <Typography variant="body2">
+                    {c.motif}
+                  </Typography>
+                </Box>
+              )}
+
               {/* Diagnostic */}
               {c.diagnostic && (
                 <Box sx={{ mb: 2 }}>

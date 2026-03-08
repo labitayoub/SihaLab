@@ -14,7 +14,9 @@ export default function Layout() {
   const menuItems = [
     { text: 'Dashboard', icon: <Dashboard />, path: '/dashboard', roles: [UserRole.ADMIN, UserRole.MEDECIN, UserRole.PATIENT, UserRole.PHARMACIEN, UserRole.LABORATOIRE, UserRole.INFIRMIER] },
     { text: 'Rendez-vous', icon: <CalendarMonth />, path: '/appointments', roles: [UserRole.MEDECIN, UserRole.PATIENT, UserRole.INFIRMIER] },
-    { text: 'Consultations', icon: <MedicalServices />, path: '/consultations', roles: [UserRole.MEDECIN, UserRole.PATIENT, UserRole.INFIRMIER] },
+    { text: 'Mes Patients', icon: <People />, path: '/mes-patients', roles: [UserRole.MEDECIN, UserRole.INFIRMIER] },
+    { text: 'Mes Consultations', icon: <MedicalServices />, path: '/consultations', roles: [UserRole.MEDECIN, UserRole.INFIRMIER] },
+    { text: 'Consultations', icon: <MedicalServices />, path: '/consultations', roles: [UserRole.PATIENT] },
     { text: 'Ordonnances', icon: <LocalPharmacy />, path: '/ordonnances', roles: [UserRole.MEDECIN, UserRole.PATIENT, UserRole.PHARMACIEN, UserRole.INFIRMIER] },
     { text: 'Analyses', icon: <Science />, path: '/analyses', roles: [UserRole.MEDECIN, UserRole.PATIENT, UserRole.LABORATOIRE, UserRole.INFIRMIER] },
     { text: 'Livraisons', icon: <LocalShipping />, path: '/livraisons', roles: [UserRole.PATIENT, UserRole.PHARMACIEN] },

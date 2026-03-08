@@ -21,6 +21,7 @@ import Users from './pages/Users';
 import Infirmiers from './pages/Infirmiers';
 import DoctorSchedule from './pages/DoctorSchedule';
 import DossierMedical from './pages/DossierMedical';
+import MesPatients from './pages/MesPatients';
 import Profile from './pages/Profile';
 
 const theme = createTheme({
@@ -92,6 +93,11 @@ function App() {
               <Route path="schedule" element={
                 <ProtectedRoute roles={[UserRole.MEDECIN, UserRole.INFIRMIER]}>
                   <DoctorSchedule />
+                </ProtectedRoute>
+              } />
+              <Route path="mes-patients" element={
+                <ProtectedRoute roles={[UserRole.MEDECIN, UserRole.INFIRMIER]}>
+                  <MesPatients />
                 </ProtectedRoute>
               } />
               <Route path="dossier-medical" element={
