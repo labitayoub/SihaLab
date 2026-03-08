@@ -108,8 +108,14 @@ export default function ConsultationDetail() {
       setConsultation(data);
       setDiagnostic(data.diagnostic || '');
       setNotes(data.notes || '');
-      setOrdonnances(data.ordonnances || []);
-      setAnalyses(data.analyses || []);
+
+      // Use dedicated endpoints with consultationId filter for reliable JSONB deserialization
+      const [ordRes, anRes] = await Promise.allSettled([
+        api.get(`/ordonnances?consultationId=${id}`),
+        api.get(`/analyses?consultationId=${id}`),
+      ]);
+      setOrdonnances(ordRes.status === 'fulfilled' ? ordRes.value.data || [] : data.ordonnances || []);
+      setAnalyses(anRes.status === 'fulfilled' ? anRes.value.data || [] : data.analyses || []);
     } catch {
       toast.error('Erreur de chargement');
     } finally {
