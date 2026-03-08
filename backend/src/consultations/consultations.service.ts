@@ -219,68 +219,67 @@ export class ConsultationsService {
       throw new NotFoundException('Consultation not found');
     }
 
-    const results: { ordonnances: string[]; analyses: string[] } = {
-      ordonnances: [],
-      analyses: [],
-    };
-
+    const results: { ordonnanceUrl?: string; analyseUrl?: string } = {};
     const timestamp = Date.now();
+    const dateStr = new Date(consultation.date).toISOString().split('T')[0];
+    const dateFr = new Date(consultation.date).toLocaleDateString('fr-FR');
 
-    // ── Generate ordonnance PDFs ──
-    for (let i = 0; i < consultation.ordonnances.length; i++) {
-      const ord = consultation.ordonnances[i];
+    // ── Generate ONE ordonnance PDF (all medicaments merged) ──
+    if (consultation.ordonnances.length > 0) {
       const pdfBuffer = await this.pdfGeneratorService.generateOrdonnancePdf(
-        ord, consultation, i + 1,
+        consultation.ordonnances, consultation,
       );
 
-      const objectName = `consultations/${consultationId}/ordonnance_${i + 1}_${timestamp}.pdf`;
+      const objectName = `consultations/${consultationId}/ordonnance_${timestamp}.pdf`;
       const fileUrl = await this.minioService.uploadFile(objectName, pdfBuffer, 'application/pdf');
 
-      // Update ordonnance pdfUrl
-      await this.ordonnanceRepository.update(ord.id, { pdfUrl: fileUrl });
+      // Update all ordonnances pdfUrl to the same merged PDF
+      for (const ord of consultation.ordonnances) {
+        await this.ordonnanceRepository.update(ord.id, { pdfUrl: fileUrl });
+      }
 
-      // Create document record
+      // Create a single document record
       await this.documentRepository.save(this.documentRepository.create({
         patientId: consultation.patientId,
         uploadedBy: doctorId,
         type: DocumentType.ORDONNANCE,
-        fileName: `Ordonnance_${i + 1}_${new Date(consultation.date).toISOString().split('T')[0]}.pdf`,
+        fileName: `Ordonnance_${dateStr}.pdf`,
         fileUrl,
         mimeType: 'application/pdf',
         fileSize: pdfBuffer.length,
-        description: `Ordonnance #${i + 1} — Consultation du ${new Date(consultation.date).toLocaleDateString('fr-FR')}`,
+        description: `Ordonnance (${consultation.ordonnances.length} médicament(s)) — Consultation du ${dateFr}`,
       }));
 
-      results.ordonnances.push(fileUrl);
+      results.ordonnanceUrl = fileUrl;
     }
 
-    // ── Generate analyse PDFs ──
-    for (let i = 0; i < consultation.analyses.length; i++) {
-      const an = consultation.analyses[i];
+    // ── Generate ONE analyse PDF (all analyses merged) ──
+    if (consultation.analyses.length > 0) {
       const pdfBuffer = await this.pdfGeneratorService.generateAnalysePdf(
-        an, consultation, i + 1,
+        consultation.analyses, consultation,
       );
 
-      const objectName = `consultations/${consultationId}/analyse_${i + 1}_${timestamp}.pdf`;
+      const objectName = `consultations/${consultationId}/analyses_${timestamp}.pdf`;
       const fileUrl = await this.minioService.uploadFile(objectName, pdfBuffer, 'application/pdf');
 
-      // Create document record
+      // Create a single document record
       await this.documentRepository.save(this.documentRepository.create({
         patientId: consultation.patientId,
         uploadedBy: doctorId,
         type: DocumentType.ANALYSE,
-        fileName: `Analyse_${i + 1}_${new Date(consultation.date).toISOString().split('T')[0]}.pdf`,
+        fileName: `Analyses_${dateStr}.pdf`,
         fileUrl,
         mimeType: 'application/pdf',
         fileSize: pdfBuffer.length,
-        description: `Analyse #${i + 1} — ${an.description} — Consultation du ${new Date(consultation.date).toLocaleDateString('fr-FR')}`,
+        description: `Analyses (${consultation.analyses.length}) — Consultation du ${dateFr}`,
       }));
 
-      results.analyses.push(fileUrl);
+      results.analyseUrl = fileUrl;
     }
 
+    const count = (results.ordonnanceUrl ? 1 : 0) + (results.analyseUrl ? 1 : 0);
     return {
-      message: `${results.ordonnances.length} ordonnance(s) + ${results.analyses.length} analyse(s) PDF générés`,
+      message: `${count} PDF(s) générés — ${consultation.ordonnances.length} ordonnance(s) et ${consultation.analyses.length} analyse(s) regroupés`,
       ...results,
     };
   }
