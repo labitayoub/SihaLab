@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box, Typography, Paper, TextField, Button, Divider, MenuItem,
-  IconButton, CircularProgress, Alert,
+  IconButton, CircularProgress, Alert, Chip, Dialog, DialogTitle,
+  DialogContent, DialogActions,
 } from '@mui/material';
-import { Delete, Add, Save, CheckCircle } from '@mui/icons-material';
+import { Delete, Add, Save, CheckCircle, Edit, PictureAsPdf, Cancel } from '@mui/icons-material';
 import { toast } from 'react-toastify';
 import api from '../config/api';
 
@@ -15,14 +16,49 @@ interface Medicament {
   duree: string;
 }
 
+function getOrdonnanceStatusLabel(status: string) {
+  switch (status) {
+    case 'delivree': return 'délivrée';
+    case 'annulee': return 'annulée';
+    default: return 'en attente';
+  }
+}
+
+function getAnalyseStatusLabel(status: string) {
+  switch (status) {
+    case 'terminee': return 'délivrée';
+    case 'en_cours': return 'en cours';
+    default: return 'en attente';
+  }
+}
+
+function getOrdonnanceStatusColor(status: string): 'warning' | 'success' | 'error' {
+  switch (status) {
+    case 'delivree': return 'success';
+    case 'annulee': return 'error';
+    default: return 'warning';
+  }
+}
+
+function getAnalyseStatusColor(status: string): 'warning' | 'success' | 'info' {
+  switch (status) {
+    case 'terminee': return 'success';
+    case 'en_cours': return 'info';
+    default: return 'warning';
+  }
+}
+
 export default function ConsultationDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
   const [loading, setLoading] = useState(true);
   const [consultation, setConsultation] = useState<any>(null);
+  const [ordonnances, setOrdonnances] = useState<any[]>([]);
+  const [analyses, setAnalyses] = useState<any[]>([]);
 
-  // Consultation fields
+  // Edit mode for consultation info
+  const [editMode, setEditMode] = useState(false);
   const [diagnostic, setDiagnostic] = useState('');
   const [notes, setNotes] = useState('');
 
@@ -36,9 +72,22 @@ export default function ConsultationDetail() {
     { nom: '', dosage: '', frequence: '', duree: '' },
   ]);
 
+  // Edit existing ordonnance
+  const [editingOrdId, setEditingOrdId] = useState<string | null>(null);
+  const [editOrdMeds, setEditOrdMeds] = useState<Medicament[]>([]);
+  const [editOrdPharmacienId, setEditOrdPharmacienId] = useState('');
+
   // Analyse form
   const [labId, setLabId] = useState('');
   const [descriptionAnalyse, setDescriptionAnalyse] = useState('');
+
+  // Edit existing analyse
+  const [editingAnId, setEditingAnId] = useState<string | null>(null);
+  const [editAnDescription, setEditAnDescription] = useState('');
+  const [editAnLabId, setEditAnLabId] = useState('');
+
+  // Confirm delete dialog
+  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; type: 'ordonnance' | 'analyse'; id: string; label: string } | null>(null);
 
   useEffect(() => {
     Promise.all([
@@ -48,6 +97,10 @@ export default function ConsultationDetail() {
     ]);
   }, []);
 
+  const loadAll = () => {
+    loadConsultation();
+  };
+
   const loadConsultation = async () => {
     setLoading(true);
     try {
@@ -55,6 +108,8 @@ export default function ConsultationDetail() {
       setConsultation(data);
       setDiagnostic(data.diagnostic || '');
       setNotes(data.notes || '');
+      setOrdonnances(data.ordonnances || []);
+      setAnalyses(data.analyses || []);
     } catch {
       toast.error('Erreur de chargement');
     } finally {
@@ -85,6 +140,7 @@ export default function ConsultationDetail() {
       await api.patch(`/consultations/${id}`, { diagnostic, notes });
       toast.success('Consultation enregistrée');
       setConsultation((prev: any) => ({ ...prev, diagnostic, notes }));
+      setEditMode(false);
     } catch {
       toast.error('Erreur lors de l\'enregistrement');
     }
@@ -119,6 +175,7 @@ export default function ConsultationDetail() {
       toast.success('Ordonnance créée');
       setMedicaments([{ nom: '', dosage: '', frequence: '', duree: '' }]);
       setPharmacienId('');
+      loadAll();
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Erreur');
     }
@@ -138,9 +195,75 @@ export default function ConsultationDetail() {
       toast.success('Analyse prescrite');
       setDescriptionAnalyse('');
       setLabId('');
+      loadAll();
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Erreur');
     }
+  };
+
+  // ── Edit ordonnance ──
+  const startEditOrd = (o: any) => {
+    setEditingOrdId(o.id);
+    setEditOrdMeds(o.medicaments?.map((m: any) => ({ ...m })) || [{ nom: '', dosage: '', frequence: '', duree: '' }]);
+    setEditOrdPharmacienId(o.pharmacienId || '');
+  };
+
+  const cancelEditOrd = () => { setEditingOrdId(null); };
+
+  const handleSaveOrd = async (ordId: string) => {
+    const filled = editOrdMeds.filter((m) => m.nom.trim());
+    if (filled.length === 0) { toast.warning('Ajoutez au moins un médicament'); return; }
+    try {
+      await api.patch(`/ordonnances/${ordId}`, { medicaments: filled, pharmacienId: editOrdPharmacienId || undefined });
+      toast.success('Ordonnance mise à jour');
+      setEditingOrdId(null);
+      loadAll();
+    } catch { toast.error('Erreur mise à jour ordonnance'); }
+  };
+
+  const addEditOrdMed = () => setEditOrdMeds([...editOrdMeds, { nom: '', dosage: '', frequence: '', duree: '' }]);
+  const removeEditOrdMed = (i: number) => setEditOrdMeds(editOrdMeds.filter((_, idx) => idx !== i));
+  const changeEditOrdMed = (i: number, field: keyof Medicament, val: string) => {
+    const arr = [...editOrdMeds]; arr[i][field] = val; setEditOrdMeds(arr);
+  };
+
+  // ── Edit analyse ──
+  const startEditAn = (a: any) => {
+    setEditingAnId(a.id);
+    setEditAnDescription(a.description || '');
+    setEditAnLabId(a.labId || '');
+  };
+
+  const cancelEditAn = () => { setEditingAnId(null); };
+
+  const handleSaveAn = async (anId: string) => {
+    if (!editAnDescription.trim()) { toast.warning('Entrez une description'); return; }
+    try {
+      await api.patch(`/analyses/${anId}`, { description: editAnDescription, labId: editAnLabId || undefined });
+      toast.success('Analyse mise à jour');
+      setEditingAnId(null);
+      loadAll();
+    } catch { toast.error('Erreur mise à jour analyse'); }
+  };
+
+  // ── Delete ──
+  const confirmDelete = (type: 'ordonnance' | 'analyse', itemId: string, label: string) => {
+    setDeleteDialog({ open: true, type, id: itemId, label });
+  };
+
+  const handleDelete = async () => {
+    if (!deleteDialog) return;
+    try {
+      if (deleteDialog.type === 'ordonnance') {
+        await api.delete(`/ordonnances/${deleteDialog.id}`);
+        toast.success('Ordonnance supprimée');
+      } else {
+        await api.delete(`/analyses/${deleteDialog.id}`);
+        toast.success('Analyse supprimée');
+      }
+      setDeleteDialog(null);
+      loadAll();
+    } catch { toast.error('Erreur lors de la suppression'); }
   };
 
   const handleConfirmConsultation = async () => {
@@ -166,6 +289,10 @@ export default function ConsultationDetail() {
     return <Alert severity="error">Consultation introuvable.</Alert>;
   }
 
+  const formattedDate = new Date(consultation.date).toLocaleDateString('fr-FR', {
+    day: '2-digit', month: '2-digit', year: 'numeric',
+  });
+
   return (
     <Box sx={{ maxWidth: 700, mx: 'auto' }}>
       <Typography variant="h5" fontWeight="bold" sx={{ mb: 3 }}>
@@ -178,45 +305,79 @@ export default function ConsultationDetail() {
           Informations générales
         </Typography>
 
-        <Alert severity="info" sx={{ mb: 2 }}>
-          <Typography variant="body2">
-            <strong>Date:</strong>{' '}
-            {new Date(consultation.date).toLocaleDateString('fr-FR', {
-              day: '2-digit', month: '2-digit', year: 'numeric',
-            })}
-          </Typography>
+        {/* Info summary always visible */}
+        <Alert severity="info" icon={false} sx={{ mb: 2 }}>
+          <Typography variant="body2"><strong>Date:</strong> {formattedDate}</Typography>
           <Typography variant="body2">
             <strong>Patient:</strong> {consultation.patient?.firstName} {consultation.patient?.lastName}
           </Typography>
         </Alert>
 
-        <TextField
-          fullWidth
-          label="Diagnostic *"
-          value={diagnostic}
-          onChange={(e) => setDiagnostic(e.target.value)}
-          multiline
-          rows={2}
-          sx={{ mb: 2 }}
-        />
-        <TextField
-          fullWidth
-          label="Notes"
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          multiline
-          rows={3}
-          sx={{ mb: 2 }}
-        />
+        {!editMode && (consultation.diagnostic || consultation.notes) ? (
+          <Box sx={{ bgcolor: '#f5faf5', border: '1px solid #c8e6c9', borderRadius: 1, p: 2, mb: 2 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
+              <Typography variant="body2" color="success.dark" fontWeight="bold">
+                Informations actuelles
+              </Typography>
+              <Button
+                size="small"
+                startIcon={<Edit />}
+                onClick={() => setEditMode(true)}
+                sx={{ textTransform: 'uppercase', fontSize: '0.7rem', color: 'primary.main', p: 0 }}
+              >
+                Modifier
+              </Button>
+            </Box>
+            {consultation.diagnostic && (
+              <Typography variant="body2">
+                <strong>Diagnostic:</strong> {consultation.diagnostic}
+              </Typography>
+            )}
+            {consultation.notes && (
+              <Typography variant="body2">
+                <strong>Notes:</strong> {consultation.notes}
+              </Typography>
+            )}
+          </Box>
+        ) : null}
 
-        <Button
-          variant="contained"
-          startIcon={<Save />}
-          onClick={handleSaveConsultation}
-          sx={{ textTransform: 'uppercase' }}
-        >
-          Enregistrer
-        </Button>
+        {(editMode || (!consultation.diagnostic && !consultation.notes)) && (
+          <>
+            <TextField
+              fullWidth
+              label="Diagnostic *"
+              value={diagnostic}
+              onChange={(e) => setDiagnostic(e.target.value)}
+              multiline
+              rows={2}
+              sx={{ mb: 2 }}
+            />
+            <TextField
+              fullWidth
+              label="Notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              multiline
+              rows={3}
+              sx={{ mb: 2 }}
+            />
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <Button
+                variant="contained"
+                startIcon={<Save />}
+                onClick={handleSaveConsultation}
+                sx={{ textTransform: 'uppercase' }}
+              >
+                Enregistrer
+              </Button>
+              {editMode && (
+                <Button variant="outlined" onClick={() => setEditMode(false)}>
+                  Annuler
+                </Button>
+              )}
+            </Box>
+          </>
+        )}
       </Paper>
 
       {/* ── Ordonnance ── */}
@@ -225,6 +386,72 @@ export default function ConsultationDetail() {
           Ordonnance
         </Typography>
 
+        {/* Existing ordonnances */}
+        {ordonnances.length > 0 && (
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+              Ordonnances existantes ({ordonnances.length})
+            </Typography>
+            {ordonnances.map((o: any, idx: number) => (
+              <Box
+                key={o.id}
+                sx={{ bgcolor: '#f5faf5', border: '1px solid #c8e6c9', borderRadius: 1, p: 1.5, mb: 1 }}
+              >
+                {editingOrdId === o.id ? (
+                  /* ── Inline edit form ── */
+                  <Box>
+                    <TextField
+                      select fullWidth label="Pharmacien" value={editOrdPharmacienId}
+                      onChange={(e) => setEditOrdPharmacienId(e.target.value)}
+                      size="small" sx={{ mb: 1.5 }}
+                    >
+                      <MenuItem value="">— Aucun pharmacien —</MenuItem>
+                      {pharmaciens.map((p) => (
+                        <MenuItem key={p.id} value={p.id}>{p.firstName} {p.lastName}</MenuItem>
+                      ))}
+                    </TextField>
+                    {editOrdMeds.map((med, mi) => (
+                      <Box key={mi} sx={{ display: 'flex', gap: 1, mb: 1, alignItems: 'center' }}>
+                        <TextField label="Médicament" value={med.nom} onChange={(e) => changeEditOrdMed(mi, 'nom', e.target.value)} size="small" sx={{ flex: 2 }} />
+                        <TextField label="Dosage" value={med.dosage} onChange={(e) => changeEditOrdMed(mi, 'dosage', e.target.value)} size="small" sx={{ flex: 1.5 }} />
+                        <TextField label="Fréquence" value={med.frequence} onChange={(e) => changeEditOrdMed(mi, 'frequence', e.target.value)} size="small" sx={{ flex: 1.5 }} />
+                        <TextField label="Durée" value={med.duree} onChange={(e) => changeEditOrdMed(mi, 'duree', e.target.value)} size="small" sx={{ flex: 1.5 }} />
+                        <IconButton color="error" onClick={() => removeEditOrdMed(mi)} disabled={editOrdMeds.length === 1} size="small"><Delete /></IconButton>
+                      </Box>
+                    ))}
+                    <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
+                      <Button size="small" startIcon={<Add />} onClick={addEditOrdMed}>+ Méd.</Button>
+                      <Button size="small" variant="contained" startIcon={<Save />} onClick={() => handleSaveOrd(o.id)}>Enregistrer</Button>
+                      <Button size="small" variant="outlined" startIcon={<Cancel />} onClick={cancelEditOrd}>Annuler</Button>
+                    </Box>
+                  </Box>
+                ) : (
+                  /* ── Display mode ── */
+                  <>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                      <CheckCircle sx={{ fontSize: 16, color: 'success.main' }} />
+                      <Typography variant="body2" fontWeight="bold" sx={{ flex: 1 }}>
+                        Ordonnance #{idx + 1} - Statut:{' '}
+                        <Chip label={getOrdonnanceStatusLabel(o.status)} size="small" color={getOrdonnanceStatusColor(o.status)} sx={{ height: 18, fontSize: '0.7rem' }} />
+                      </Typography>
+                      <IconButton size="small" onClick={() => startEditOrd(o)} title="Modifier"><Edit fontSize="small" /></IconButton>
+                      <IconButton size="small" color="error" onClick={() => confirmDelete('ordonnance', o.id, `Ordonnance #${idx + 1}`)} title="Supprimer"><Delete fontSize="small" /></IconButton>
+                    </Box>
+                    {o.medicaments?.map((med: any, mi: number) => (
+                      <Typography key={mi} variant="body2" sx={{ pl: 3, color: 'text.secondary' }}>
+                        • {med.nom} - {med.dosage} ({med.frequence} pendant {med.duree})
+                      </Typography>
+                    ))}
+                  </>
+                )}
+              </Box>
+            ))}
+          </Box>
+        )}
+
+        <Divider sx={{ mb: 2 }} />
+
+        {/* New ordonnance form */}
         <TextField
           select
           fullWidth
@@ -232,6 +459,7 @@ export default function ConsultationDetail() {
           value={pharmacienId}
           onChange={(e) => setPharmacienId(e.target.value)}
           sx={{ mb: 2 }}
+          size="small"
         >
           <MenuItem value="">— Aucun pharmacien —</MenuItem>
           {pharmaciens.map((p) => (
@@ -271,7 +499,7 @@ export default function ConsultationDetail() {
               size="small"
               sx={{ flex: 1.5 }}
             />
-            <IconButton color="error" onClick={() => handleRemoveMedicament(idx)} disabled={medicaments.length === 1}>
+            <IconButton color="error" onClick={() => handleRemoveMedicament(idx)} disabled={medicaments.length === 1} size="small">
               <Delete />
             </IconButton>
           </Box>
@@ -279,9 +507,9 @@ export default function ConsultationDetail() {
 
         <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
           <Button startIcon={<Add />} onClick={handleAddMedicament} size="small">
-            Ajouter
+            + Ajouter
           </Button>
-          <Button variant="contained" onClick={handleCreateOrdonnance} size="small">
+          <Button variant="contained" onClick={handleCreateOrdonnance} size="small" sx={{ textTransform: 'uppercase' }}>
             Créer ordonnance
           </Button>
         </Box>
@@ -293,6 +521,78 @@ export default function ConsultationDetail() {
           Analyse de laboratoire
         </Typography>
 
+        {/* Existing analyses */}
+        {analyses.length > 0 && (
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+              Analyses existantes ({analyses.length})
+            </Typography>
+            {analyses.map((a: any, idx: number) => (
+              <Box
+                key={a.id}
+                sx={{ bgcolor: '#f5faf5', border: '1px solid #c8e6c9', borderRadius: 1, p: 1.5, mb: 1 }}
+              >
+                {editingAnId === a.id ? (
+                  /* ── Inline edit form ── */
+                  <Box>
+                    <TextField
+                      select fullWidth label="Laboratoire" value={editAnLabId}
+                      onChange={(e) => setEditAnLabId(e.target.value)}
+                      size="small" sx={{ mb: 1.5 }}
+                    >
+                      <MenuItem value="">— Aucun laboratoire —</MenuItem>
+                      {laboratoires.map((l) => (
+                        <MenuItem key={l.id} value={l.id}>{l.firstName} {l.lastName}</MenuItem>
+                      ))}
+                    </TextField>
+                    <TextField
+                      fullWidth label="Description" value={editAnDescription}
+                      onChange={(e) => setEditAnDescription(e.target.value)}
+                      multiline rows={2} size="small" sx={{ mb: 1.5 }}
+                    />
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                      <Button size="small" variant="contained" startIcon={<Save />} onClick={() => handleSaveAn(a.id)}>Enregistrer</Button>
+                      <Button size="small" variant="outlined" startIcon={<Cancel />} onClick={cancelEditAn}>Annuler</Button>
+                    </Box>
+                  </Box>
+                ) : (
+                  /* ── Display mode ── */
+                  <>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                      <CheckCircle sx={{ fontSize: 16, color: 'success.main' }} />
+                      <Typography variant="body2" fontWeight="bold" sx={{ flex: 1 }}>
+                        Analyse #{idx + 1} - Statut:{' '}
+                        <Chip label={getAnalyseStatusLabel(a.status)} size="small" color={getAnalyseStatusColor(a.status)} sx={{ height: 18, fontSize: '0.7rem' }} />
+                      </Typography>
+                      <IconButton size="small" onClick={() => startEditAn(a)} title="Modifier"><Edit fontSize="small" /></IconButton>
+                      <IconButton size="small" color="error" onClick={() => confirmDelete('analyse', a.id, `Analyse #${idx + 1}`)} title="Supprimer"><Delete fontSize="small" /></IconButton>
+                    </Box>
+                    <Typography variant="body2" sx={{ pl: 3, color: 'text.secondary' }}>
+                      • Description: {a.description}
+                    </Typography>
+                    {a.resultat && (
+                      <Typography variant="body2" sx={{ pl: 3, color: 'text.secondary' }}>
+                        • Résultat: {a.resultat}
+                      </Typography>
+                    )}
+                    {a.resultatFileUrl && (
+                      <Box sx={{ pl: 3, mt: 0.5 }}>
+                        <Button size="small" startIcon={<PictureAsPdf />} href={a.resultatFileUrl} target="_blank"
+                          sx={{ textTransform: 'uppercase', fontSize: '0.7rem', color: 'primary.main', p: 0 }}>
+                          Voir PDF: {a.resultatFileUrl.split('/').pop()}
+                        </Button>
+                      </Box>
+                    )}
+                  </>
+                )}
+              </Box>
+            ))}
+          </Box>
+        )}
+
+        <Divider sx={{ mb: 2 }} />
+
+        {/* New analyse form */}
         <TextField
           select
           fullWidth
@@ -300,6 +600,7 @@ export default function ConsultationDetail() {
           value={labId}
           onChange={(e) => setLabId(e.target.value)}
           sx={{ mb: 2 }}
+          size="small"
         >
           <MenuItem value="">— Aucun laboratoire —</MenuItem>
           {laboratoires.map((l) => (
@@ -317,6 +618,7 @@ export default function ConsultationDetail() {
           multiline
           rows={3}
           sx={{ mb: 2 }}
+          size="small"
         />
 
         <Button
@@ -333,22 +635,30 @@ export default function ConsultationDetail() {
       <Divider sx={{ mb: 2 }} />
       <Box sx={{ display: 'flex', gap: 2, justifyContent: 'space-between' }}>
         <Button
+          fullWidth
           variant="outlined"
           onClick={() => navigate('/consultations')}
           sx={{ textTransform: 'uppercase' }}
         >
           Retour
         </Button>
-        <Button
-          variant="contained"
-          color="success"
-          startIcon={<CheckCircle />}
-          onClick={handleConfirmConsultation}
-          sx={{ textTransform: 'uppercase' }}
-        >
-          Confirmer la consultation
-        </Button>
       </Box>
+
+      {/* ── Delete confirmation dialog ── */}
+      <Dialog open={!!deleteDialog?.open} onClose={() => setDeleteDialog(null)}>
+        <DialogTitle>Confirmer la suppression</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Êtes-vous sûr de vouloir supprimer <strong>{deleteDialog?.label}</strong> ? Cette action est irréversible.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteDialog(null)}>Annuler</Button>
+          <Button variant="contained" color="error" onClick={handleDelete}>Supprimer</Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }
+
+
