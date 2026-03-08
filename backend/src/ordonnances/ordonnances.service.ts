@@ -24,7 +24,7 @@ export class OrdonnancesService {
     return this.ordonnanceRepository.save(saved);
   }
 
-  async findAll(status?: OrdonnanceStatus, pharmacienId?: string) {
+  async findAll(status?: OrdonnanceStatus, pharmacienId?: string, consultationId?: string) {
     const query = this.ordonnanceRepository.createQueryBuilder('ordonnance')
       .leftJoinAndSelect('ordonnance.consultation', 'consultation')
       .leftJoinAndSelect('consultation.patient', 'patient')
@@ -36,6 +36,10 @@ export class OrdonnancesService {
 
     if (pharmacienId) {
       query.andWhere('ordonnance.pharmacienId = :pharmacienId', { pharmacienId });
+    }
+
+    if (consultationId) {
+      query.andWhere('ordonnance.consultationId = :consultationId', { consultationId });
     }
 
     return query.orderBy('ordonnance.createdAt', 'DESC').getMany();

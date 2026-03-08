@@ -23,9 +23,13 @@ export class AnalysesController {
   }
 
   @Get()
-  findAll(@CurrentUser() user: User, @Query('status') status: AnalyseStatus) {
+  findAll(
+    @CurrentUser() user: User,
+    @Query('status') status: AnalyseStatus,
+    @Query('consultationId') consultationId: string,
+  ) {
     const labId = user.role === UserRole.LABORATOIRE ? user.id : undefined;
-    return this.analysesService.findAll(status, labId);
+    return this.analysesService.findAll(status, labId, consultationId);
   }
 
   @Get('patient/me')
@@ -66,3 +70,4 @@ export class AnalysesController {
   remove(@Param('id') id: string) {
     return this.analysesService.remove(id);
   }
+}

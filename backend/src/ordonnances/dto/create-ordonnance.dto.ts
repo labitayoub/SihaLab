@@ -1,10 +1,17 @@
-import { IsUUID, IsArray, ValidateNested, IsOptional } from 'class-validator';
+import { IsUUID, IsArray, ValidateNested, IsOptional, IsString } from 'class-validator';
 import { Type } from 'class-transformer';
 
 class MedicamentDto {
+  @IsString()
   nom: string;
+
+  @IsString()
   dosage: string;
+
+  @IsString()
   frequence: string;
+
+  @IsString()
   duree: string;
 }
 

@@ -26,10 +26,10 @@ export class OrdonnancesController {
   findAll(
     @CurrentUser() user: User,
     @Query('status') status: OrdonnanceStatus,
+    @Query('consultationId') consultationId: string,
   ) {
     const pharmacienId = user.role === UserRole.PHARMACIEN ? user.id : undefined;
-    // Infirmier voit les ordonnances du médecin via les consultations
-    return this.ordonnancesService.findAll(status, pharmacienId);
+    return this.ordonnancesService.findAll(status, pharmacienId, consultationId);
   }
 
   @Get('patient/me')

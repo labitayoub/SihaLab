@@ -50,10 +50,14 @@ export class ConsultationsService {
   }
 
   async findOne(id: string) {
-    const consultation = await this.consultationRepository.findOne({
-      where: { id },
-      relations: ['patient', 'doctor', 'ordonnances', 'analyses'],
-    });
+    const consultation = await this.consultationRepository
+      .createQueryBuilder('consultation')
+      .leftJoinAndSelect('consultation.patient', 'patient')
+      .leftJoinAndSelect('consultation.doctor', 'doctor')
+      .leftJoinAndSelect('consultation.ordonnances', 'ordonnances')
+      .leftJoinAndSelect('consultation.analyses', 'analyses')
+      .where('consultation.id = :id', { id })
+      .getOne();
     if (!consultation) {
       throw new NotFoundException('Consultation not found');
     }
