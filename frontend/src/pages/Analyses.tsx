@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
-import { Box, Button, Card, Typography, Dialog, DialogTitle, DialogContent, TextField, Chip, MenuItem, IconButton } from '@mui/material';
+import { useEffect, useState, useMemo } from 'react';
+import { Box, Button, Card, Typography, Dialog, DialogTitle, DialogContent, TextField, Chip, MenuItem, IconButton, Divider, Alert, Autocomplete } from '@mui/material';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
-import { Add, Upload, Close } from '@mui/icons-material';
+import { Add, Upload, Close, Biotech, CheckCircle } from '@mui/icons-material';
+import { Country, City } from 'country-state-city';
 import { useAuth } from '../context/AuthContext';
 import { UserRole } from '../types/user.types';
 import { Analyse, AnalyseStatus } from '../types/analyse.types';
@@ -17,9 +18,31 @@ export default function Analyses() {
   const [selectedAnalyse, setSelectedAnalyse] = useState<string>('');
   const [formData, setFormData] = useState({
     consultationId: '',
+    labId: '',
     description: '',
   });
   const [resultat, setResultat] = useState('');
+
+  // Laboratoire selector state
+  const [allLaboratoires, setAllLaboratoires] = useState<any[]>([]);
+  const [countryIsoCode, setCountryIsoCode] = useState('');
+  const [selectedCountryName, setSelectedCountryName] = useState('');
+  const [selectedVille, setSelectedVille] = useState('');
+
+  // country-state-city data
+  const allCountries = useMemo(() => Country.getAllCountries(), []);
+  const citiesForCountry = useMemo(
+    () => countryIsoCode ? (City.getCitiesOfCountry(countryIsoCode) ?? []) : [],
+    [countryIsoCode]
+  );
+
+  // Laboratoires inscrits sur la plateforme correspondant au pays + ville
+  const filteredLaboratoires = useMemo(() =>
+    allLaboratoires.filter((l) =>
+      (!selectedCountryName || l.pays === selectedCountryName) &&
+      (!selectedVille || l.ville === selectedVille)
+    ),
+  [allLaboratoires, selectedCountryName, selectedVille]);
 
   useEffect(() => {
     loadAnalyses();
@@ -27,6 +50,15 @@ export default function Analyses() {
       loadConsultations();
     }
   }, []);
+
+  // Load ALL laboratoires once when dialog opens
+  useEffect(() => {
+    if (user?.role === UserRole.MEDECIN && open) {
+      api.get('/users/laboratoires')
+        .then(({ data }) => setAllLaboratoires(data))
+        .catch((e) => console.error('Erreur chargement laboratoires', e));
+    }
+  }, [open]);
 
   const loadAnalyses = async () => {
     try {
@@ -45,11 +77,16 @@ export default function Analyses() {
     } catch (error) {
       console.error(error);
     }
-  };
+ };
 
   const handleCreate = async () => {
     try {
-      const { data: newAnalyse } = await api.post('/analyses', formData);
+      const payload: any = {
+        consultationId: formData.consultationId,
+        description: formData.description,
+      };
+      if (formData.labId) payload.labId = formData.labId;
+      const { data: newAnalyse } = await api.post('/analyses', payload);
       // Génération automatique du PDF dédié à cette analyse
       try {
         await api.post(`/consultations/${newAnalyse.consultationId}/generate-analyse-pdf/${newAnalyse.id}`);
@@ -59,7 +96,10 @@ export default function Analyses() {
       }
       setOpen(false);
       loadAnalyses();
-      setFormData({ consultationId: '', description: '' });
+      setFormData({ consultationId: '', labId: '', description: '' });
+      setCountryIsoCode('');
+      setSelectedCountryName('');
+      setSelectedVille('');
     } catch (error) {
       toast.error('Erreur lors de la création');
     }
@@ -90,6 +130,14 @@ export default function Analyses() {
       valueGetter: (_value: any, row: any) => `${row.consultation?.patient?.firstName} ${row.consultation?.patient?.lastName}`,
     },
     { field: 'description', headerName: 'Description', flex: 2, minWidth: 170 },
+    {
+      field: 'laboratoire',
+      headerName: 'Laboratoire',
+      flex: 1,
+      minWidth: 130,
+      valueGetter: (_value: any, row: any) =>
+        row.laboratoire ? `${row.laboratoire.firstName} ${row.laboratoire.lastName}` : '—',
+    },
     {
       field: 'status',
       headerName: 'Statut',
@@ -158,6 +206,104 @@ export default function Analyses() {
               </MenuItem>
             ))}
           </TextField>
+
+          {/* ── Laboratoire selection ── */}
+          <Divider sx={{ my: 2 }} />
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+            <Biotech color="secondary" />
+            <Typography variant="subtitle1" fontWeight={600}>Laboratoire (optionnel)</Typography>
+          </Box>
+
+          {/* Étape 1 — Pays (liste complète country-state-city) */}
+          <Autocomplete
+            options={allCountries}
+            getOptionLabel={(opt) => `${opt.flag ?? ''} ${opt.name}`}
+            isOptionEqualToValue={(opt, val) => opt.isoCode === val.isoCode}
+            value={allCountries.find((c) => c.isoCode === countryIsoCode) ?? null}
+            onChange={(_, country) => {
+              if (country) { setCountryIsoCode(country.isoCode); setSelectedCountryName(country.name); }
+              else { setCountryIsoCode(''); setSelectedCountryName(''); }
+              setSelectedVille('');
+              setFormData((f) => ({ ...f, labId: '' }));
+            }}
+            renderInput={(params) => (
+              <TextField {...params} label="1. Pays" size="small" margin="dense" />
+            )}
+            sx={{ mb: 0.5 }}
+          />
+
+          {/* Étape 2 — Ville (villes du pays sélectionné) */}
+          {countryIsoCode && (
+            <TextField
+              select
+              fullWidth
+              size="small"
+              label="2. Ville"
+              value={selectedVille}
+              onChange={(e) => { setSelectedVille(e.target.value); setFormData((f) => ({ ...f, labId: '' })); }}
+              margin="dense"
+            >
+              <MenuItem value=""><em>— Toutes les villes —</em></MenuItem>
+              {citiesForCountry.map((c) => (
+                <MenuItem key={`${c.name}-${(c as any).stateCode ?? ''}`} value={c.name}>{c.name}</MenuItem>
+              ))}
+            </TextField>
+          )}
+
+          {/* Étape 3 — Laboratoires inscrits sur la plateforme */}
+          {selectedCountryName && (
+            <Box sx={{ mt: 1.5 }}>
+              {filteredLaboratoires.length === 0 ? (
+                <Alert severity="info" sx={{ mt: 1 }}>
+                  Aucun laboratoire inscrit pour {[selectedVille, selectedCountryName].filter(Boolean).join(', ')}
+                </Alert>
+              ) : (
+                <>
+                  <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+                    {filteredLaboratoires.length} laboratoire(s) inscrit(s) sur la plateforme
+                  </Typography>
+                  {filteredLaboratoires.map((l) => (
+                    <Box
+                      key={l.id}
+                      onClick={() => setFormData((f) => ({ ...f, labId: f.labId === l.id ? '' : l.id }))}
+                      sx={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        p: 1.5, mb: 1, borderRadius: 2, cursor: 'pointer', border: '2px solid',
+                        borderColor: formData.labId === l.id ? 'secondary.main' : 'divider',
+                        bgcolor: formData.labId === l.id ? 'secondary.50' : 'background.paper',
+                        '&:hover': { borderColor: 'secondary.light', bgcolor: 'action.hover' },
+                        transition: 'all .15s',
+                      }}
+                    >
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                        <Biotech color={formData.labId === l.id ? 'secondary' : 'disabled'} />
+                        <Box>
+                          <Typography variant="body2" fontWeight={600}>{l.firstName} {l.lastName}</Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {[l.ville, l.pays].filter(Boolean).join(', ')}
+                            {l.phone ? ` · ${l.phone}` : ''}
+                          </Typography>
+                        </Box>
+                      </Box>
+                      {formData.labId === l.id && <CheckCircle color="secondary" fontSize="small" />}
+                    </Box>
+                  ))}
+                </>
+              )}
+            </Box>
+          )}
+
+          {formData.labId && (
+            <Button
+              size="small" color="inherit"
+              sx={{ mt: 0.5, mb: 1, color: 'text.secondary', textTransform: 'none' }}
+              onClick={() => setFormData((f) => ({ ...f, labId: '' }))}
+            >
+              ✕ Retirer la sélection du laboratoire
+            </Button>
+          )}
+          <Divider sx={{ my: 2 }} />
+
           <TextField
             fullWidth
             label="Description"

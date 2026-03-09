@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
-import { Box, Button, Card, Typography, Dialog, DialogTitle, DialogContent, TextField, Chip, IconButton, MenuItem } from '@mui/material';
+import { useEffect, useState, useMemo } from 'react';
+import { Box, Button, Card, Typography, Dialog, DialogTitle, DialogContent, TextField, Chip, IconButton, MenuItem, Divider, Alert, Autocomplete } from '@mui/material';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
-import { Add, Delete, Close } from '@mui/icons-material';
+import { Add, Delete, Close, LocalPharmacy, CheckCircle } from '@mui/icons-material';
+import { Country, City } from 'country-state-city';
 import { useAuth } from '../context/AuthContext';
 import { UserRole } from '../types/user.types';
 import { Ordonnance, OrdonnanceStatus } from '../types/ordonnance.types';
@@ -15,8 +16,30 @@ export default function Ordonnances() {
   const [open, setOpen] = useState(false);
   const [formData, setFormData] = useState({
     consultationId: '',
+    pharmacienId: '',
     medicaments: [{ nom: '', dosage: '', frequence: '', duree: '' }],
   });
+
+  // Pharmacie selector state
+  const [allPharmaciens, setAllPharmaciens] = useState<any[]>([]);
+  const [countryIsoCode, setCountryIsoCode] = useState('');
+  const [selectedCountryName, setSelectedCountryName] = useState('');
+  const [selectedVille, setSelectedVille] = useState('');
+
+  // country-state-city data
+  const allCountries = useMemo(() => Country.getAllCountries(), []);
+  const citiesForCountry = useMemo(
+    () => countryIsoCode ? (City.getCitiesOfCountry(countryIsoCode) ?? []) : [],
+    [countryIsoCode]
+  );
+
+  // Pharmaciens inscrits sur la plateforme correspondant au pays + ville
+  const filteredPharmaciens = useMemo(() =>
+    allPharmaciens.filter((p) =>
+      (!selectedCountryName || p.pays === selectedCountryName) &&
+      (!selectedVille || p.ville === selectedVille)
+    ),
+  [allPharmaciens, selectedCountryName, selectedVille]);
 
   useEffect(() => {
     loadOrdonnances();
@@ -24,6 +47,15 @@ export default function Ordonnances() {
       loadConsultations();
     }
   }, []);
+
+  // Load ALL pharmaciens once when dialog opens
+  useEffect(() => {
+    if (user?.role === UserRole.MEDECIN && open) {
+      api.get('/users/pharmaciens')
+        .then(({ data }) => setAllPharmaciens(data))
+        .catch((e) => console.error('Erreur chargement pharmaciens', e));
+    }
+  }, [open]);
 
   const loadOrdonnances = async () => {
     try {
@@ -46,7 +78,12 @@ export default function Ordonnances() {
 
   const handleCreate = async () => {
     try {
-      const { data: newOrd } = await api.post('/ordonnances', formData);
+      const payload: any = {
+        consultationId: formData.consultationId,
+        medicaments: formData.medicaments,
+      };
+      if (formData.pharmacienId) payload.pharmacienId = formData.pharmacienId;
+      const { data: newOrd } = await api.post('/ordonnances', payload);
       // Génération automatique du PDF dédié à cette ordonnance
       try {
         await api.post(`/consultations/${newOrd.consultationId}/generate-ordonnance-pdf/${newOrd.id}`);
@@ -56,7 +93,10 @@ export default function Ordonnances() {
       }
       setOpen(false);
       loadOrdonnances();
-      setFormData({ consultationId: '', medicaments: [{ nom: '', dosage: '', frequence: '', duree: '' }] });
+      setFormData({ consultationId: '', pharmacienId: '', medicaments: [{ nom: '', dosage: '', frequence: '', duree: '' }] });
+      setCountryIsoCode('');
+      setSelectedCountryName('');
+      setSelectedVille('');
     } catch (error) {
       toast.error('Erreur lors de la création');
     }
@@ -112,6 +152,14 @@ export default function Ordonnances() {
       flex: 1.5,
       minWidth: 160,
       valueGetter: (_value: any, row: any) => row.medicaments?.map((m: any) => m.nom).join(', '),
+    },
+    {
+      field: 'pharmacien',
+      headerName: 'Pharmacie',
+      flex: 1,
+      minWidth: 130,
+      valueGetter: (_value: any, row: any) =>
+        row.pharmacien ? `${row.pharmacien.firstName} ${row.pharmacien.lastName}` : '—',
     },
     {
       field: 'status',
@@ -173,7 +221,109 @@ export default function Ordonnances() {
             ))}
           </TextField>
 
-          <Typography variant="h6" sx={{ mt: 2, mb: 1 }}>Médicaments</Typography>
+          {/* ── Pharmacie selection ── */}
+          <Divider sx={{ my: 2 }} />
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+            <LocalPharmacy color="primary" />
+            <Typography variant="subtitle1" fontWeight={600}>Pharmacie (optionnel)</Typography>
+          </Box>
+
+          {/* Étape 1 — Pays (liste complète country-state-city) */}
+          <Autocomplete
+            options={allCountries}
+            getOptionLabel={(opt) => `${opt.flag ?? ''} ${opt.name}`}
+            isOptionEqualToValue={(opt, val) => opt.isoCode === val.isoCode}
+            value={allCountries.find((c) => c.isoCode === countryIsoCode) ?? null}
+            onChange={(_, country) => {
+              if (country) { setCountryIsoCode(country.isoCode); setSelectedCountryName(country.name); }
+              else { setCountryIsoCode(''); setSelectedCountryName(''); }
+              setSelectedVille('');
+              setFormData((f) => ({ ...f, pharmacienId: '' }));
+            }}
+            renderInput={(params) => (
+              <TextField {...params} label="1. Pays" size="small" margin="dense" />
+            )}
+            sx={{ mb: 0.5 }}
+          />
+
+          {/* Étape 2 — Ville (villes du pays sélectionné) */}
+          {countryIsoCode && (
+            <TextField
+              select
+              fullWidth
+              size="small"
+              label="2. Ville"
+              value={selectedVille}
+              onChange={(e) => { setSelectedVille(e.target.value); setFormData((f) => ({ ...f, pharmacienId: '' })); }}
+              margin="dense"
+            >
+              <MenuItem value=""><em>— Toutes les villes —</em></MenuItem>
+              {citiesForCountry.map((c) => (
+                <MenuItem key={`${c.name}-${(c as any).stateCode ?? ''}`} value={c.name}>{c.name}</MenuItem>
+              ))}
+            </TextField>
+          )}
+
+          {/* Étape 3 — Pharmaciens inscrits sur la plateforme */}
+          {selectedCountryName && (
+            <Box sx={{ mt: 1.5 }}>
+              {filteredPharmaciens.length === 0 ? (
+                <Alert severity="info" sx={{ mt: 1 }}>
+                  Aucune pharmacie inscrite pour {[selectedVille, selectedCountryName].filter(Boolean).join(', ')}
+                </Alert>
+              ) : (
+                <>
+                  <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+                    {filteredPharmaciens.length} pharmacie(s) inscrite(s) sur la plateforme
+                  </Typography>
+                  {filteredPharmaciens.map((p) => (
+                    <Box
+                      key={p.id}
+                      onClick={() => setFormData((f) => ({ ...f, pharmacienId: f.pharmacienId === p.id ? '' : p.id }))}
+                      sx={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        p: 1.5, mb: 1, borderRadius: 2, cursor: 'pointer', border: '2px solid',
+                        borderColor: formData.pharmacienId === p.id ? 'primary.main' : 'divider',
+                        bgcolor: formData.pharmacienId === p.id ? 'primary.50' : 'background.paper',
+                        '&:hover': { borderColor: 'primary.light', bgcolor: 'action.hover' },
+                        transition: 'all .15s',
+                      }}
+                    >
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                        <LocalPharmacy color={formData.pharmacienId === p.id ? 'primary' : 'disabled'} />
+                        <Box>
+                          <Typography variant="body2" fontWeight={700}>
+                            {p.firstName} {p.lastName}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary" display="block">
+                            📍 {[p.address, p.ville, p.pays].filter(Boolean).join(', ') || 'Adresse non renseignée'}
+                          </Typography>
+                          {p.phone && (
+                            <Typography variant="caption" color="text.secondary" display="block">
+                              📞 {p.phone}
+                            </Typography>
+                          )}
+                        </Box>
+                      </Box>
+                      {formData.pharmacienId === p.id && <CheckCircle color="primary" fontSize="small" />}
+                    </Box>
+                  ))}
+                </>
+              )}
+            </Box>
+          )}
+
+          {formData.pharmacienId && (
+            <Button
+              size="small" color="inherit"
+              sx={{ mt: 0.5, mb: 1, color: 'text.secondary', textTransform: 'none' }}
+              onClick={() => setFormData((f) => ({ ...f, pharmacienId: '' }))}
+            >
+              ✕ Retirer la sélection de pharmacie
+            </Button>
+          )}
+          <Divider sx={{ my: 2 }} />
+          <Typography variant="h6" sx={{ mb: 1 }}>Médicaments</Typography>
           {formData.medicaments.map((med, index) => (
             <Card key={index} sx={{ p: 2, mb: 2 }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
