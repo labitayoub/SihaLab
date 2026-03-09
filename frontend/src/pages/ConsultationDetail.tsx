@@ -6,7 +6,7 @@ import {
   DialogContent, DialogActions,
 } from '@mui/material';
 import { Delete, Add, Save, CheckCircle, Edit, PictureAsPdf, Cancel, Download, Visibility } from '@mui/icons-material';
-import { toast } from 'react-toastify';
+import { toast, confirm } from '../utils/toast';
 import api from '../config/api';
 
 interface Medicament {
@@ -278,6 +278,15 @@ export default function ConsultationDetail() {
 
   const handleDelete = async () => {
     if (!deleteDialog) return;
+    const label = deleteDialog.type === 'ordonnance' ? 'cette ordonnance' : 'cette analyse';
+    const ok = await confirm({
+      title: `Supprimer ${label} ?`,
+      text: 'Cette action est définitive et irréversible.',
+      icon: 'error',
+      confirmText: 'Supprimer',
+      confirmColor: '#f44336',
+    });
+    if (!ok) return;
     try {
       if (deleteDialog.type === 'ordonnance') {
         await api.delete(`/ordonnances/${deleteDialog.id}`);
@@ -294,9 +303,17 @@ export default function ConsultationDetail() {
 
 
   const handleCancelConsultation = async () => {
+    const ok = await confirm({
+      title: 'Annuler cette consultation ?',
+      text: 'Le rendez-vous associé sera également annulé. Cette action est irréversible.',
+      icon: 'warning',
+      confirmText: 'Oui, annuler',
+      confirmColor: '#f44336',
+    });
+    if (!ok) return;
     try {
       await api.delete(`/consultations/${id}/cancel`);
-      toast.success('Consultation annulée — Le rendez-vous est annulé', { autoClose: 3000 });
+      toast.success('Consultation annulée — Le rendez-vous est annulé');
       navigate('/dashboard');
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Erreur lors de l\'annulation');

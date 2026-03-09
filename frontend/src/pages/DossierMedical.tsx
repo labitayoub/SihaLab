@@ -14,7 +14,7 @@ import { DossierMedical as DossierMedicalType, ConsultationWithDetails } from '.
 import { OrdonnanceStatus } from '../types/ordonnance.types';
 import { AnalyseStatus } from '../types/analyse.types';
 import api from '../config/api';
-import { toast } from 'react-toastify';
+import { toast } from '../utils/toast';
 
 function formatDate(d: string | null) {
   if (!d) return '—';

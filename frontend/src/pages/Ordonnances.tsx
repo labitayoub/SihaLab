@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { UserRole } from '../types/user.types';
 import { Ordonnance, OrdonnanceStatus } from '../types/ordonnance.types';
 import api from '../config/api';
-import { toast } from 'react-toastify';
+import { toast } from '../utils/toast';
 
 export default function Ordonnances() {
   const { user } = useAuth();

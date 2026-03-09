@@ -4,7 +4,7 @@ import { Box, Card, TextField, Button, Typography, Container, MenuItem, Grid, Ic
 import { ArrowBack, Visibility, VisibilityOff, Email, Badge, Phone, LocationOn, Lock, LocalHospital, Science, LocalPharmacy, Person } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
 import { UserRole } from '../types/user.types';
-import { toast } from 'react-toastify';
+import { toast } from '../utils/toast';
 
 export default function Register() {
   const [formData, setFormData] = useState({

@@ -13,7 +13,7 @@ import { UserRole } from '../types/user.types';
 import { Appointment, AppointmentStatus } from '../types/appointment.types';
 import { DoctorAvailability, DoctorSchedule } from '../types/schedule.types';
 import api from '../config/api';
-import { toast } from 'react-toastify';
+import { toast, confirm } from '../utils/toast';
 
 const SHORT_DAY = ['Dim.', 'Lun.', 'Mar.', 'Mer.', 'Jeu.', 'Ven.', 'Sam.'];
 const MONTH_NAMES = [
@@ -163,23 +163,30 @@ export default function Appointments() {
   };
 
   const handleConfirm = async (id: string) => {
+    const ok = await confirm({
+      title: 'Confirmer ce rendez-vous ?',
+      text: 'Un dossier médical sera automatiquement créé pour ce patient.',
+      icon: 'question',
+      confirmText: 'Oui, confirmer',
+      confirmColor: '#4caf50',
+    });
+    if (!ok) return;
     try {
       const { data } = await api.post(`/appointments/${id}/confirm`);
-      toast.success(
-        '✅ Rendez-vous confirmé ! Un dossier médical (consultation) a été créé automatiquement.',
-        { autoClose: 5000 },
-      );
+      toast.success('Rendez-vous confirmé ! Dossier médical créé automatiquement.');
       loadAppointments();
-      // Si une consultation a été créée, proposer de la voir
       if (data?.consultation?.id) {
-        setTimeout(() => {
-          const goToConsultation = window.confirm(
-            'Un dossier médical a été créé pour ce patient. Voulez-vous le voir maintenant ?',
-          );
-          if (goToConsultation) {
-            navigate('/consultations');
-          }
-        }, 500);
+        setTimeout(async () => {
+          const go = await confirm({
+            title: 'Dossier médical créé',
+            text: 'Voulez-vous consulter le dossier médical de ce patient maintenant ?',
+            icon: 'info',
+            confirmText: 'Voir le dossier',
+            cancelText: 'Plus tard',
+            confirmColor: '#00afcc',
+          });
+          if (go) navigate('/consultations');
+        }, 400);
       }
     } catch (error) {
       toast.error('Erreur lors de la confirmation');
@@ -187,12 +194,20 @@ export default function Appointments() {
   };
 
   const handleCancel = async (id: string) => {
+    const ok = await confirm({
+      title: 'Annuler ce rendez-vous ?',
+      text: 'Cette action est irréversible.',
+      icon: 'warning',
+      confirmText: 'Oui, annuler',
+      confirmColor: '#f44336',
+    });
+    if (!ok) return;
     try {
       await api.post(`/appointments/${id}/cancel`);
       toast.success('Rendez-vous annulé');
       loadAppointments();
     } catch (error) {
-      toast.error('Erreur');
+      toast.error('Erreur lors de l\'annulation');
     }
   };
 
@@ -247,25 +262,26 @@ export default function Appointments() {
     {
       field: 'actions',
       headerName: 'Actions',
-      width: 250,
+      minWidth: 280,
+      flex: 1,
       renderCell: (params) => (
-        <Box sx={{ display: 'flex', gap: 1 }}>
+        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', height: '100%' }}>
           {(user?.role === UserRole.MEDECIN || user?.role === UserRole.INFIRMIER) && params.row.status === AppointmentStatus.EN_ATTENTE && (
             <>
-              <Button variant="contained" color="success" size="small" onClick={() => handleConfirm(params.row.id)}>Confirmer</Button>
-              <Button variant="outlined" color="error" size="small" onClick={() => handleCancel(params.row.id)}>Annuler</Button>
+              <Button variant="contained" color="success" size="small" sx={{ fontSize: '0.75rem', px: 1.5, py: 0.5, minWidth: 'auto', whiteSpace: 'nowrap' }} onClick={() => handleConfirm(params.row.id)}>Confirmer</Button>
+              <Button variant="outlined" color="error" size="small" sx={{ fontSize: '0.75rem', px: 1.5, py: 0.5, minWidth: 'auto', whiteSpace: 'nowrap' }} onClick={() => handleCancel(params.row.id)}>Annuler</Button>
             </>
           )}
           {(user?.role === UserRole.MEDECIN || user?.role === UserRole.INFIRMIER) && params.row.status === AppointmentStatus.CONFIRME && (
             <>
-              <Button variant="contained" color="primary" size="small" onClick={() => navigate(`/dossier-medical/${params.row.patientId}`)}>
+              <Button variant="contained" color="primary" size="small" sx={{ fontSize: '0.75rem', px: 1.5, py: 0.5, minWidth: 'auto', whiteSpace: 'nowrap' }} onClick={() => navigate(`/dossier-medical/${params.row.patientId}`)}>
                 Dossier
               </Button>
-              <Button variant="outlined" color="error" size="small" onClick={() => handleCancel(params.row.id)}>Annuler</Button>
+              <Button variant="outlined" color="error" size="small" sx={{ fontSize: '0.75rem', px: 1.5, py: 0.5, minWidth: 'auto', whiteSpace: 'nowrap' }} onClick={() => handleCancel(params.row.id)}>Annuler</Button>
             </>
           )}
           {user?.role === UserRole.PATIENT && (params.row.status === AppointmentStatus.EN_ATTENTE || params.row.status === AppointmentStatus.CONFIRME) && (
-            <Button variant="outlined" color="error" size="small" onClick={() => handleCancel(params.row.id)}>Annuler</Button>
+            <Button variant="outlined" color="error" size="small" sx={{ fontSize: '0.75rem', px: 1.5, py: 0.5, minWidth: 'auto', whiteSpace: 'nowrap' }} onClick={() => handleCancel(params.row.id)}>Annuler</Button>
           )}
         </Box>
       ),
@@ -293,6 +309,7 @@ export default function Appointments() {
           pageSizeOptions={[10, 20, 50]}
           disableRowSelectionOnClick
           autoHeight
+          rowHeight={60}
         />
       </Box>
 

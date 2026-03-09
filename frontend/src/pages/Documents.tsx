@@ -3,7 +3,7 @@ import { Box, Button, Card, Typography, Chip } from '@mui/material';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { Upload } from '@mui/icons-material';
 import api from '../config/api';
-import { toast } from 'react-toastify';
+import { toast } from '../utils/toast';
 
 export default function Documents() {
   const [documents, setDocuments] = useState<any[]>([]);

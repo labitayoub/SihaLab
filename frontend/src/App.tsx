@@ -1,31 +1,36 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { ThemeProvider, createTheme, CssBaseline } from '@mui/material';
+import { ThemeProvider, createTheme, CssBaseline, Box, CircularProgress } from '@mui/material';
 import type {} from '@mui/x-data-grid/themeAugmentation';
-import { ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
 import { AuthProvider } from './context/AuthContext';
 import { UserRole } from './types/user.types';
 import Layout from './components/layout/Layout';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import GuestRoute from './components/auth/GuestRoute';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import Dashboard from './pages/Dashboard';
-import Appointments from './pages/Appointments';
-import Consultations from './pages/Consultations';
-import Ordonnances from './pages/Ordonnances';
-import Analyses from './pages/Analyses';
-import Livraisons from './pages/Livraisons';
-import Documents from './pages/Documents';
-import Users from './pages/Users';
-import Infirmiers from './pages/Infirmiers';
-import DoctorSchedule from './pages/DoctorSchedule';
-import DossierMedical from './pages/DossierMedical';
-import MesPatients from './pages/MesPatients';
-import ConsultationDetail from './pages/ConsultationDetail';
-import Profile from './pages/Profile';
-import Landing from './pages/Landing';
+
+const Login = lazy(() => import('./pages/Login'));
+const Register = lazy(() => import('./pages/Register'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Appointments = lazy(() => import('./pages/Appointments'));
+const Consultations = lazy(() => import('./pages/Consultations'));
+const Ordonnances = lazy(() => import('./pages/Ordonnances'));
+const Analyses = lazy(() => import('./pages/Analyses'));
+const Livraisons = lazy(() => import('./pages/Livraisons'));
+const Documents = lazy(() => import('./pages/Documents'));
+const Users = lazy(() => import('./pages/Users'));
+const Infirmiers = lazy(() => import('./pages/Infirmiers'));
+const DoctorSchedule = lazy(() => import('./pages/DoctorSchedule'));
+const DossierMedical = lazy(() => import('./pages/DossierMedical'));
+const MesPatients = lazy(() => import('./pages/MesPatients'));
+const ConsultationDetail = lazy(() => import('./pages/ConsultationDetail'));
+const Profile = lazy(() => import('./pages/Profile'));
+const Landing = lazy(() => import('./pages/Landing'));
+
+const PageLoader = () => (
+  <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', bgcolor: '#f4f7f9' }}>
+    <CircularProgress size={60} thickness={4} sx={{ color: '#00afcc' }} />
+  </Box>
+);
 
 const theme = createTheme({
   palette: {
@@ -155,90 +160,91 @@ function App() {
       <CssBaseline />
       <AuthProvider>
         <BrowserRouter>
-          <Routes>
-            {/* Page vitrine / Landing */}
-            <Route path="/" element={<GuestRoute><Landing /></GuestRoute>} />
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+              {/* Page vitrine / Landing */}
+              <Route path="/" element={<GuestRoute><Landing /></GuestRoute>} />
 
-            {/* Routes publiques (redirige vers /dashboard si déjà connecté) */}
-            <Route path="/login" element={<GuestRoute><Login /></GuestRoute>} />
-            <Route path="/register" element={<GuestRoute><Register /></GuestRoute>} />
+              {/* Routes publiques (redirige vers /dashboard si déjà connecté) */}
+              <Route path="/login" element={<GuestRoute><Login /></GuestRoute>} />
+              <Route path="/register" element={<GuestRoute><Register /></GuestRoute>} />
 
-            {/* Routes protégées */}
-            <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/appointments" element={
-                <ProtectedRoute roles={[UserRole.MEDECIN, UserRole.PATIENT, UserRole.INFIRMIER]}>
-                  <Appointments />
-                </ProtectedRoute>
-              } />
-              <Route path="/consultations" element={
-                <ProtectedRoute roles={[UserRole.MEDECIN, UserRole.PATIENT, UserRole.INFIRMIER]}>
-                  <Consultations />
-                </ProtectedRoute>
-              } />
-              <Route path="/consultations/:id" element={
-                <ProtectedRoute roles={[UserRole.MEDECIN, UserRole.INFIRMIER]}>
-                  <ConsultationDetail />
-                </ProtectedRoute>
-              } />
-              <Route path="/ordonnances" element={
-                <ProtectedRoute roles={[UserRole.MEDECIN, UserRole.PATIENT, UserRole.PHARMACIEN, UserRole.INFIRMIER]}>
-                  <Ordonnances />
-                </ProtectedRoute>
-              } />
-              <Route path="/analyses" element={
-                <ProtectedRoute roles={[UserRole.MEDECIN, UserRole.PATIENT, UserRole.LABORATOIRE, UserRole.INFIRMIER]}>
-                  <Analyses />
-                </ProtectedRoute>
-              } />
-              <Route path="/livraisons" element={
-                <ProtectedRoute roles={[UserRole.PATIENT, UserRole.PHARMACIEN]}>
-                  <Livraisons />
-                </ProtectedRoute>
-              } />
-              <Route path="/documents" element={
-                <ProtectedRoute roles={[UserRole.MEDECIN, UserRole.PATIENT, UserRole.INFIRMIER]}>
-                  <Documents />
-                </ProtectedRoute>
-              } />
-              <Route path="/users" element={
-                <ProtectedRoute roles={[UserRole.ADMIN]}>
-                  <Users />
-                </ProtectedRoute>
-              } />
-              <Route path="/infirmiers" element={
-                <ProtectedRoute roles={[UserRole.MEDECIN]}>
-                  <Infirmiers />
-                </ProtectedRoute>
-              } />
-              <Route path="/schedule" element={
-                <ProtectedRoute roles={[UserRole.MEDECIN, UserRole.INFIRMIER]}>
-                  <DoctorSchedule />
-                </ProtectedRoute>
-              } />
-              <Route path="/mes-patients" element={
-                <ProtectedRoute roles={[UserRole.MEDECIN, UserRole.INFIRMIER]}>
-                  <MesPatients />
-                </ProtectedRoute>
-              } />
-              <Route path="/dossier-medical" element={
-                <ProtectedRoute roles={[UserRole.PATIENT]}>
-                  <DossierMedical />
-                </ProtectedRoute>
-              } />
-              <Route path="/dossier-medical/:patientId" element={
-                <ProtectedRoute roles={[UserRole.MEDECIN, UserRole.INFIRMIER]}>
-                  <DossierMedical />
-                </ProtectedRoute>
-              } />
-              <Route path="/profile" element={<Profile />} />
-            </Route>
+              {/* Routes protégées */}
+              <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/appointments" element={
+                  <ProtectedRoute roles={[UserRole.MEDECIN, UserRole.PATIENT, UserRole.INFIRMIER]}>
+                    <Appointments />
+                  </ProtectedRoute>
+                } />
+                <Route path="/consultations" element={
+                  <ProtectedRoute roles={[UserRole.MEDECIN, UserRole.PATIENT, UserRole.INFIRMIER]}>
+                    <Consultations />
+                  </ProtectedRoute>
+                } />
+                <Route path="/consultations/:id" element={
+                  <ProtectedRoute roles={[UserRole.MEDECIN, UserRole.INFIRMIER]}>
+                    <ConsultationDetail />
+                  </ProtectedRoute>
+                } />
+                <Route path="/ordonnances" element={
+                  <ProtectedRoute roles={[UserRole.MEDECIN, UserRole.PATIENT, UserRole.PHARMACIEN, UserRole.INFIRMIER]}>
+                    <Ordonnances />
+                  </ProtectedRoute>
+                } />
+                <Route path="/analyses" element={
+                  <ProtectedRoute roles={[UserRole.MEDECIN, UserRole.PATIENT, UserRole.LABORATOIRE, UserRole.INFIRMIER]}>
+                    <Analyses />
+                  </ProtectedRoute>
+                } />
+                <Route path="/livraisons" element={
+                  <ProtectedRoute roles={[UserRole.PATIENT, UserRole.PHARMACIEN]}>
+                    <Livraisons />
+                  </ProtectedRoute>
+                } />
+                <Route path="/documents" element={
+                  <ProtectedRoute roles={[UserRole.MEDECIN, UserRole.PATIENT, UserRole.INFIRMIER]}>
+                    <Documents />
+                  </ProtectedRoute>
+                } />
+                <Route path="/users" element={
+                  <ProtectedRoute roles={[UserRole.ADMIN]}>
+                    <Users />
+                  </ProtectedRoute>
+                } />
+                <Route path="/infirmiers" element={
+                  <ProtectedRoute roles={[UserRole.MEDECIN]}>
+                    <Infirmiers />
+                  </ProtectedRoute>
+                } />
+                <Route path="/schedule" element={
+                  <ProtectedRoute roles={[UserRole.MEDECIN, UserRole.INFIRMIER]}>
+                    <DoctorSchedule />
+                  </ProtectedRoute>
+                } />
+                <Route path="/mes-patients" element={
+                  <ProtectedRoute roles={[UserRole.MEDECIN, UserRole.INFIRMIER]}>
+                    <MesPatients />
+                  </ProtectedRoute>
+                } />
+                <Route path="/dossier-medical" element={
+                  <ProtectedRoute roles={[UserRole.PATIENT]}>
+                    <DossierMedical />
+                  </ProtectedRoute>
+                } />
+                <Route path="/dossier-medical/:patientId" element={
+                  <ProtectedRoute roles={[UserRole.MEDECIN, UserRole.INFIRMIER]}>
+                    <DossierMedical />
+                  </ProtectedRoute>
+                } />
+                <Route path="/profile" element={<Profile />} />
+              </Route>
 
-            {/* Fallback */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+              {/* Fallback */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Suspense>
         </BrowserRouter>
-        <ToastContainer position="top-right" autoClose={3000} />
       </AuthProvider>
     </ThemeProvider>
   );

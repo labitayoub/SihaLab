@@ -14,7 +14,7 @@ import { UserRole, User } from '../types/user.types';
 import { DoctorSchedule, DAY_LABELS } from '../types/schedule.types';
 import { Appointment, AppointmentStatus } from '../types/appointment.types';
 import api from '../config/api';
-import { toast } from 'react-toastify';
+import { toast, confirm } from '../utils/toast';
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -67,6 +67,14 @@ export default function Dashboard() {
   };
 
   const handleCancelAppointment = async (id: string) => {
+    const ok = await confirm({
+      title: 'Annuler ce rendez-vous ?',
+      text: 'Cette action est irréversible.',
+      icon: 'warning',
+      confirmText: 'Oui, annuler',
+      confirmColor: '#f44336',
+    });
+    if (!ok) return;
     try {
       await api.patch(`/appointments/${id}/cancel`);
       toast.success('Rendez-vous annulé');

@@ -5,7 +5,7 @@ import { People, FolderShared } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
 import { User } from '../types/user.types';
 import api from '../config/api';
-import { toast } from 'react-toastify';
+import { toast } from '../utils/toast';
 
 export default function MesPatients() {
   const { user } = useAuth();

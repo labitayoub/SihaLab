@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { UserRole } from '../types/user.types';
 import { Analyse, AnalyseStatus } from '../types/analyse.types';
 import api from '../config/api';
-import { toast } from 'react-toastify';
+import { toast } from '../utils/toast';
 
 export default function Analyses() {
   const { user } = useAuth();

@@ -4,7 +4,7 @@ import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { Add, ToggleOn, ToggleOff } from '@mui/icons-material';
 import { User } from '../types/user.types';
 import api from '../config/api';
-import { toast } from 'react-toastify';
+import { toast } from '../utils/toast';
 
 export default function Infirmiers() {
   const [infirmiers, setInfirmiers] = useState<User[]>([]);

@@ -4,7 +4,7 @@ import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { Add } from '@mui/icons-material';
 import { User, UserRole } from '../types/user.types';
 import api from '../config/api';
-import { toast } from 'react-toastify';
+import { toast } from '../utils/toast';
 
 const ADMIN_ALLOWED_ROLES = [
   { value: UserRole.MEDECIN, label: 'Médecin' },

@@ -9,17 +9,18 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "@mui/material": "^6.1.8",
-    "@mui/icons-material": "^6.1.8",
-    "@mui/x-data-grid": "^7.22.2",
     "@emotion/react": "^11.13.5",
     "@emotion/styled": "^11.13.5",
+    "@mui/icons-material": "^6.1.8",
+    "@mui/material": "^6.1.8",
+    "@mui/x-data-grid": "^7.22.2",
+    "axios": "^1.7.9",
+    "date-fns": "^4.1.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
     "react-router-dom": "^6.28.0",
     "react-toastify": "^10.0.6",
-    "axios": "^1.7.9",
-    "date-fns": "^4.1.0"
+    "sweetalert2": "^11.26.22"
   },
   "devDependencies": {
     "@types/react": "^19.0.1",
