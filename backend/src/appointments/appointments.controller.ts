@@ -6,7 +6,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { UserRole } from '../common/enums/role.enum';
+import { UserRole } from '../entities/user.entity';
 import { AppointmentStatus } from '../common/enums/status.enum';
 import { ApiTags } from '@nestjs/swagger';
 import { User } from '../entities/user.entity';
@@ -29,7 +29,17 @@ export class AppointmentsController {
     @Query('status') status: AppointmentStatus,
     @Query('date') date: string,
   ) {
-    return this.appointmentsService.findAll(status, date, user.id, user.role);
+    // Infirmier voit les RDV de son médecin
+    const effectiveId = user.role === UserRole.INFIRMIER ? user.createdBy : user.id;
+    const effectiveRole = user.role === UserRole.INFIRMIER ? 'medecin' : user.role;
+    return this.appointmentsService.findAll(status, date, effectiveId, effectiveRole);
+  }
+
+  @Get('my-patients')
+  @Roles(UserRole.MEDECIN, UserRole.INFIRMIER)
+  getMyPatients(@CurrentUser() user: User) {
+    const doctorId = user.role === UserRole.INFIRMIER ? user.createdBy : user.id;
+    return this.appointmentsService.getMyPatients(doctorId);
   }
 
   @Get('doctor/:doctorId/availability')
@@ -48,7 +58,7 @@ export class AppointmentsController {
   }
 
   @Post(':id/confirm')
-  @Roles(UserRole.MEDECIN)
+  @Roles(UserRole.MEDECIN, UserRole.INFIRMIER)
   confirm(@Param('id') id: string) {
     return this.appointmentsService.confirm(id);
   }

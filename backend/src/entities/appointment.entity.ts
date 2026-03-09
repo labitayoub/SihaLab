@@ -1,6 +1,12 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { User } from './user.entity';
-import { AppointmentStatus } from '../common/enums/status.enum';
+
+export enum AppointmentStatus {
+  EN_ATTENTE = 'en_attente',
+  CONFIRME = 'confirme',
+  TERMINE = 'termine',
+  ANNULE = 'annule',
+}
 
 @Entity('appointments')
 export class Appointment {
@@ -13,11 +19,11 @@ export class Appointment {
   @Column('uuid')
   doctorId: string;
 
-  @ManyToOne(() => User)
+  @ManyToOne(() => User, { eager: true })
   @JoinColumn({ name: 'patientId' })
   patient: User;
 
-  @ManyToOne(() => User)
+  @ManyToOne(() => User, { eager: true })
   @JoinColumn({ name: 'doctorId' })
   doctor: User;
 

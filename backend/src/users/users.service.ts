@@ -1,20 +1,28 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { User } from '../entities/user.entity';
+import { User, UserRole } from '../entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { MinioService } from '../common/minio/minio.service';
 import * as bcrypt from 'bcrypt';
-import { UserRole } from '../common/enums/role.enum';
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>,
+    private minioService: MinioService,
   ) {}
 
   async create(createUserDto: CreateUserDto) {
+    const forbiddenRoles = [UserRole.INFIRMIER, UserRole.ADMIN];
+    if (forbiddenRoles.includes(createUserDto.role as UserRole)) {
+      throw new ForbiddenException(
+        'Impossible de créer un compte avec ce rôle. Les infirmiers doivent être créés par un médecin.',
+      );
+    }
+
     const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
     const user = this.userRepository.create({
       ...createUserDto,
@@ -26,7 +34,22 @@ export class UsersService {
     return result;
   }
 
+  async createPatient(dto: Partial<CreateUserDto>) {
+    const hashedPassword = await bcrypt.hash(dto.password || 'SihaLab123!', 10);
+    const user = this.userRepository.create({
+      ...dto,
+      role: UserRole.PATIENT,
+      password: hashedPassword,
+      emailVerified: true,
+    });
+    await this.userRepository.save(user);
+    const { password, ...result } = user as any;
+    return result;
+  }
+
   async findAll(page = 1, limit = 20, role?: UserRole, search?: string) {
+    const currentPage = Number(page) || 1;
+    const currentLimit = Number(limit) || 20;
     const query = this.userRepository.createQueryBuilder('user');
 
     if (role) {
@@ -41,16 +64,16 @@ export class UsersService {
     }
 
     const [users, total] = await query
-      .skip((page - 1) * limit)
-      .take(limit)
+      .skip((currentPage - 1) * currentLimit)
+      .take(currentLimit)
       .getManyAndCount();
 
     return {
       data: users.map(({ password, ...user }) => user),
       total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
+      page: currentPage,
+      limit: currentLimit,
+      totalPages: Math.ceil(total / currentLimit),
     };
   }
 
@@ -64,8 +87,27 @@ export class UsersService {
   }
 
   async findByRole(role: UserRole) {
-    const users = await this.userRepository.find({ where: { role, isActive: true } });
+    const users = await this.userRepository.find({ 
+      where: { role, isActive: true } 
+    });
     return users.map(({ password, ...user }) => user);
+  }
+
+  async findByRoleFiltered(role: UserRole, pays?: string, ville?: string) {
+    const query = this.userRepository
+      .createQueryBuilder('user')
+      .where('user.role = :role', { role })
+      .andWhere('user.isActive = :isActive', { isActive: true });
+
+    if (pays && pays.trim()) {
+      query.andWhere('user.pays ILIKE :pays', { pays: `%${pays.trim()}%` });
+    }
+    if (ville && ville.trim()) {
+      query.andWhere('user.ville ILIKE :ville', { ville: `%${ville.trim()}%` });
+    }
+
+    const users = await query.orderBy('user.lastName', 'ASC').getMany();
+    return users.map(({ password, ...u }) => u);
   }
 
   async update(id: string, updateUserDto: UpdateUserDto) {
@@ -77,6 +119,67 @@ export class UsersService {
     await this.userRepository.save(user);
     const { password, ...result } = user;
     return result;
+  }
+
+  async createInfirmier(medecinId: string, createUserDto: CreateUserDto) {
+    const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
+    const user = this.userRepository.create({
+      ...createUserDto,
+      role: UserRole.INFIRMIER,
+      password: hashedPassword,
+      emailVerified: true,
+      isActive: false,
+      createdBy: medecinId,
+    });
+    await this.userRepository.save(user);
+    const { password, ...result } = user;
+    return result;
+  }
+
+  async findInfirmiersByMedecin(medecinId: string) {
+    const infirmiers = await this.userRepository.find({
+      where: { role: UserRole.INFIRMIER, createdBy: medecinId },
+    });
+    return infirmiers.map(({ password, ...user }) => user);
+  }
+
+  async toggleInfirmierActive(medecinId: string, infirmierId: string) {
+    const infirmier = await this.userRepository.findOne({ where: { id: infirmierId } });
+    if (!infirmier) {
+      throw new NotFoundException('Infirmier not found');
+    }
+    if (infirmier.createdBy !== medecinId) {
+      throw new ForbiddenException('Vous ne pouvez gérer que vos propres infirmiers');
+    }
+    infirmier.isActive = !infirmier.isActive;
+    await this.userRepository.save(infirmier);
+    const { password, ...result } = infirmier;
+    return result;
+  }
+
+  async uploadAvatar(userId: string, buffer: Buffer, mimeType: string): Promise<{ avatarUrl: string }> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) throw new NotFoundException('User not found');
+
+    // Delete old avatar from MinIO if exists
+    if (user.avatarUrl) {
+      // extract the object path from the full URL (everything after bucket name)
+      const urlParts = user.avatarUrl.split('/');
+      const bucketIdx = urlParts.findIndex((p) => p === 'sihatilab-documents');
+      if (bucketIdx !== -1) {
+        const oldObjectName = urlParts.slice(bucketIdx + 1).join('/');
+        await this.minioService.deleteFile(oldObjectName).catch(() => null);
+      }
+    }
+
+    const ext = mimeType.split('/')[1] || 'jpg';
+    const roleFolder = (user.role || 'users').toLowerCase();
+    const objectName = `avatars/${roleFolder}/${userId}-${Date.now()}.${ext}`;
+    const avatarUrl = await this.minioService.uploadFile(objectName, buffer, mimeType);
+
+    user.avatarUrl = avatarUrl;
+    await this.userRepository.save(user);
+    return { avatarUrl };
   }
 
   async remove(id: string) {

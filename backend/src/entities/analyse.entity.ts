@@ -1,7 +1,12 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { User } from './user.entity';
 import { Consultation } from './consultation.entity';
-import { AnalyseStatus } from '../common/enums/status.enum';
+
+export enum AnalyseStatus {
+  EN_ATTENTE = 'en_attente',
+  EN_COURS = 'en_cours',
+  TERMINEE = 'terminee',
+}
 
 @Entity('analyses')
 export class Analyse {
@@ -14,11 +19,11 @@ export class Analyse {
   @Column('uuid', { nullable: true })
   labId: string;
 
-  @ManyToOne(() => Consultation)
+  @ManyToOne(() => Consultation, { eager: true })
   @JoinColumn({ name: 'consultationId' })
   consultation: Consultation;
 
-  @ManyToOne(() => User, { nullable: true })
+  @ManyToOne(() => User, { nullable: true, eager: true })
   @JoinColumn({ name: 'labId' })
   laboratoire: User;
 
@@ -33,6 +38,9 @@ export class Analyse {
 
   @Column({ nullable: true })
   resultatFileUrl: string;
+
+  @Column({ nullable: true })
+  pdfUrl: string;
 
   @Column({ type: 'timestamp', nullable: true })
   dateResultat: Date;

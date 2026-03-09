@@ -8,13 +8,19 @@ export enum AppointmentStatus {
 export enum OrdonnanceStatus {
     EN_ATTENTE = 'en_attente',
     DELIVREE = 'delivree',
-    ANNULE = 'annulee',
+    ANNULEE = 'annulee',
 }
 
 export enum AnalyseStatus {
     EN_ATTENTE = 'en_attente',
     EN_COURS = 'en_cours',
-    TERMINE = 'termine',
+    TERMINEE = 'terminee',
+}
+
+export enum ConsultationStatus {
+  EN_COURS = 'en_cours',
+  TERMINEE = 'terminee',
+  ANNULEE = 'annulee',
 }
 
 export enum LivraisonStatus {

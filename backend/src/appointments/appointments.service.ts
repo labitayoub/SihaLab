@@ -1,37 +1,94 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { Appointment } from '../entities/appointment.entity';
+import { Consultation } from '../entities/consultation.entity';
+import { DoctorSchedule } from '../entities/doctor-schedule.entity';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
 import { UpdateAppointmentDto } from './dto/update-appointment.dto';
-import { AppointmentStatus } from '../common/enums/status.enum';
+import { AppointmentStatus, ConsultationStatus } from '../common/enums/status.enum';
+import { SchedulesService } from '../schedules/schedules.service';
+import { ConsultationsService } from '../consultations/consultations.service';
 
 @Injectable()
 export class AppointmentsService {
   constructor(
     @InjectRepository(Appointment)
     private appointmentRepository: Repository<Appointment>,
+    @InjectRepository(DoctorSchedule)
+    private scheduleRepository: Repository<DoctorSchedule>,
+    @InjectRepository(Consultation)
+    private consultationRepository: Repository<Consultation>,
+    private schedulesService: SchedulesService,
+    private consultationsService: ConsultationsService,
   ) {}
 
   async create(patientId: string, createAppointmentDto: CreateAppointmentDto) {
-    // Check for conflicts
-    const existingAppointment = await this.appointmentRepository.findOne({
+    const { doctorId, date, time } = createAppointmentDto;
+
+    // 0. Vérifier que le patient n'a pas déjà un RDV actif avec ce médecin
+    const existingActive = await this.appointmentRepository.findOne({
+      where: [
+        { patientId, doctorId, status: AppointmentStatus.EN_ATTENTE },
+        { patientId, doctorId, status: AppointmentStatus.CONFIRME },
+      ],
+    });
+
+    if (existingActive) {
+      throw new BadRequestException(
+        'Vous avez déjà un rendez-vous en cours avec ce médecin. Veuillez attendre qu\'il soit terminé ou annulé avant d\'en prendre un nouveau.',
+      );
+    }
+
+    // 0b. Vérifier que le patient n'a pas de consultation EN_COURS avec ce médecin
+    const activeConsultation = await this.consultationRepository.findOne({
       where: {
-        doctorId: createAppointmentDto.doctorId,
-        date: new Date(createAppointmentDto.date),
-        time: createAppointmentDto.time,
-        status: AppointmentStatus.CONFIRME,
+        patientId,
+        doctorId,
+        status: ConsultationStatus.EN_COURS,
       },
     });
 
-    if (existingAppointment) {
-      throw new BadRequestException('Time slot already booked');
+    if (activeConsultation) {
+      throw new BadRequestException(
+        'Vous avez une consultation en cours avec ce médecin. Elle doit être terminée ou annulée avant de prendre un nouveau rendez-vous.',
+      );
+    }
+
+    // 1. Vérifier la disponibilité du médecin ce jour-là
+    const availability = await this.getDoctorAvailability(doctorId, date);
+
+    if (availability.availableSlots.length === 0) {
+      throw new BadRequestException(
+        'Le médecin n\'est pas disponible ce jour-là',
+      );
+    }
+
+    // 2. Vérifier que le créneau demandé fait partie des créneaux disponibles
+    if (!availability.availableSlots.includes(time)) {
+      throw new BadRequestException(
+        'Ce créneau n\'est pas disponible. Veuillez choisir parmi les créneaux disponibles.',
+      );
+    }
+
+    // 3. Vérification atomique : aucun RDV actif ne doit exister sur ce créneau exact
+    const slotTaken = await this.appointmentRepository.findOne({
+      where: [
+        { doctorId, date: new Date(date), time, status: AppointmentStatus.EN_ATTENTE },
+        { doctorId, date: new Date(date), time, status: AppointmentStatus.CONFIRME },
+      ],
+    });
+
+    if (slotTaken) {
+      throw new BadRequestException(
+        'Ce créneau vient d\'être réservé par un autre patient. Veuillez en choisir un autre.',
+      );
     }
 
     const appointment = this.appointmentRepository.create({
       ...createAppointmentDto,
       patientId,
-      date: new Date(createAppointmentDto.date),
+      date: new Date(date),
     });
 
     return this.appointmentRepository.save(appointment);
@@ -79,36 +136,130 @@ export class AppointmentsService {
   }
 
   async confirm(id: string) {
-    return this.update(id, { status: AppointmentStatus.CONFIRME });
+    const appointment = await this.findOne(id);
+
+    // 1. Mettre à jour le statut du rendez-vous
+    appointment.status = AppointmentStatus.CONFIRME;
+    const updatedAppointment = await this.appointmentRepository.save(appointment);
+
+    // 2. Créer automatiquement le dossier médical (consultation) lié à ce rendez-vous
+    let consultation = null;
+    try {
+      consultation = await this.consultationsService.create(appointment.doctorId, {
+        patientId: appointment.patientId,
+        appointmentId: appointment.id,
+        motif: appointment.motif || 'Consultation suite au rendez-vous',
+      });
+    } catch (error) {
+      // Log l'erreur mais ne pas bloquer la confirmation du RDV
+      console.error('Erreur lors de la création automatique de la consultation:', error);
+    }
+
+    return {
+      ...updatedAppointment,
+      consultation,
+    };
   }
 
   async cancel(id: string) {
     return this.update(id, { status: AppointmentStatus.ANNULE });
   }
 
+  async getMyPatients(doctorId: string) {
+    const appointments = await this.appointmentRepository.find({
+      where: { doctorId, status: AppointmentStatus.CONFIRME },
+      relations: ['patient'],
+      order: { date: 'DESC' },
+    });
+    const patientMap = new Map<string, any>();
+    for (const apt of appointments) {
+      if (apt.patient && !patientMap.has(apt.patientId)) {
+        const { password, ...patient } = apt.patient as any;
+        patientMap.set(apt.patientId, patient);
+      }
+    }
+    return Array.from(patientMap.values());
+  }
+
   async getDoctorAvailability(doctorId: string, date: string) {
+    const requestedDate = new Date(date);
+    const dayOfWeek = requestedDate.getDay(); // 0=Dim, 1=Lun, ..., 6=Sam
+
+    // 1. Récupérer tous les horaires du médecin pour ce jour (matin + après-midi)
+    const daySchedules = await this.scheduleRepository.find({
+      where: { doctorId, dayOfWeek, isActive: true },
+      order: { period: 'ASC' },
+    });
+
+    if (daySchedules.length === 0) {
+      return {
+        date,
+        dayOfWeek,
+        hasSchedule: false,
+        availableSlots: [],
+        bookedSlots: [],
+        morningSlots: [],
+        afternoonSlots: [],
+        schedule: null,
+      };
+    }
+
+    // 2. Générer tous les créneaux pour toutes les périodes
+    const allSlots = this.schedulesService.generateSlotsFromSchedules(daySchedules);
+
+    // 3. Récupérer les RDV déjà pris (EN_ATTENTE ou CONFIRME)
     const appointments = await this.appointmentRepository.find({
       where: {
         doctorId,
         date: new Date(date),
-        status: AppointmentStatus.CONFIRME,
+        status: In([AppointmentStatus.CONFIRME, AppointmentStatus.EN_ATTENTE]),
       },
     });
 
-    const bookedSlots = appointments.map(apt => apt.time);
-    const allSlots = this.generateTimeSlots();
-    const availableSlots = allSlots.filter(slot => !bookedSlots.includes(slot));
+    const bookedSlots = appointments.map((apt) => apt.time.substring(0, 5));
 
-    return { date, availableSlots, bookedSlots };
-  }
+    // Filtrer les créneaux déjà passés si la date demandée est aujourd'hui
+    const now = new Date();
+    const todayStr = now.toISOString().split('T')[0];
+    const isToday = date === todayStr;
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
-  private generateTimeSlots(): string[] {
-    const slots = [];
-    for (let hour = 8; hour < 18; hour++) {
-      slots.push(`${hour.toString().padStart(2, '0')}:00`);
-      slots.push(`${hour.toString().padStart(2, '0')}:30`);
-    }
-    return slots;
+    const isPast = (slot: string): boolean => {
+      if (!isToday) return false;
+      const [h, m] = slot.split(':').map(Number);
+      return h * 60 + m <= currentMinutes;
+    };
+
+    const availableSlots = allSlots.filter((slot) => !bookedSlots.includes(slot) && !isPast(slot));
+
+    // 4. Séparer les créneaux par période pour l'affichage frontend
+    const morningSchedule = daySchedules.find((s) => s.period === 'morning');
+    const afternoonSchedule = daySchedules.find((s) => s.period === 'afternoon');
+
+    const morningAllSlots = morningSchedule
+      ? this.schedulesService.generateSlotsFromSchedule(morningSchedule)
+      : [];
+    const afternoonAllSlots = afternoonSchedule
+      ? this.schedulesService.generateSlotsFromSchedule(afternoonSchedule)
+      : [];
+
+    return {
+      date,
+      dayOfWeek,
+      hasSchedule: true,
+      availableSlots,
+      bookedSlots,
+      morningSlots: morningAllSlots.filter((s) => !bookedSlots.includes(s) && !isPast(s)),
+      afternoonSlots: afternoonAllSlots.filter((s) => !bookedSlots.includes(s) && !isPast(s)),
+      schedule: {
+        morning: morningSchedule
+          ? { startTime: morningSchedule.startTime, endTime: morningSchedule.endTime, slotDuration: morningSchedule.slotDuration }
+          : null,
+        afternoon: afternoonSchedule
+          ? { startTime: afternoonSchedule.startTime, endTime: afternoonSchedule.endTime, slotDuration: afternoonSchedule.slotDuration }
+          : null,
+      },
+    };
   }
 
   async remove(id: string) {

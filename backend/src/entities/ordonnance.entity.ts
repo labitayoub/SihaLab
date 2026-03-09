@@ -1,7 +1,12 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { User } from './user.entity';
 import { Consultation } from './consultation.entity';
-import { OrdonnanceStatus } from '../common/enums/status.enum';
+
+export enum OrdonnanceStatus {
+  EN_ATTENTE = 'en_attente',
+  DELIVREE = 'delivree',
+  ANNULEE = 'annulee',
+}
 
 @Entity('ordonnances')
 export class Ordonnance {
@@ -14,11 +19,11 @@ export class Ordonnance {
   @Column('uuid', { nullable: true })
   pharmacienId: string;
 
-  @ManyToOne(() => Consultation)
+  @ManyToOne(() => Consultation, { eager: true })
   @JoinColumn({ name: 'consultationId' })
   consultation: Consultation;
 
-  @ManyToOne(() => User, { nullable: true })
+  @ManyToOne(() => User, { nullable: true, eager: true })
   @JoinColumn({ name: 'pharmacienId' })
   pharmacien: User;
 
@@ -33,7 +38,7 @@ export class Ordonnance {
     duree: string;
   }>;
 
-  @Column({ nullable: true })
+  @Column({ type: 'text', nullable: true })
   qrCode: string;
 
   @Column({ nullable: true })

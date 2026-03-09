@@ -1,6 +1,12 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { User } from './user.entity';
-import { DocumentType } from '../common/enums/status.enum';
+
+export enum DocumentType {
+  ANALYSE = 'analyse',
+  ORDONNANCE = 'ordonnance',
+  CONSULTATION = 'consultation',
+  AUTRE = 'autre',
+}
 
 @Entity('documents')
 export class Document {
@@ -13,11 +19,11 @@ export class Document {
   @Column('uuid')
   uploadedBy: string;
 
-  @ManyToOne(() => User)
+  @ManyToOne(() => User, { eager: true })
   @JoinColumn({ name: 'patientId' })
   patient: User;
 
-  @ManyToOne(() => User)
+  @ManyToOne(() => User, { eager: true })
   @JoinColumn({ name: 'uploadedBy' })
   uploader: User;
 

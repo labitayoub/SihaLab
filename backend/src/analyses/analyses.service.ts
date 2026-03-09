@@ -17,7 +17,7 @@ export class AnalysesService {
     return this.analyseRepository.save(analyse);
   }
 
-  async findAll(status?: AnalyseStatus, labId?: string) {
+  async findAll(status?: AnalyseStatus, labId?: string, consultationId?: string) {
     const query = this.analyseRepository.createQueryBuilder('analyse')
       .leftJoinAndSelect('analyse.consultation', 'consultation')
       .leftJoinAndSelect('consultation.patient', 'patient')
@@ -29,6 +29,10 @@ export class AnalysesService {
 
     if (labId) {
       query.andWhere('analyse.labId = :labId', { labId });
+    }
+
+    if (consultationId) {
+      query.andWhere('analyse.consultationId = :consultationId', { consultationId });
     }
 
     return query.orderBy('analyse.createdAt', 'DESC').getMany();
@@ -61,6 +65,18 @@ export class AnalysesService {
     analyse.status = AnalyseStatus.TERMINEE;
     analyse.dateResultat = new Date();
     return this.analyseRepository.save(analyse);
+  }
+
+  async update(id: string, data: { description?: string; labId?: string }) {
+    const analyse = await this.findOne(id);
+    if (data.description !== undefined) analyse.description = data.description;
+    if (data.labId !== undefined) analyse.labId = data.labId;
+    return this.analyseRepository.save(analyse);
+  }
+
+  async remove(id: string) {
+    const analyse = await this.findOne(id);
+    return this.analyseRepository.remove(analyse);
   }
 
   async getByPatient(patientId: string) {

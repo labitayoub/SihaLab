@@ -3,7 +3,7 @@ import { Box, Button, Card, Typography, Chip } from '@mui/material';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { Upload } from '@mui/icons-material';
 import api from '../config/api';
-import { toast } from 'react-toastify';
+import { toast } from '../utils/toast';
 
 export default function Documents() {
   const [documents, setDocuments] = useState<any[]>([]);
@@ -22,19 +22,20 @@ export default function Documents() {
   };
 
   const columns: GridColDef[] = [
-    { field: 'fileName', headerName: 'Fichier', width: 250 },
-    { field: 'type', headerName: 'Type', width: 150 },
+    { field: 'fileName', headerName: 'Fichier', flex: 1.5, minWidth: 160 },
+    { field: 'type', headerName: 'Type', width: 130 },
     { 
       field: 'patient', 
       headerName: 'Patient', 
-      width: 200,
-      valueGetter: (params) => `${params.row.patient?.firstName} ${params.row.patient?.lastName}`,
+      flex: 1,
+      minWidth: 130,
+      valueGetter: (_value: any, row: any) => `${row.patient?.firstName} ${row.patient?.lastName}`,
     },
-    { field: 'createdAt', headerName: 'Date', width: 180, valueFormatter: (params) => new Date(params).toLocaleString('fr-FR') },
+    { field: 'createdAt', headerName: 'Date', width: 155, valueFormatter: (params) => new Date(params).toLocaleString('fr-FR') },
     {
       field: 'actions',
       headerName: 'Actions',
-      width: 150,
+      width: 120,
       renderCell: (params) => (
         <Button size="small" href={params.row.fileUrl} target="_blank">
           Télécharger

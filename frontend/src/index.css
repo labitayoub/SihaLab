@@ -4,11 +4,82 @@
   box-sizing: border-box;
 }
 
+html {
+  overflow-x: hidden;
+}
+
 body {
-  font-family: 'Roboto', 'Inter', sans-serif;
-  background-color: #f5f5f5;
+  font-family: 'Nunito Sans', 'Roboto', sans-serif;
+  background-color: #f4f7f9;
+  color: #1e384c;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+  width: 100%;
 }
 
 #root {
   min-height: 100vh;
+  overflow-x: hidden;
+  width: 100%;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
+}
+
+/* SweetAlert2 Toast overrides */
+.swal2-container.swal2-top-end {
+  z-index: 99999 !important;
+}
+.swal2-popup.swal2-toast {
+  font-family: 'Nunito Sans', 'Roboto', sans-serif;
+  font-size: 0.95rem;
+  padding: 12px 16px;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+.swal2-popup.swal2-toast .swal2-title {
+  font-weight: 700;
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+/* SweetAlert2 Confirm Dialog overrides */
+.swal2-confirm-popup {
+  font-family: 'Nunito Sans', 'Roboto', sans-serif !important;
+  border-radius: 20px !important;
+  padding: 2rem !important;
+}
+.swal2-confirm-popup .swal2-title {
+  font-size: 1.3rem !important;
+  font-weight: 800 !important;
+  color: #1e384c !important;
+}
+.swal2-confirm-popup .swal2-html-container,
+.swal2-confirm-popup .swal2-content {
+  font-size: 0.95rem !important;
+  color: #5da0af !important;
+}
+.swal2-confirm-btn, .swal2-cancel-btn {
+  font-family: 'Nunito Sans', 'Roboto', sans-serif !important;
+  font-weight: 700 !important;
+  border-radius: 10px !important;
+  padding: 10px 24px !important;
+  font-size: 0.9rem !important;
 }

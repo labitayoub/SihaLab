@@ -1,14 +1,31 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Consultation } from '../entities/consultation.entity';
+import { Ordonnance } from '../entities/ordonnance.entity';
+import { Analyse } from '../entities/analyse.entity';
+import { Document, DocumentType } from '../entities/document.entity';
+import { Appointment } from '../entities/appointment.entity';
 import { CreateConsultationDto } from './dto/create-consultation.dto';
+import { AppointmentStatus, ConsultationStatus } from '../common/enums/status.enum';
+import { PdfGeneratorService } from './pdf-generator.service';
+import { MinioService } from '../common/minio/minio.service';
 
 @Injectable()
 export class ConsultationsService {
   constructor(
     @InjectRepository(Consultation)
     private consultationRepository: Repository<Consultation>,
+    @InjectRepository(Ordonnance)
+    private ordonnanceRepository: Repository<Ordonnance>,
+    @InjectRepository(Analyse)
+    private analyseRepository: Repository<Analyse>,
+    @InjectRepository(Document)
+    private documentRepository: Repository<Document>,
+    @InjectRepository(Appointment)
+    private appointmentRepository: Repository<Appointment>,
+    private pdfGeneratorService: PdfGeneratorService,
+    private minioService: MinioService,
   ) {}
 
   async create(doctorId: string, createConsultationDto: CreateConsultationDto) {
@@ -17,7 +34,17 @@ export class ConsultationsService {
       doctorId,
       date: new Date(),
     });
-    return this.consultationRepository.save(consultation);
+    const saved = await this.consultationRepository.save(consultation);
+
+    // If linked to an appointment, mark it as CONFIRMÉ (in progress)
+    if (createConsultationDto.appointmentId) {
+      await this.appointmentRepository.update(
+        { id: createConsultationDto.appointmentId },
+        { status: AppointmentStatus.CONFIRME },
+      );
+    }
+
+    return saved;
   }
 
   async findAll(patientId?: string, doctorId?: string) {
@@ -37,10 +64,14 @@ export class ConsultationsService {
   }
 
   async findOne(id: string) {
-    const consultation = await this.consultationRepository.findOne({
-      where: { id },
-      relations: ['patient', 'doctor'],
-    });
+    const consultation = await this.consultationRepository
+      .createQueryBuilder('consultation')
+      .leftJoinAndSelect('consultation.patient', 'patient')
+      .leftJoinAndSelect('consultation.doctor', 'doctor')
+      .leftJoinAndSelect('consultation.ordonnances', 'ordonnances')
+      .leftJoinAndSelect('consultation.analyses', 'analyses')
+      .where('consultation.id = :id', { id })
+      .getOne();
     if (!consultation) {
       throw new NotFoundException('Consultation not found');
     }
@@ -59,5 +90,395 @@ export class ConsultationsService {
     const consultation = await this.findOne(id);
     Object.assign(consultation, updateData);
     return this.consultationRepository.save(consultation);
+  }
+
+  async cancelConsultation(id: string) {
+    const consultation = await this.consultationRepository
+      .createQueryBuilder('consultation')
+      .leftJoinAndSelect('consultation.ordonnances', 'ordonnances')
+      .leftJoinAndSelect('consultation.analyses', 'analyses')
+      .where('consultation.id = :id', { id })
+      .getOne();
+
+    if (!consultation) throw new NotFoundException('Consultation not found');
+    if (consultation.status === ConsultationStatus.TERMINEE) {
+      throw new BadRequestException(
+        'Impossible d\'annuler une consultation déjà terminée.',
+      );
+    }
+
+    // Mark the linked appointment as ANNULE
+    if (consultation.appointmentId) {
+      await this.appointmentRepository.update(
+        { id: consultation.appointmentId },
+        { status: AppointmentStatus.ANNULE },
+      );
+    }
+
+    // Delete ordonnances and analyses linked to this consultation
+    if (consultation.ordonnances?.length > 0) {
+      await this.ordonnanceRepository.delete(
+        consultation.ordonnances.map((o) => o.id)
+      );
+    }
+    if (consultation.analyses?.length > 0) {
+      await this.analyseRepository.delete(
+        consultation.analyses.map((a) => a.id)
+      );
+    }
+
+    // Delete the consultation itself
+    await this.consultationRepository.delete(id);
+
+    return { message: 'Consultation supprimée — Rendez-vous annulé' };
+  }
+
+  /**
+   * Récupérer les patients uniques d'un médecin (via ses consultations et appointments)
+   */
+  async getMyPatients(doctorId: string) {
+    const consultations = await this.consultationRepository.find({
+      where: { doctorId },
+      relations: ['patient'],
+      order: { date: 'DESC' },
+    });
+
+    // Dédupliquer par patientId
+    const patientMap = new Map<string, any>();
+    for (const c of consultations) {
+      if (c.patient && !patientMap.has(c.patientId)) {
+        const { password, ...patient } = c.patient as any;
+        patientMap.set(c.patientId, patient);
+      }
+    }
+    return Array.from(patientMap.values());
+  }
+
+  /**
+   * Récupérer les consultations d'un médecin avec ordonnances et analyses liées
+   */
+  async findAllWithDetails(doctorId?: string, patientId?: string) {
+    const query = this.consultationRepository
+      .createQueryBuilder('consultation')
+      .leftJoinAndSelect('consultation.patient', 'patient')
+      .leftJoinAndSelect('consultation.doctor', 'doctor')
+      .leftJoinAndSelect('consultation.ordonnances', 'ordonnances')
+      .leftJoinAndSelect('consultation.analyses', 'analyses');
+
+    if (doctorId) {
+      query.andWhere('consultation.doctorId = :doctorId', { doctorId });
+    }
+    if (patientId) {
+      query.andWhere('consultation.patientId = :patientId', { patientId });
+    }
+
+    return query.orderBy('consultation.date', 'DESC').getMany();
+  }
+
+  /**
+   * Dossier Médical complet d'un patient :
+   * - Toutes les consultations avec le médecin
+   * - Les ordonnances liées à chaque consultation
+   * - Les analyses liées à chaque consultation
+   * - Tous les documents du patient
+   */
+  async getDossierMedical(patientId: string) {
+    // 1. Consultations avec ordonnances et analyses imbriquées
+    const consultations = await this.consultationRepository.find({
+      where: { patientId },
+      relations: ['doctor', 'appointment', 'ordonnances', 'analyses', 'analyses.laboratoire'],
+      order: { date: 'DESC' },
+    });
+
+    // 2. Toutes les ordonnances du patient (via les consultations)
+    const allOrdonnances = await this.ordonnanceRepository
+      .createQueryBuilder('o')
+      .leftJoinAndSelect('o.consultation', 'c')
+      .leftJoinAndSelect('c.doctor', 'doctor')
+      .leftJoinAndSelect('o.pharmacien', 'pharmacien')
+      .where('c.patientId = :patientId', { patientId })
+      .orderBy('o.createdAt', 'DESC')
+      .getMany();
+
+    // 3. Toutes les analyses du patient (via les consultations)
+    const allAnalyses = await this.analyseRepository
+      .createQueryBuilder('a')
+      .leftJoinAndSelect('a.consultation', 'c')
+      .leftJoinAndSelect('c.doctor', 'doctor')
+      .leftJoinAndSelect('a.laboratoire', 'lab')
+      .where('c.patientId = :patientId', { patientId })
+      .orderBy('a.createdAt', 'DESC')
+      .getMany();
+
+    // 4. Tous les documents du patient
+    const documents = await this.documentRepository.find({
+      where: { patientId },
+      relations: ['uploader'],
+      order: { createdAt: 'DESC' },
+    });
+
+    // 5. Statistiques
+    const stats = {
+      totalConsultations: consultations.length,
+      totalOrdonnances: allOrdonnances.length,
+      totalAnalyses: allAnalyses.length,
+      totalDocuments: documents.length,
+      ordonnancesEnAttente: allOrdonnances.filter((o) => o.status === 'en_attente').length,
+      analysesEnAttente: allAnalyses.filter((a) => a.status === 'en_attente').length,
+      analysesTerminees: allAnalyses.filter((a) => a.status === 'terminee').length,
+      derniereConsultation: consultations.length > 0 ? consultations[0].date : null,
+    };
+
+    return {
+      patientId,
+      stats,
+      consultations,
+      ordonnances: allOrdonnances,
+      analyses: allAnalyses,
+      documents,
+    };
+  }
+
+  /**
+   * Build a clean MinIO object path:
+   * consultations/Dr_{nom}_{prenom}/{patient_nom}_{prenom}/{date}_{idCourt}/{fileName}
+   */
+  private buildObjectPath(
+    doctorLast: string, doctorFirst: string,
+    patientLast: string, patientFirst: string,
+    dateISO: string, consultationId: string,
+    fileName: string,
+  ): string {
+    const clean = (s: string) =>
+      (s || 'Inconnu')
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')  // remove accents
+        .replace(/[^a-zA-Z0-9]/g, '_')
+        .replace(/_+/g, '_')
+        .replace(/^_|_$/g, '');
+    const doctorFolder  = `Dr_${clean(doctorLast)}_${clean(doctorFirst)}`;
+    const patientFolder = `${clean(patientLast)}_${clean(patientFirst)}`;
+    const consultFolder = `${dateISO}_${consultationId.substring(0, 8).toUpperCase()}`;
+    return `consultations/${doctorFolder}/${patientFolder}/${consultFolder}/${fileName}`;
+  }
+
+  /**
+   * Générer les PDFs pour les ordonnances et analyses d'une consultation
+   * - Nommage : PatientNom_PatientPrenom_Type_Date.pdf
+   * - Upload vers MinIO
+   * - Sauvegarde des URLs sur la consultation (ordonnancePdfUrl / analysePdfUrl)
+   * - Sauvegarde dans la table documents
+   */
+  async generatePdfs(consultationId: string, doctorId: string) {
+    const consultation = await this.consultationRepository
+      .createQueryBuilder('consultation')
+      .leftJoinAndSelect('consultation.patient', 'patient')
+      .leftJoinAndSelect('consultation.doctor', 'doctor')
+      .leftJoinAndSelect('consultation.ordonnances', 'ordonnances')
+      .leftJoinAndSelect('consultation.analyses', 'analyses')
+      .where('consultation.id = :consultationId', { consultationId })
+      .getOne();
+
+    if (!consultation) {
+      throw new NotFoundException('Consultation not found');
+    }
+
+    const results: { ordonnanceUrl?: string; analyseUrl?: string; ordonnanceFileName?: string; analyseFileName?: string } = {};
+    const dateISO = new Date(consultation.date).toISOString().split('T')[0]; // 2026-03-08
+    const dateFr = new Date(consultation.date).toLocaleDateString('fr-FR');
+    const patientLast = consultation.patient?.lastName || 'Patient';
+    const patientFirst = consultation.patient?.firstName || '';
+
+    // ── Generate ONE ordonnance PDF ──
+    if (consultation.ordonnances.length > 0) {
+      const pdfBuffer = await this.pdfGeneratorService.generateOrdonnancePdf(
+        consultation.ordonnances, consultation,
+      );
+
+      const fileName = PdfGeneratorService.buildFileName(patientLast, patientFirst, 'Ordonnance', dateISO);
+      const objectName = this.buildObjectPath(
+        consultation.doctor?.lastName  || 'Medecin',
+        consultation.doctor?.firstName || '',
+        patientLast, patientFirst,
+        dateISO, consultationId, fileName,
+      );
+      const fileUrl = await this.minioService.uploadFile(objectName, pdfBuffer, 'application/pdf');
+
+      // Update all ordonnances pdfUrl
+      for (const ord of consultation.ordonnances) {
+        await this.ordonnanceRepository.update(ord.id, { pdfUrl: fileUrl });
+      }
+
+      // Save URL on consultation itself
+      await this.consultationRepository.update(consultationId, { ordonnancePdfUrl: fileUrl });
+
+      // Create document record
+      await this.documentRepository.save(this.documentRepository.create({
+        patientId: consultation.patientId,
+        uploadedBy: doctorId,
+        type: DocumentType.ORDONNANCE,
+        fileName,
+        fileUrl,
+        mimeType: 'application/pdf',
+        fileSize: pdfBuffer.length,
+        description: `Ordonnance — ${patientLast} ${patientFirst} — ${dateFr}`,
+      }));
+
+      results.ordonnanceUrl = fileUrl;
+      results.ordonnanceFileName = fileName;
+    }
+
+    // ── Generate ONE analyse PDF ──
+    if (consultation.analyses.length > 0) {
+      const pdfBuffer = await this.pdfGeneratorService.generateAnalysePdf(
+        consultation.analyses, consultation,
+      );
+
+      const fileName = PdfGeneratorService.buildFileName(patientLast, patientFirst, 'Analyses', dateISO);
+      const objectName = this.buildObjectPath(
+        consultation.doctor?.lastName  || 'Medecin',
+        consultation.doctor?.firstName || '',
+        patientLast, patientFirst,
+        dateISO, consultationId, fileName,
+      );
+      const fileUrl = await this.minioService.uploadFile(objectName, pdfBuffer, 'application/pdf');
+
+      // Save URL on consultation itself
+      await this.consultationRepository.update(consultationId, { analysePdfUrl: fileUrl });
+
+      // Create document record
+      await this.documentRepository.save(this.documentRepository.create({
+        patientId: consultation.patientId,
+        uploadedBy: doctorId,
+        type: DocumentType.ANALYSE,
+        fileName,
+        fileUrl,
+        mimeType: 'application/pdf',
+        fileSize: pdfBuffer.length,
+        description: `Analyses — ${patientLast} ${patientFirst} — ${dateFr}`,
+      }));
+
+      results.analyseUrl = fileUrl;
+      results.analyseFileName = fileName;
+    }
+
+    const count = (results.ordonnanceUrl ? 1 : 0) + (results.analyseUrl ? 1 : 0);
+
+    // ── Mark consultation as TERMINÉE after PDF generation ──
+    await this.consultationRepository.update(consultationId, {
+      status: ConsultationStatus.TERMINEE,
+    });
+
+    // ── Mark linked appointment as TERMINÉ ──
+    if (consultation.appointmentId) {
+      await this.appointmentRepository.update(
+        { id: consultation.appointmentId },
+        { status: AppointmentStatus.TERMINE },
+      );
+    }
+
+    return {
+      message: `${count} PDF(s) générés — Consultation terminée`,
+      ...results,
+    };
+  }
+
+  /**
+   * Génère un PDF séparé pour une seule ordonnance.
+   * Ne modifie PAS le statut de la consultation.
+   */
+  async generateSingleOrdonnancePdf(consultationId: string, ordonnanceId: string, doctorId: string) {
+    const consultation = await this.consultationRepository
+      .createQueryBuilder('consultation')
+      .leftJoinAndSelect('consultation.patient', 'patient')
+      .leftJoinAndSelect('consultation.doctor', 'doctor')
+      .where('consultation.id = :consultationId', { consultationId })
+      .getOne();
+
+    if (!consultation) throw new NotFoundException('Consultation not found');
+
+    const ordonnance = await this.ordonnanceRepository.findOne({ where: { id: ordonnanceId } });
+    if (!ordonnance) throw new NotFoundException('Ordonnance not found');
+
+    const pdfBuffer = await this.pdfGeneratorService.generateOrdonnancePdf([ordonnance], consultation);
+
+    const dateISO = new Date(consultation.date).toISOString().split('T')[0];
+    const dateFr  = new Date(consultation.date).toLocaleDateString('fr-FR');
+    const patientLast  = consultation.patient?.lastName  || 'Patient';
+    const patientFirst = consultation.patient?.firstName || '';
+    const suffix = ordonnanceId.substring(0, 8).toUpperCase();
+
+    const fileName   = PdfGeneratorService.buildFileName(patientLast, patientFirst, 'Ordonnance', dateISO, suffix);
+    const objectName = this.buildObjectPath(
+      consultation.doctor?.lastName  || 'Medecin',
+      consultation.doctor?.firstName || '',
+      patientLast, patientFirst,
+      dateISO, consultationId, fileName,
+    );
+    const fileUrl    = await this.minioService.uploadFile(objectName, pdfBuffer, 'application/pdf');
+
+    await this.ordonnanceRepository.update(ordonnanceId, { pdfUrl: fileUrl });
+
+    await this.documentRepository.save(this.documentRepository.create({
+      patientId:  consultation.patientId,
+      uploadedBy: doctorId,
+      type:       DocumentType.ORDONNANCE,
+      fileName,
+      fileUrl,
+      mimeType:  'application/pdf',
+      fileSize:   pdfBuffer.length,
+      description: `Ordonnance — ${patientLast} ${patientFirst} — ${dateFr}`,
+    }));
+
+    return { message: 'PDF ordonnance généré', ordonnanceUrl: fileUrl, ordonnanceFileName: fileName };
+  }
+
+  /**
+   * Génère un PDF séparé pour une seule analyse.
+   * Ne modifie PAS le statut de la consultation.
+   */
+  async generateSingleAnalysePdf(consultationId: string, analyseId: string, doctorId: string) {
+    const consultation = await this.consultationRepository
+      .createQueryBuilder('consultation')
+      .leftJoinAndSelect('consultation.patient', 'patient')
+      .leftJoinAndSelect('consultation.doctor', 'doctor')
+      .where('consultation.id = :consultationId', { consultationId })
+      .getOne();
+
+    if (!consultation) throw new NotFoundException('Consultation not found');
+
+    const analyse = await this.analyseRepository.findOne({ where: { id: analyseId } });
+    if (!analyse) throw new NotFoundException('Analyse not found');
+
+    const pdfBuffer = await this.pdfGeneratorService.generateAnalysePdf([analyse], consultation);
+
+    const dateISO = new Date(consultation.date).toISOString().split('T')[0];
+    const dateFr  = new Date(consultation.date).toLocaleDateString('fr-FR');
+    const patientLast  = consultation.patient?.lastName  || 'Patient';
+    const patientFirst = consultation.patient?.firstName || '';
+    const suffix = analyseId.substring(0, 8).toUpperCase();
+
+    const fileName   = PdfGeneratorService.buildFileName(patientLast, patientFirst, 'Analyses', dateISO, suffix);
+    const objectName = this.buildObjectPath(
+      consultation.doctor?.lastName  || 'Medecin',
+      consultation.doctor?.firstName || '',
+      patientLast, patientFirst,
+      dateISO, consultationId, fileName,
+    );
+    const fileUrl    = await this.minioService.uploadFile(objectName, pdfBuffer, 'application/pdf');
+
+    await this.analyseRepository.update(analyseId, { pdfUrl: fileUrl });
+
+    await this.documentRepository.save(this.documentRepository.create({
+      patientId:  consultation.patientId,
+      uploadedBy: doctorId,
+      type:       DocumentType.ANALYSE,
+      fileName,
+      fileUrl,
+      mimeType:  'application/pdf',
+      fileSize:   pdfBuffer.length,
+      description: `Analyse — ${patientLast} ${patientFirst} — ${dateFr}`,
+    }));
+
+    return { message: 'PDF analyse généré', analyseUrl: fileUrl, analyseFileName: fileName };
   }
 }

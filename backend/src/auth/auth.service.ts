@@ -18,7 +18,15 @@ export class AuthService {
   ) {}
 
   async register(registerDto: RegisterDto) {
-    const existingUser = await this.userRepository.findOne({ where: { email: registerDto.email } });
+    const blockedRoles = ['infirmier', 'admin'];
+    if (blockedRoles.includes(registerDto.role)) {
+      throw new ConflictException('Inscription non autorisée avec ce rôle');
+    }
+
+    const existingUser = await this.userRepository.findOne({ 
+      where: { email: registerDto.email } 
+    });
+    
     if (existingUser) {
       throw new ConflictException('Email already exists');
     }
@@ -40,7 +48,9 @@ export class AuthService {
   }
 
   async login(loginDto: LoginDto) {
-    const user = await this.userRepository.findOne({ where: { email: loginDto.email } });
+    const user = await this.userRepository.findOne({ 
+      where: { email: loginDto.email } 
+    });
     
     if (!user || !user.isActive) {
       throw new UnauthorizedException('Invalid credentials');
@@ -67,7 +77,10 @@ export class AuthService {
         secret: this.configService.get('JWT_REFRESH_SECRET'),
       });
 
-      const user = await this.userRepository.findOne({ where: { id: payload.sub } });
+      const user = await this.userRepository.findOne({ 
+        where: { id: payload.sub } 
+      });
+      
       if (!user || !user.isActive) {
         throw new UnauthorizedException();
       }
@@ -83,12 +96,12 @@ export class AuthService {
 
     const accessToken = this.jwtService.sign(payload, {
       secret: this.configService.get('JWT_SECRET'),
-      expiresIn: this.configService.get('JWT_EXPIRES_IN'),
+      expiresIn: this.configService.get('JWT_EXPIRES_IN', '15m'),
     });
 
     const refreshToken = this.jwtService.sign(payload, {
       secret: this.configService.get('JWT_REFRESH_SECRET'),
-      expiresIn: this.configService.get('JWT_REFRESH_EXPIRES_IN'),
+      expiresIn: this.configService.get('JWT_REFRESH_EXPIRES_IN', '7d'),
     });
 
     return { accessToken, refreshToken };

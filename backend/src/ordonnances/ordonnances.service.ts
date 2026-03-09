@@ -24,7 +24,7 @@ export class OrdonnancesService {
     return this.ordonnanceRepository.save(saved);
   }
 
-  async findAll(status?: OrdonnanceStatus, pharmacienId?: string) {
+  async findAll(status?: OrdonnanceStatus, pharmacienId?: string, consultationId?: string) {
     const query = this.ordonnanceRepository.createQueryBuilder('ordonnance')
       .leftJoinAndSelect('ordonnance.consultation', 'consultation')
       .leftJoinAndSelect('consultation.patient', 'patient')
@@ -36,6 +36,10 @@ export class OrdonnancesService {
 
     if (pharmacienId) {
       query.andWhere('ordonnance.pharmacienId = :pharmacienId', { pharmacienId });
+    }
+
+    if (consultationId) {
+      query.andWhere('ordonnance.consultationId = :consultationId', { consultationId });
     }
 
     return query.orderBy('ordonnance.createdAt', 'DESC').getMany();
@@ -58,6 +62,18 @@ export class OrdonnancesService {
     ordonnance.pharmacienId = pharmacienId;
     ordonnance.dateDelivrance = new Date();
     return this.ordonnanceRepository.save(ordonnance);
+  }
+
+  async update(id: string, data: { medicaments?: any[]; pharmacienId?: string }) {
+    const ordonnance = await this.findOne(id);
+    if (data.medicaments !== undefined) ordonnance.medicaments = data.medicaments;
+    if (data.pharmacienId !== undefined) ordonnance.pharmacienId = data.pharmacienId;
+    return this.ordonnanceRepository.save(ordonnance);
+  }
+
+  async remove(id: string) {
+    const ordonnance = await this.findOne(id);
+    return this.ordonnanceRepository.remove(ordonnance);
   }
 
   async getByPatient(patientId: string) {

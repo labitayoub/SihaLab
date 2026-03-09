@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Box, Button, Card, Typography, Dialog, DialogTitle, DialogContent, TextField, Chip, MenuItem, Stepper, Step, StepLabel } from '@mui/material';
+import { Box, Button, Card, Typography, Dialog, DialogTitle, DialogContent, TextField, Chip, MenuItem, Stepper, Step, StepLabel, IconButton } from '@mui/material';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
-import { Add } from '@mui/icons-material';
+import { Add, Close } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
-import { Livraison, LivraisonStatus, UserRole } from '../types';
+import { UserRole } from '../types/user.types';
+import { Livraison, LivraisonStatus } from '../types/livraison.types';
 import api from '../config/api';
-import { toast } from 'react-toastify';
+import { toast } from '../utils/toast';
 
 export default function Livraisons() {
   const { user } = useAuth();
@@ -74,19 +75,20 @@ export default function Livraisons() {
   };
 
   const columns: GridColDef[] = [
-    { field: 'codeSuivi', headerName: 'Code Suivi', width: 180 },
+    { field: 'codeSuivi', headerName: 'Code Suivi', width: 145 },
     { 
       field: 'patient', 
       headerName: 'Patient', 
-      width: 200,
-      valueGetter: (params) => `${params.row.patient?.firstName} ${params.row.patient?.lastName}`,
+      flex: 1,
+      minWidth: 130,
+      valueGetter: (_value: any, row: any) => `${row.patient?.firstName} ${row.patient?.lastName}`,
     },
-    { field: 'adresseLivraison', headerName: 'Adresse', width: 250 },
-    { field: 'fraisLivraison', headerName: 'Frais', width: 100, valueFormatter: (params) => `${params} DH` },
+    { field: 'adresseLivraison', headerName: 'Adresse', flex: 1.5, minWidth: 150 },
+    { field: 'fraisLivraison', headerName: 'Frais', width: 90, valueFormatter: (params) => `${params} DH` },
     {
       field: 'statut',
       headerName: 'Statut',
-      width: 150,
+      width: 125,
       renderCell: (params) => (
         <Chip
           label={params.value}
@@ -102,7 +104,8 @@ export default function Livraisons() {
     {
       field: 'actions',
       headerName: 'Actions',
-      width: 250,
+      flex: 1,
+      minWidth: 200,
       renderCell: (params) => (
         <Box>
           <Button size="small" onClick={() => { setSelectedLivraison(params.row); setTrackingOpen(true); }}>
@@ -148,7 +151,10 @@ export default function Livraisons() {
       </Card>
 
       <Dialog open={open} onClose={() => setOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Nouvelle Livraison</DialogTitle>
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          Nouvelle Livraison
+          <IconButton onClick={() => setOpen(false)}><Close /></IconButton>
+        </DialogTitle>
         <DialogContent>
           <TextField
             select
@@ -195,7 +201,10 @@ export default function Livraisons() {
       </Dialog>
 
       <Dialog open={trackingOpen} onClose={() => setTrackingOpen(false)} maxWidth="md" fullWidth>
-        <DialogTitle>Suivi de Livraison</DialogTitle>
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          Suivi de Livraison
+          <IconButton onClick={() => setTrackingOpen(false)}><Close /></IconButton>
+        </DialogTitle>
         <DialogContent>
           {selectedLivraison && (
             <Box sx={{ mt: 2 }}>
