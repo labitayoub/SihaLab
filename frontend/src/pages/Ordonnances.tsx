@@ -85,29 +85,32 @@ export default function Ordonnances() {
   };
 
   const columns: GridColDef[] = [
-    { field: 'createdAt', headerName: 'Date', width: 180, valueFormatter: (params) => new Date(params).toLocaleString('fr-FR') },
+    { field: 'createdAt', headerName: 'Date', width: 155, valueFormatter: (params) => new Date(params).toLocaleString('fr-FR') },
     { 
       field: 'patient', 
       headerName: 'Patient', 
-      width: 200,
+      flex: 1,
+      minWidth: 130,
       valueGetter: (_value: any, row: any) => `${row.consultation?.patient?.firstName} ${row.consultation?.patient?.lastName}`,
     },
     { 
       field: 'doctor', 
       headerName: 'Médecin', 
-      width: 200,
+      flex: 1,
+      minWidth: 130,
       valueGetter: (_value: any, row: any) => `Dr. ${row.consultation?.doctor?.firstName} ${row.consultation?.doctor?.lastName}`,
     },
     { 
       field: 'medicaments', 
       headerName: 'Médicaments', 
-      width: 250,
+      flex: 1.5,
+      minWidth: 160,
       valueGetter: (_value: any, row: any) => row.medicaments?.map((m: any) => m.nom).join(', '),
     },
     {
       field: 'status',
       headerName: 'Statut',
-      width: 150,
+      width: 130,
       renderCell: (params) => (
         <Chip
           label={params.value}
@@ -119,7 +122,7 @@ export default function Ordonnances() {
     {
       field: 'actions',
       headerName: 'Actions',
-      width: 150,
+      width: 120,
       renderCell: (params) => (
         user?.role === UserRole.PHARMACIEN && params.row.status === OrdonnanceStatus.EN_ATTENTE && (
           <Button size="small" onClick={() => handleDelivrer(params.row.id)}>Délivrer</Button>

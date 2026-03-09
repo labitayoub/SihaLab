@@ -232,25 +232,27 @@ export default function Appointments() {
   };
 
   const columns: GridColDef[] = [
-    { field: 'date', headerName: 'Date', width: 120 },
-    { field: 'time', headerName: 'Heure', width: 100 },
+    { field: 'date', headerName: 'Date', width: 110 },
+    { field: 'time', headerName: 'Heure', width: 85 },
     {
       field: 'patient',
       headerName: 'Patient',
-      width: 200,
+      flex: 1.2,
+      minWidth: 140,
       valueGetter: (_value: any, row: any) => `${row.patient?.firstName} ${row.patient?.lastName}`,
     },
     {
       field: 'doctor',
       headerName: 'Médecin',
-      width: 200,
+      flex: 1.2,
+      minWidth: 140,
       valueGetter: (_value: any, row: any) => `Dr. ${row.doctor?.firstName} ${row.doctor?.lastName}`,
     },
-    { field: 'motif', headerName: 'Motif', width: 180 },
+    { field: 'motif', headerName: 'Motif', flex: 1, minWidth: 110 },
     {
       field: 'status',
       headerName: 'Statut',
-      width: 140,
+      width: 130,
       renderCell: (params) => (
         <Chip
           label={getStatusLabel(params.value)}

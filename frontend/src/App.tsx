@@ -109,6 +109,9 @@ const theme = createTheme({
       },
     },
     MuiDataGrid: {
+      defaultProps: {
+        disableColumnResize: true,
+      },
       styleOverrides: {
         root: {
           border: 'none',
@@ -116,6 +119,9 @@ const theme = createTheme({
           borderRadius: '20px',
           padding: '16px',
           boxShadow: '0 8px 30px rgba(0,0,0,0.04)',
+          '& .MuiDataGrid-virtualScroller': {
+            overflowX: 'hidden',
+          },
           '& .MuiDataGrid-cell': {
             borderBottom: '1px solid #f1f5f9',
             color: '#475569',

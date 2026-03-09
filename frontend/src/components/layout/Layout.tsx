@@ -197,12 +197,13 @@ export default function Layout() {
       <Box 
         component="main" 
         sx={{ 
-          flexGrow: 1, 
+          flexGrow: 1,
+          minWidth: 0,
+          overflowX: 'hidden',
+          overflowY: 'auto',
           p: { xs: 2, sm: 3, md: 4 }, 
           mt: 8,
           width: { xs: '100%', md: `calc(100% - ${DRAWER_WIDTH}px)` },
-          maxWidth: '1400px',
-          mx: 'auto'
         }}
       >
         <Outlet />

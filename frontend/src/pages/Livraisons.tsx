@@ -75,19 +75,20 @@ export default function Livraisons() {
   };
 
   const columns: GridColDef[] = [
-    { field: 'codeSuivi', headerName: 'Code Suivi', width: 180 },
+    { field: 'codeSuivi', headerName: 'Code Suivi', width: 145 },
     { 
       field: 'patient', 
       headerName: 'Patient', 
-      width: 200,
+      flex: 1,
+      minWidth: 130,
       valueGetter: (_value: any, row: any) => `${row.patient?.firstName} ${row.patient?.lastName}`,
     },
-    { field: 'adresseLivraison', headerName: 'Adresse', width: 250 },
-    { field: 'fraisLivraison', headerName: 'Frais', width: 100, valueFormatter: (params) => `${params} DH` },
+    { field: 'adresseLivraison', headerName: 'Adresse', flex: 1.5, minWidth: 150 },
+    { field: 'fraisLivraison', headerName: 'Frais', width: 90, valueFormatter: (params) => `${params} DH` },
     {
       field: 'statut',
       headerName: 'Statut',
-      width: 150,
+      width: 125,
       renderCell: (params) => (
         <Chip
           label={params.value}
@@ -103,7 +104,8 @@ export default function Livraisons() {
     {
       field: 'actions',
       headerName: 'Actions',
-      width: 250,
+      flex: 1,
+      minWidth: 200,
       renderCell: (params) => (
         <Box>
           <Button size="small" onClick={() => { setSelectedLivraison(params.row); setTrackingOpen(true); }}>

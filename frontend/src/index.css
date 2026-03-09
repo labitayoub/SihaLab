@@ -4,16 +4,24 @@
   box-sizing: border-box;
 }
 
+html {
+  overflow-x: hidden;
+}
+
 body {
   font-family: 'Nunito Sans', 'Roboto', sans-serif;
   background-color: #f4f7f9;
   color: #1e384c;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+  width: 100%;
 }
 
 #root {
   min-height: 100vh;
+  overflow-x: hidden;
+  width: 100%;
 }
 
 ::-webkit-scrollbar {

@@ -75,18 +75,19 @@ export default function Analyses() {
   };
 
   const columns: GridColDef[] = [
-    { field: 'createdAt', headerName: 'Date', width: 180, valueFormatter: (params) => new Date(params).toLocaleString('fr-FR') },
+    { field: 'createdAt', headerName: 'Date', width: 155, valueFormatter: (params) => new Date(params).toLocaleString('fr-FR') },
     { 
       field: 'patient', 
       headerName: 'Patient', 
-      width: 200,
+      flex: 1,
+      minWidth: 130,
       valueGetter: (_value: any, row: any) => `${row.consultation?.patient?.firstName} ${row.consultation?.patient?.lastName}`,
     },
-    { field: 'description', headerName: 'Description', width: 300 },
+    { field: 'description', headerName: 'Description', flex: 2, minWidth: 170 },
     {
       field: 'status',
       headerName: 'Statut',
-      width: 150,
+      width: 130,
       renderCell: (params) => (
         <Chip
           label={params.value}
@@ -101,7 +102,7 @@ export default function Analyses() {
     {
       field: 'actions',
       headerName: 'Actions',
-      width: 200,
+      width: 170,
       renderCell: (params) => (
         user?.role === UserRole.LABORATOIRE && params.row.status !== AnalyseStatus.TERMINEE && (
           <Button 

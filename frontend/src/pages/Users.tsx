@@ -98,17 +98,18 @@ export default function Users() {
         <Chip label={ROLE_LABELS[params.value] || params.value} size="small" variant="outlined" />
       ),
     },
-    { field: 'phone', headerName: 'Téléphone', width: 140 },
+    { field: 'phone', headerName: 'Téléphone', width: 130 },
     {
       field: 'specialite',
       headerName: 'Spécialité / Établissement',
-      width: 200,
+      flex: 1,
+      minWidth: 150,
       renderCell: (params) => params.value || '—',
     },
     {
       field: 'isActive',
       headerName: 'Statut',
-      width: 110,
+      width: 100,
       renderCell: (params) => (
         <Chip label={params.value ? 'Actif' : 'Inactif'} color={params.value ? 'success' : 'error'} size="small" />
       ),
@@ -116,7 +117,7 @@ export default function Users() {
     {
       field: 'actions',
       headerName: 'Actions',
-      width: 140,
+      width: 120,
       renderCell: (params) => (
         <Button size="small" onClick={() => handleToggleActive(params.row.id, params.row.isActive)}>
           {params.row.isActive ? 'Désactiver' : 'Activer'}
