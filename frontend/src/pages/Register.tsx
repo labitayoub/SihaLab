@@ -4,7 +4,6 @@ import { Box, Card, TextField, Button, Typography, Container, MenuItem, Grid, Ic
 import { ArrowBack, Visibility, VisibilityOff, Email, Badge, Phone, LocationOn, Lock, LocalHospital, Science, LocalPharmacy, Person } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
 import { UserRole } from '../types/user.types';
-import { toast } from '../utils/toast';
 
 export default function Register() {
   const [formData, setFormData] = useState({
@@ -40,10 +39,9 @@ export default function Register() {
         delete (dataToSend as any).specialite;
       }
       await register(dataToSend);
-      toast.success('Compte créé avec succès !');
       navigate('/login');
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Erreur d\'inscription');
+    } catch {
+      // Error toast already shown by AuthContext.register()
     }
   };
 

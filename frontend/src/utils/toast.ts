@@ -39,7 +39,7 @@ export const confirm = async (options: {
     confirmButtonColor: options.confirmColor ?? '#00afcc',
     cancelButtonColor: '#94a3b8',
     reverseButtons: true,
-    borderRadius: '16px',
+    // borderRadius is not a valid property in SweetAlertOptions
     customClass: {
       popup: 'swal2-confirm-popup',
       confirmButton: 'swal2-confirm-btn',
