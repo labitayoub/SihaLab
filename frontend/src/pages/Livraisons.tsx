@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Box, Button, Card, Typography, Dialog, DialogTitle, DialogContent, TextField, Chip, MenuItem, Stepper, Step, StepLabel } from '@mui/material';
+import { Box, Button, Card, Typography, Dialog, DialogTitle, DialogContent, TextField, Chip, MenuItem, Stepper, Step, StepLabel, IconButton } from '@mui/material';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
-import { Add } from '@mui/icons-material';
+import { Add, Close } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
 import { UserRole } from '../types/user.types';
 import { Livraison, LivraisonStatus } from '../types/livraison.types';
@@ -151,7 +151,10 @@ export default function Livraisons() {
       </Card>
 
       <Dialog open={open} onClose={() => setOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Nouvelle Livraison</DialogTitle>
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          Nouvelle Livraison
+          <IconButton onClick={() => setOpen(false)}><Close /></IconButton>
+        </DialogTitle>
         <DialogContent>
           <TextField
             select
@@ -198,7 +201,10 @@ export default function Livraisons() {
       </Dialog>
 
       <Dialog open={trackingOpen} onClose={() => setTrackingOpen(false)} maxWidth="md" fullWidth>
-        <DialogTitle>Suivi de Livraison</DialogTitle>
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          Suivi de Livraison
+          <IconButton onClick={() => setTrackingOpen(false)}><Close /></IconButton>
+        </DialogTitle>
         <DialogContent>
           {selectedLivraison && (
             <Box sx={{ mt: 2 }}>

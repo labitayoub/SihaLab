@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Box, Button, Card, Typography, Dialog, DialogTitle, DialogContent, TextField, Chip, IconButton, Tooltip } from '@mui/material';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
-import { Add, ToggleOn, ToggleOff } from '@mui/icons-material';
+import { Add, ToggleOn, ToggleOff, Close } from '@mui/icons-material';
 import { User } from '../types/user.types';
 import api from '../config/api';
 import { toast } from '../utils/toast';
@@ -109,7 +109,10 @@ export default function Infirmiers() {
       </Card>
 
       <Dialog open={open} onClose={() => setOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Ajouter un Infirmier</DialogTitle>
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          Ajouter un Infirmier
+          <IconButton onClick={() => setOpen(false)}><Close /></IconButton>
+        </DialogTitle>
         <DialogContent>
           <TextField
             fullWidth

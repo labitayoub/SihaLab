@@ -6,7 +6,7 @@ import {
 } from '@mui/material';
 import {
   ExpandMore, LocalPharmacy, Science, ArrowBack, PictureAsPdf,
-  CheckCircle, HourglassEmpty, PlayArrow, Add as AddIcon, Print, Visibility, Description,
+  CheckCircle, HourglassEmpty, PlayArrow, Add as AddIcon, Print, Visibility, Description, PostAdd, Download,
 } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
 import { UserRole } from '../types/user.types';
@@ -208,7 +208,9 @@ export default function DossierMedical() {
                     sx={{ fontWeight: 'bold' }}
                   />
                 )}
-                {(c.ordonnancePdfUrl || c.analysePdfUrl) && (
+                {(c.ordonnancePdfUrl || c.analysePdfUrl ||
+                  (c.ordonnances && c.ordonnances.some((o: any) => o.pdfUrl)) ||
+                  (c.analyses && c.analyses.some((a: any) => a.pdfUrl))) && (
                   <Chip
                     icon={<PictureAsPdf />}
                     label="PDF"
@@ -316,6 +318,18 @@ export default function DossierMedical() {
                           </Typography>
                         </Box>
                       ))}
+                      {o.pdfUrl && o.pdfUrl !== c.ordonnancePdfUrl && (
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1, pt: 1, borderTop: '1px dashed #ffb300', flexWrap: 'wrap' }}>
+                          <Chip
+                            label="Ajouté après"
+                            size="small"
+                            icon={<PostAdd sx={{ fontSize: '14px !important' }} />}
+                            sx={{ bgcolor: '#ffe082', color: '#e65100', fontWeight: 600, fontSize: 11, height: 20 }}
+                          />
+                          <Button size="small" variant="outlined" startIcon={<Visibility />} href={o.pdfUrl} target="_blank" sx={{ textTransform: 'none', fontSize: '0.75rem' }}>Voir PDF</Button>
+                          <Button size="small" variant="contained" startIcon={<Download />} href={o.pdfUrl} download sx={{ textTransform: 'none', fontSize: '0.75rem', bgcolor: '#f57f17', '&:hover': { bgcolor: '#e65100' } }}>Télécharger</Button>
+                        </Box>
+                      )}
                     </Paper>
                   ))}
                 </>
@@ -365,18 +379,34 @@ export default function DossierMedical() {
                           Voir PDF: {a.resultatFileUrl.split('/').pop()}
                         </Button>
                       )}
+                      {a.pdfUrl && a.pdfUrl !== c.analysePdfUrl && (
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1, pt: 1, borderTop: '1px dashed #ce93d8', flexWrap: 'wrap' }}>
+                          <Chip
+                            label="Ajouté après"
+                            size="small"
+                            icon={<PostAdd sx={{ fontSize: '14px !important' }} />}
+                            sx={{ bgcolor: '#e1bee7', color: '#6a1b9a', fontWeight: 600, fontSize: 11, height: 20 }}
+                          />
+                          <Button size="small" variant="outlined" startIcon={<Visibility />} href={a.pdfUrl} target="_blank" sx={{ textTransform: 'none', fontSize: '0.75rem' }}>Voir PDF</Button>
+                          <Button size="small" variant="contained" startIcon={<Download />} href={a.pdfUrl} download sx={{ textTransform: 'none', fontSize: '0.75rem', bgcolor: '#7b1fa2', '&:hover': { bgcolor: '#6a1b9a' } }}>Télécharger</Button>
+                        </Box>
+                      )}
                     </Paper>
                   ))}
                 </>
               )}
 
               {/* ── Documents PDF liés à cette consultation ── */}
-              {(c.ordonnancePdfUrl || c.analysePdfUrl) && (
+              {(c.ordonnancePdfUrl || c.analysePdfUrl ||
+                (c.ordonnances && c.ordonnances.some((o: any) => o.pdfUrl)) ||
+                (c.analyses && c.analyses.some((a: any) => a.pdfUrl))) && (
                 <>
                   <Divider sx={{ my: 2 }} />
                   <Typography variant="subtitle2" color="secondary.main" fontWeight="bold" sx={{ mb: 1.5, display: 'flex', alignItems: 'center', gap: 0.5 }}>
                     <Description fontSize="small" /> Documents PDF de cette consultation
                   </Typography>
+
+                  {/* PDF fusionné ordonnances */}
                   {c.ordonnancePdfUrl && (
                     <Paper
                       variant="outlined"
@@ -384,36 +414,43 @@ export default function DossierMedical() {
                     >
                       <PictureAsPdf sx={{ color: '#d32f2f', fontSize: 28 }} />
                       <Box sx={{ flex: 1 }}>
-                        <Typography variant="body2" fontWeight="bold">Ordonnance médicale</Typography>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                          <Typography variant="body2" fontWeight="bold">Ordonnance médicale</Typography>
+                          <Chip label="Consultation" size="small" icon={<CheckCircle sx={{ fontSize: '14px !important' }} />} sx={{ bgcolor: '#c8e6c9', color: '#2e7d32', fontWeight: 600, fontSize: 11, height: 20 }} />
+                        </Box>
                         <Typography variant="caption" color="text.secondary">
-                          {patientInfo?.lastName} {patientInfo?.firstName} — {formatDate(c.date)}
+                          Patient : {patientInfo?.lastName} {patientInfo?.firstName} — {new Date(c.date).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                         </Typography>
                       </Box>
-                      <Chip label="Ordonnance" size="small" color="warning" sx={{ fontWeight: 'bold', mr: 1 }} />
-                      <Button
-                        size="small"
-                        variant="outlined"
-                        startIcon={<Visibility />}
-                        href={c.ordonnancePdfUrl}
-                        target="_blank"
-                        sx={{ textTransform: 'uppercase', fontSize: '0.7rem', mr: 0.5 }}
-                      >
-                        Voir
-                      </Button>
-                      <Button
-                        size="small"
-                        variant="contained"
-                        startIcon={<Print />}
-                        onClick={() => {
-                          const printWin = window.open(c.ordonnancePdfUrl, '_blank');
-                          if (printWin) { printWin.addEventListener('load', () => { printWin.print(); }); }
-                        }}
-                        sx={{ textTransform: 'uppercase', fontSize: '0.7rem' }}
-                      >
-                        Imprimer
-                      </Button>
+                      <Button size="small" variant="outlined" startIcon={<Visibility />} href={c.ordonnancePdfUrl} target="_blank" sx={{ textTransform: 'uppercase', fontSize: '0.7rem', mr: 0.5 }}>Voir</Button>
+                      <Button size="small" variant="contained" startIcon={<Print />} onClick={() => { const w = window.open(c.ordonnancePdfUrl, '_blank'); if (w) w.addEventListener('load', () => w.print()); }} sx={{ textTransform: 'uppercase', fontSize: '0.7rem' }}>Imprimer</Button>
                     </Paper>
                   )}
+
+                  {/* PDFs individuels d’ordonnances */}
+                  {c.ordonnances && c.ordonnances
+                    .filter((o: any) => o.pdfUrl && o.pdfUrl !== c.ordonnancePdfUrl)
+                    .map((o: any, oi: number) => (
+                      <Paper key={o.id} variant="outlined" sx={{ p: 1.5, mb: 1, borderRadius: 2, display: 'flex', alignItems: 'center', gap: 1.5, bgcolor: '#fff8e1', border: '1px dashed #ffb300' }}>
+                        <PictureAsPdf sx={{ color: '#f57f17', fontSize: 28 }} />
+                        <Box sx={{ flex: 1 }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Typography variant="body2" fontWeight="bold">Ordonnance #{oi + 1}</Typography>
+                            <Chip label="Ajouté après" size="small" icon={<PostAdd sx={{ fontSize: '14px !important' }} />} sx={{ bgcolor: '#ffe082', color: '#e65100', fontWeight: 600, fontSize: 11, height: 20 }} />
+                          </Box>
+                          <Typography variant="caption" color="text.secondary">
+                            Patient : {patientInfo?.lastName} {patientInfo?.firstName} — {new Date(o.createdAt).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                          </Typography>
+                          <Typography variant="caption" display="block" color="text.disabled" sx={{ fontSize: 10 }}>
+                            {o.medicaments?.map((m: any) => m.nom).filter(Boolean).join(', ') || 'Ordonnance'}
+                          </Typography>
+                        </Box>
+                        <Button size="small" variant="outlined" startIcon={<Visibility />} href={o.pdfUrl} target="_blank" sx={{ textTransform: 'uppercase', fontSize: '0.7rem', mr: 0.5 }}>Voir</Button>
+                        <Button size="small" variant="contained" startIcon={<Download />} href={o.pdfUrl} download sx={{ textTransform: 'uppercase', fontSize: '0.7rem', bgcolor: '#f57f17', '&:hover': { bgcolor: '#e65100' } }}>Télécharger</Button>
+                      </Paper>
+                    ))}
+
+                  {/* PDF fusionné analyses */}
                   {c.analysePdfUrl && (
                     <Paper
                       variant="outlined"
@@ -421,36 +458,41 @@ export default function DossierMedical() {
                     >
                       <PictureAsPdf sx={{ color: '#d32f2f', fontSize: 28 }} />
                       <Box sx={{ flex: 1 }}>
-                        <Typography variant="body2" fontWeight="bold">Demande d'analyses</Typography>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                          <Typography variant="body2" fontWeight="bold">Demande d'analyses</Typography>
+                          <Chip label="Consultation" size="small" icon={<CheckCircle sx={{ fontSize: '14px !important' }} />} sx={{ bgcolor: '#bbdefb', color: '#1565c0', fontWeight: 600, fontSize: 11, height: 20 }} />
+                        </Box>
                         <Typography variant="caption" color="text.secondary">
-                          {patientInfo?.lastName} {patientInfo?.firstName} — {formatDate(c.date)}
+                          Patient : {patientInfo?.lastName} {patientInfo?.firstName} — {new Date(c.date).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                         </Typography>
                       </Box>
-                      <Chip label="Analyse" size="small" color="info" sx={{ fontWeight: 'bold', mr: 1 }} />
-                      <Button
-                        size="small"
-                        variant="outlined"
-                        startIcon={<Visibility />}
-                        href={c.analysePdfUrl}
-                        target="_blank"
-                        sx={{ textTransform: 'uppercase', fontSize: '0.7rem', mr: 0.5 }}
-                      >
-                        Voir
-                      </Button>
-                      <Button
-                        size="small"
-                        variant="contained"
-                        startIcon={<Print />}
-                        onClick={() => {
-                          const printWin = window.open(c.analysePdfUrl, '_blank');
-                          if (printWin) { printWin.addEventListener('load', () => { printWin.print(); }); }
-                        }}
-                        sx={{ textTransform: 'uppercase', fontSize: '0.7rem' }}
-                      >
-                        Imprimer
-                      </Button>
+                      <Button size="small" variant="outlined" startIcon={<Visibility />} href={c.analysePdfUrl} target="_blank" sx={{ textTransform: 'uppercase', fontSize: '0.7rem', mr: 0.5 }}>Voir</Button>
+                      <Button size="small" variant="contained" startIcon={<Print />} onClick={() => { const w = window.open(c.analysePdfUrl, '_blank'); if (w) w.addEventListener('load', () => w.print()); }} sx={{ textTransform: 'uppercase', fontSize: '0.7rem' }}>Imprimer</Button>
                     </Paper>
                   )}
+
+                  {/* PDFs individuels d’analyses */}
+                  {c.analyses && c.analyses
+                    .filter((a: any) => a.pdfUrl && a.pdfUrl !== c.analysePdfUrl)
+                    .map((a: any, ai: number) => (
+                      <Paper key={a.id} variant="outlined" sx={{ p: 1.5, mb: 1, borderRadius: 2, display: 'flex', alignItems: 'center', gap: 1.5, bgcolor: '#f3e5f5', border: '1px dashed #ce93d8' }}>
+                        <PictureAsPdf sx={{ color: '#7b1fa2', fontSize: 28 }} />
+                        <Box sx={{ flex: 1 }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Typography variant="body2" fontWeight="bold">Analyse #{ai + 1}</Typography>
+                            <Chip label="Ajouté après" size="small" icon={<PostAdd sx={{ fontSize: '14px !important' }} />} sx={{ bgcolor: '#e1bee7', color: '#6a1b9a', fontWeight: 600, fontSize: 11, height: 20 }} />
+                          </Box>
+                          <Typography variant="caption" color="text.secondary">
+                            Patient : {patientInfo?.lastName} {patientInfo?.firstName} — {new Date(a.createdAt).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                          </Typography>
+                          <Typography variant="caption" display="block" color="text.disabled" sx={{ fontSize: 10 }}>
+                            {a.description || 'Analyse'}
+                          </Typography>
+                        </Box>
+                        <Button size="small" variant="outlined" startIcon={<Visibility />} href={a.pdfUrl} target="_blank" sx={{ textTransform: 'uppercase', fontSize: '0.7rem', mr: 0.5 }}>Voir</Button>
+                        <Button size="small" variant="contained" startIcon={<Download />} href={a.pdfUrl} download sx={{ textTransform: 'uppercase', fontSize: '0.7rem', bgcolor: '#7b1fa2', '&:hover': { bgcolor: '#6a1b9a' } }}>Télécharger</Button>
+                      </Paper>
+                    ))}
                 </>
               )}
             </AccordionDetails>

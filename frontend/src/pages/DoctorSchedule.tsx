@@ -359,7 +359,7 @@ export default function DoctorSchedulePage() {
       <Card variant="outlined">
         <CardContent>
           <Typography variant="h6" gutterBottom>
-            📊 Résumé de la semaine
+            Résumé de la semaine
           </Typography>
           <Grid container spacing={2}>
             <Grid item xs={4}>

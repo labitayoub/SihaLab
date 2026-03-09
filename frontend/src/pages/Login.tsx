@@ -74,7 +74,7 @@ export default function Login() {
             <Card elevation={0} sx={{ p: { xs: 4, sm: 6 }, borderRadius: '24px', animation: 'fadeInUp 0.6s ease-out' }}>
               <Box sx={{ mb: 4 }}>
                 <Typography variant="h4" fontWeight={900} gutterBottom color="text.primary">
-                  Bon retour ! 👋
+                  Bon retour !
                 </Typography>
                 <Typography variant="body1" color="text.secondary">
                   Veuillez entrer vos identifiants pour continuer.

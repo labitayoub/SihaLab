@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Box, Button, Card, Typography, Dialog, DialogTitle, DialogContent, TextField, Chip, MenuItem } from '@mui/material';
+import { Box, Button, Card, Typography, Dialog, DialogTitle, DialogContent, TextField, Chip, MenuItem, IconButton } from '@mui/material';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
-import { Add, Upload } from '@mui/icons-material';
+import { Add, Upload, Close } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
 import { UserRole } from '../types/user.types';
 import { Analyse, AnalyseStatus } from '../types/analyse.types';
@@ -49,13 +49,19 @@ export default function Analyses() {
 
   const handleCreate = async () => {
     try {
-      await api.post('/analyses', formData);
-      toast.success('Analyse demandée');
+      const { data: newAnalyse } = await api.post('/analyses', formData);
+      // Génération automatique du PDF dédié à cette analyse
+      try {
+        await api.post(`/consultations/${newAnalyse.consultationId}/generate-analyse-pdf/${newAnalyse.id}`);
+        toast.success('Analyse demandée et PDF généré automatiquement');
+      } catch {
+        toast.success('Analyse demandée (PDF sera généré depuis la consultation)');
+      }
       setOpen(false);
       loadAnalyses();
       setFormData({ consultationId: '', description: '' });
     } catch (error) {
-      toast.error('Erreur');
+      toast.error('Erreur lors de la création');
     }
   };
 
@@ -133,7 +139,10 @@ export default function Analyses() {
       </Card>
 
       <Dialog open={open} onClose={() => setOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Nouvelle Demande d'Analyse</DialogTitle>
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          Nouvelle Demande d'Analyse
+          <IconButton onClick={() => setOpen(false)}><Close /></IconButton>
+        </DialogTitle>
         <DialogContent>
           <TextField
             select
@@ -165,7 +174,10 @@ export default function Analyses() {
       </Dialog>
 
       <Dialog open={uploadOpen} onClose={() => setUploadOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Upload Résultat</DialogTitle>
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          Upload Résultat
+          <IconButton onClick={() => setUploadOpen(false)}><Close /></IconButton>
+        </DialogTitle>
         <DialogContent>
           <TextField
             fullWidth

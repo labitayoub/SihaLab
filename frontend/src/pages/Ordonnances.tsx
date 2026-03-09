@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Box, Button, Card, Typography, Dialog, DialogTitle, DialogContent, TextField, Chip, IconButton, MenuItem } from '@mui/material';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
-import { Add, Delete } from '@mui/icons-material';
+import { Add, Delete, Close } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
 import { UserRole } from '../types/user.types';
 import { Ordonnance, OrdonnanceStatus } from '../types/ordonnance.types';
@@ -46,13 +46,19 @@ export default function Ordonnances() {
 
   const handleCreate = async () => {
     try {
-      await api.post('/ordonnances', formData);
-      toast.success('Ordonnance créée');
+      const { data: newOrd } = await api.post('/ordonnances', formData);
+      // Génération automatique du PDF dédié à cette ordonnance
+      try {
+        await api.post(`/consultations/${newOrd.consultationId}/generate-ordonnance-pdf/${newOrd.id}`);
+        toast.success('Ordonnance créée et PDF généré automatiquement');
+      } catch {
+        toast.success('Ordonnance créée (PDF sera généré depuis la consultation)');
+      }
       setOpen(false);
       loadOrdonnances();
       setFormData({ consultationId: '', medicaments: [{ nom: '', dosage: '', frequence: '', duree: '' }] });
     } catch (error) {
-      toast.error('Erreur');
+      toast.error('Erreur lors de la création');
     }
   };
 
@@ -147,7 +153,10 @@ export default function Ordonnances() {
       </Card>
 
       <Dialog open={open} onClose={() => setOpen(false)} maxWidth="md" fullWidth>
-        <DialogTitle>Nouvelle Ordonnance</DialogTitle>
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          Nouvelle Ordonnance
+          <IconButton onClick={() => setOpen(false)}><Close /></IconButton>
+        </DialogTitle>
         <DialogContent>
           <TextField
             select

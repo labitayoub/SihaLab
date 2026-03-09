@@ -1,13 +1,17 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box, Button, Typography, Dialog, DialogTitle, DialogContent, TextField,
   Paper, Chip, Divider, Avatar, IconButton, Tabs, Tab, Alert, CircularProgress, Collapse,
+  Grid, InputAdornment, Autocomplete, MenuItem,
 } from '@mui/material';
 import {
   Add, PictureAsPdf, Visibility, EventAvailable, PersonAdd,
   AccessTime, CalendarToday, LocalPharmacy, Science, Delete,
+  Email, Badge, Phone, LocationOn, Lock, VisibilityOff, Close,
 } from '@mui/icons-material';
+import { Country, City } from 'country-state-city';
+import { isValidPhoneNumber, AsYouType } from 'libphonenumber-js';
 import { useAuth } from '../context/AuthContext';
 import { UserRole } from '../types/user.types';
 import { ConsultationWithDetails } from '../types/dossier.types';
@@ -68,7 +72,21 @@ export default function Consultations() {
   const [walkInMode, setWalkInMode] = useState<'select' | 'new'>('select');
   const [newPatientData, setNewPatientData] = useState({
     firstName: '', lastName: '', phone: '', email: '', password: 'SihaLab123!',
+    address: '', ville: '', pays: '',
   });
+  const [newPatCountryIso, setNewPatCountryIso] = useState('');
+  const [newPatPhoneError, setNewPatPhoneError] = useState('');
+  const [showNewPwd, setShowNewPwd] = useState(false);
+
+  const allCountries = useMemo(() => Country.getAllCountries(), []);
+  const newPatCities = useMemo(
+    () => newPatCountryIso ? (City.getCitiesOfCountry(newPatCountryIso) ?? []) : [],
+    [newPatCountryIso]
+  );
+  const newPatSelectedCountry = useMemo(
+    () => allCountries.find(c => c.isoCode === newPatCountryIso) ?? null,
+    [allCountries, newPatCountryIso]
+  );
 
   // Common consultation form
   const [formData, setFormData] = useState({ motif: '', diagnostic: '', notes: '' });
@@ -120,7 +138,10 @@ export default function Consultations() {
     setSelectedAppointment(null);
     setSelectedWalkInPatient(null);
     setWalkInMode('select');
-    setNewPatientData({ firstName: '', lastName: '', phone: '', email: '', password: 'SihaLab123!' });
+    setNewPatientData({ firstName: '', lastName: '', phone: '', email: '', password: 'SihaLab123!', address: '', ville: '', pays: '' });
+    setNewPatCountryIso('');
+    setNewPatPhoneError('');
+    setShowNewPwd(false);
     setFormData({ motif: '', diagnostic: '', notes: '' });
     setAddOrdonnance(false);
     setMedicaments([{ nom: '', dosage: '', frequence: '', duree: '' }]);
@@ -345,8 +366,9 @@ export default function Consultations() {
 
       {/* ── Dialog Nouvelle Consultation ── */}
       <Dialog open={open} onClose={() => { if (!creating) setOpen(false); }} maxWidth="md" fullWidth>
-        <DialogTitle sx={{ pb: 0 }}>
+        <DialogTitle sx={{ pb: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <Typography variant="h6" fontWeight="bold">Nouvelle Consultation</Typography>
+          <IconButton onClick={() => { if (!creating) setOpen(false); }}><Close /></IconButton>
         </DialogTitle>
         <DialogContent>
           <Tabs
@@ -468,42 +490,112 @@ export default function Consultations() {
               {walkInMode === 'new' && (
                 <>
                   <Alert severity="success" sx={{ mb: 2 }}>Remplissez les informations du nouveau patient</Alert>
-                  <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}>
-                    <TextField
-                      label="Prénom *"
-                      value={newPatientData.firstName}
-                      onChange={(e) => setNewPatientData(p => ({ ...p, firstName: e.target.value }))}
-                      size="small"
-                    />
-                    <TextField
-                      label="Nom *"
-                      value={newPatientData.lastName}
-                      onChange={(e) => setNewPatientData(p => ({ ...p, lastName: e.target.value }))}
-                      size="small"
-                    />
-                    <TextField
-                      label="Email *"
-                      type="email"
-                      value={newPatientData.email}
-                      onChange={(e) => setNewPatientData(p => ({ ...p, email: e.target.value }))}
-                      size="small"
-                    />
-                    <TextField
-                      label="Téléphone"
-                      value={newPatientData.phone}
-                      onChange={(e) => setNewPatientData(p => ({ ...p, phone: e.target.value }))}
-                      size="small"
-                    />
-                    <TextField
-                      label="Mot de passe"
-                      type="password"
-                      value={newPatientData.password}
-                      onChange={(e) => setNewPatientData(p => ({ ...p, password: e.target.value }))}
-                      size="small"
-                      sx={{ gridColumn: '1 / -1' }}
-                      helperText="Mot de passe par défaut: SihaLab123!"
-                    />
-                  </Box>
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} sm={6}>
+                      <TextField fullWidth label="Prénom" required size="small"
+                        value={newPatientData.firstName}
+                        onChange={(e) => setNewPatientData(p => ({ ...p, firstName: e.target.value }))}
+                        InputProps={{ startAdornment: <InputAdornment position="start"><Badge fontSize="small" color="action" /></InputAdornment> }}
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <TextField fullWidth label="Nom" required size="small"
+                        value={newPatientData.lastName}
+                        onChange={(e) => setNewPatientData(p => ({ ...p, lastName: e.target.value }))}
+                        InputProps={{ startAdornment: <InputAdornment position="start"><Badge fontSize="small" color="action" /></InputAdornment> }}
+                      />
+                    </Grid>
+                    <Grid item xs={12}>
+                      <TextField fullWidth label="Adresse Email" type="email" required size="small"
+                        value={newPatientData.email}
+                        onChange={(e) => setNewPatientData(p => ({ ...p, email: e.target.value }))}
+                        InputProps={{ startAdornment: <InputAdornment position="start"><Email fontSize="small" color="action" /></InputAdornment> }}
+                      />
+                    </Grid>
+                    {/* Pays */}
+                    <Grid item xs={12} sm={6}>
+                      <Autocomplete
+                        options={allCountries}
+                        getOptionLabel={(opt) => `${opt.flag ?? ''} ${opt.name}`}
+                        isOptionEqualToValue={(opt, val) => opt.isoCode === val.isoCode}
+                        value={allCountries.find(c => c.isoCode === newPatCountryIso) ?? null}
+                        onChange={(_, country) => {
+                          const iso = country?.isoCode ?? '';
+                          const name = country?.name ?? '';
+                          setNewPatCountryIso(iso);
+                          setNewPatientData(p => ({ ...p, pays: name, ville: '', phone: '' }));
+                          setNewPatPhoneError('');
+                        }}
+                        renderInput={(params) => <TextField {...params} label="Pays" required size="small" />}
+                      />
+                    </Grid>
+                    {/* Ville */}
+                    <Grid item xs={12} sm={6}>
+                      {newPatCities.length > 0 ? (
+                        <TextField select fullWidth label="Ville" required size="small"
+                          value={newPatientData.ville}
+                          onChange={(e) => setNewPatientData(p => ({ ...p, ville: e.target.value }))}
+                          InputProps={{ startAdornment: <InputAdornment position="start"><LocationOn fontSize="small" color="action" /></InputAdornment> }}
+                        >
+                          {newPatCities.map((c) => (
+                            <MenuItem key={`${c.name}-${(c as any).stateCode ?? ''}`} value={c.name}>{c.name}</MenuItem>
+                          ))}
+                        </TextField>
+                      ) : (
+                        <TextField fullWidth label="Ville" required size="small"
+                          value={newPatientData.ville}
+                          onChange={(e) => setNewPatientData(p => ({ ...p, ville: e.target.value }))}
+                          helperText={!newPatCountryIso ? "Sélectionnez d'abord un pays" : ''}
+                          InputProps={{ startAdornment: <InputAdornment position="start"><LocationOn fontSize="small" color="action" /></InputAdornment> }}
+                        />
+                      )}
+                    </Grid>
+                    {/* Téléphone */}
+                    <Grid item xs={12} sm={6}>
+                      <TextField fullWidth label="Téléphone" required size="small"
+                        value={newPatientData.phone}
+                        onChange={(e) => {
+                          const formatted = newPatCountryIso ? new AsYouType(newPatCountryIso as any).input(e.target.value) : e.target.value;
+                          setNewPatientData(p => ({ ...p, phone: formatted }));
+                          if (!formatted) { setNewPatPhoneError(''); return; }
+                          if (newPatCountryIso) {
+                            setNewPatPhoneError(isValidPhoneNumber(formatted, newPatCountryIso as any) ? '' : `Numéro invalide pour ${newPatSelectedCountry?.name ?? 'ce pays'}`);
+                          }
+                        }}
+                        error={!!newPatPhoneError}
+                        helperText={newPatPhoneError || (newPatSelectedCountry?.phonecode ? `Indicatif : +${newPatSelectedCountry.phonecode}` : 'Sélectionnez un pays')}
+                        placeholder={newPatSelectedCountry ? `+${newPatSelectedCountry.phonecode} ...` : '+...'}
+                        InputProps={{ startAdornment: <InputAdornment position="start"><Phone fontSize="small" color={newPatPhoneError ? 'error' : 'action'} /></InputAdornment> }}
+                      />
+                    </Grid>
+                    {/* Mot de passe */}
+                    <Grid item xs={12} sm={6}>
+                      <TextField fullWidth label="Mot de passe" required size="small"
+                        type={showNewPwd ? 'text' : 'password'}
+                        value={newPatientData.password}
+                        onChange={(e) => setNewPatientData(p => ({ ...p, password: e.target.value }))}
+                        InputProps={{
+                          startAdornment: <InputAdornment position="start"><Lock fontSize="small" color="action" /></InputAdornment>,
+                          endAdornment: (
+                            <InputAdornment position="end">
+                              <IconButton size="small" onClick={() => setShowNewPwd(v => !v)} edge="end">
+                                {showNewPwd ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
+                              </IconButton>
+                            </InputAdornment>
+                          ),
+                        }}
+                        helperText="Défaut : SihaLab123!"
+                      />
+                    </Grid>
+                    {/* Adresse */}
+                    <Grid item xs={12}>
+                      <TextField fullWidth label="Adresse postale complète" required size="small"
+                        value={newPatientData.address}
+                        onChange={(e) => setNewPatientData(p => ({ ...p, address: e.target.value }))}
+                        InputProps={{ startAdornment: <InputAdornment position="start"><LocationOn fontSize="small" color="action" /></InputAdornment> }}
+                      />
+                    </Grid>
+                  </Grid>
                   <Button size="small" variant="text" onClick={() => setWalkInMode('select')} sx={{ mt: 1 }}>
                     ← Retour à la liste
                   </Button>

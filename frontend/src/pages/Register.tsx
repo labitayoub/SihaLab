@@ -207,6 +207,8 @@ export default function Register() {
                   />
                 </Grid>
 
+                {renderLocationFields(true)}
+
                 <Grid item xs={12} sm={6}>
                   <TextField
                     fullWidth label="Téléphone" variant="outlined" required
@@ -265,7 +267,6 @@ export default function Register() {
                         onChange={(e) => setFormData({ ...formData, numeroOrdre: e.target.value })}
                       />
                     </Grid>
-                    {renderLocationFields(true)}
                   </>
                 )}
 
@@ -279,15 +280,10 @@ export default function Register() {
                         onChange={(e) => setFormData({ ...formData, specialite: e.target.value })}
                       />
                     </Grid>
-                    {renderLocationFields(true)}
                   </>
                 )}
 
-                {isPatient && (
-                  <>
-                    {renderLocationFields(true)}
-                  </>
-                )}
+                {isPatient && null}
               </Grid>
 
               <Box sx={{ mt: 5 }}>
