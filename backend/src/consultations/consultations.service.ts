@@ -240,6 +240,28 @@ export class ConsultationsService {
   }
 
   /**
+   * Build a clean MinIO object path:
+   * consultations/Dr_{nom}_{prenom}/{patient_nom}_{prenom}/{date}_{idCourt}/{fileName}
+   */
+  private buildObjectPath(
+    doctorLast: string, doctorFirst: string,
+    patientLast: string, patientFirst: string,
+    dateISO: string, consultationId: string,
+    fileName: string,
+  ): string {
+    const clean = (s: string) =>
+      (s || 'Inconnu')
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')  // remove accents
+        .replace(/[^a-zA-Z0-9]/g, '_')
+        .replace(/_+/g, '_')
+        .replace(/^_|_$/g, '');
+    const doctorFolder  = `Dr_${clean(doctorLast)}_${clean(doctorFirst)}`;
+    const patientFolder = `${clean(patientLast)}_${clean(patientFirst)}`;
+    const consultFolder = `${dateISO}_${consultationId.substring(0, 8).toUpperCase()}`;
+    return `consultations/${doctorFolder}/${patientFolder}/${consultFolder}/${fileName}`;
+  }
+
+  /**
    * Générer les PDFs pour les ordonnances et analyses d'une consultation
    * - Nommage : PatientNom_PatientPrenom_Type_Date.pdf
    * - Upload vers MinIO
@@ -273,7 +295,12 @@ export class ConsultationsService {
       );
 
       const fileName = PdfGeneratorService.buildFileName(patientLast, patientFirst, 'Ordonnance', dateISO);
-      const objectName = `consultations/${consultationId}/${fileName}`;
+      const objectName = this.buildObjectPath(
+        consultation.doctor?.lastName  || 'Medecin',
+        consultation.doctor?.firstName || '',
+        patientLast, patientFirst,
+        dateISO, consultationId, fileName,
+      );
       const fileUrl = await this.minioService.uploadFile(objectName, pdfBuffer, 'application/pdf');
 
       // Update all ordonnances pdfUrl
@@ -307,7 +334,12 @@ export class ConsultationsService {
       );
 
       const fileName = PdfGeneratorService.buildFileName(patientLast, patientFirst, 'Analyses', dateISO);
-      const objectName = `consultations/${consultationId}/${fileName}`;
+      const objectName = this.buildObjectPath(
+        consultation.doctor?.lastName  || 'Medecin',
+        consultation.doctor?.firstName || '',
+        patientLast, patientFirst,
+        dateISO, consultationId, fileName,
+      );
       const fileUrl = await this.minioService.uploadFile(objectName, pdfBuffer, 'application/pdf');
 
       // Save URL on consultation itself
@@ -376,7 +408,12 @@ export class ConsultationsService {
     const suffix = ordonnanceId.substring(0, 8).toUpperCase();
 
     const fileName   = PdfGeneratorService.buildFileName(patientLast, patientFirst, 'Ordonnance', dateISO, suffix);
-    const objectName = `consultations/${consultationId}/${fileName}`;
+    const objectName = this.buildObjectPath(
+      consultation.doctor?.lastName  || 'Medecin',
+      consultation.doctor?.firstName || '',
+      patientLast, patientFirst,
+      dateISO, consultationId, fileName,
+    );
     const fileUrl    = await this.minioService.uploadFile(objectName, pdfBuffer, 'application/pdf');
 
     await this.ordonnanceRepository.update(ordonnanceId, { pdfUrl: fileUrl });
@@ -421,7 +458,12 @@ export class ConsultationsService {
     const suffix = analyseId.substring(0, 8).toUpperCase();
 
     const fileName   = PdfGeneratorService.buildFileName(patientLast, patientFirst, 'Analyses', dateISO, suffix);
-    const objectName = `consultations/${consultationId}/${fileName}`;
+    const objectName = this.buildObjectPath(
+      consultation.doctor?.lastName  || 'Medecin',
+      consultation.doctor?.firstName || '',
+      patientLast, patientFirst,
+      dateISO, consultationId, fileName,
+    );
     const fileUrl    = await this.minioService.uploadFile(objectName, pdfBuffer, 'application/pdf');
 
     await this.analyseRepository.update(analyseId, { pdfUrl: fileUrl });

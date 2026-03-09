@@ -93,6 +93,23 @@ export class UsersService {
     return users.map(({ password, ...user }) => user);
   }
 
+  async findByRoleFiltered(role: UserRole, pays?: string, ville?: string) {
+    const query = this.userRepository
+      .createQueryBuilder('user')
+      .where('user.role = :role', { role })
+      .andWhere('user.isActive = :isActive', { isActive: true });
+
+    if (pays && pays.trim()) {
+      query.andWhere('user.pays ILIKE :pays', { pays: `%${pays.trim()}%` });
+    }
+    if (ville && ville.trim()) {
+      query.andWhere('user.ville ILIKE :ville', { ville: `%${ville.trim()}%` });
+    }
+
+    const users = await query.orderBy('user.lastName', 'ASC').getMany();
+    return users.map(({ password, ...u }) => u);
+  }
+
   async update(id: string, updateUserDto: UpdateUserDto) {
     const user = await this.userRepository.findOne({ where: { id } });
     if (!user) {
@@ -146,12 +163,18 @@ export class UsersService {
 
     // Delete old avatar from MinIO if exists
     if (user.avatarUrl) {
-      const oldKey = user.avatarUrl.split('/').slice(-1)[0];
-      await this.minioService.deleteFile(`avatars/${oldKey}`);
+      // extract the object path from the full URL (everything after bucket name)
+      const urlParts = user.avatarUrl.split('/');
+      const bucketIdx = urlParts.findIndex((p) => p === 'sihatilab-documents');
+      if (bucketIdx !== -1) {
+        const oldObjectName = urlParts.slice(bucketIdx + 1).join('/');
+        await this.minioService.deleteFile(oldObjectName).catch(() => null);
+      }
     }
 
     const ext = mimeType.split('/')[1] || 'jpg';
-    const objectName = `avatars/${userId}-${Date.now()}.${ext}`;
+    const roleFolder = (user.role || 'users').toLowerCase();
+    const objectName = `avatars/${roleFolder}/${userId}-${Date.now()}.${ext}`;
     const avatarUrl = await this.minioService.uploadFile(objectName, buffer, mimeType);
 
     user.avatarUrl = avatarUrl;

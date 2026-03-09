@@ -69,6 +69,26 @@ export class UsersController {
     return this.usersService.findByRole(UserRole.MEDECIN);
   }
 
+  @Get('pharmaciens')
+  @Roles(UserRole.MEDECIN, UserRole.INFIRMIER, UserRole.ADMIN)
+  @ApiOperation({ summary: 'Get pharmaciens filtered by pays/ville' })
+  getPharmaciens(
+    @Query('pays') pays?: string,
+    @Query('ville') ville?: string,
+  ) {
+    return this.usersService.findByRoleFiltered(UserRole.PHARMACIEN, pays, ville);
+  }
+
+  @Get('laboratoires')
+  @Roles(UserRole.MEDECIN, UserRole.INFIRMIER, UserRole.ADMIN)
+  @ApiOperation({ summary: 'Get laboratoires filtered by pays/ville' })
+  getLaboratoires(
+    @Query('pays') pays?: string,
+    @Query('ville') ville?: string,
+  ) {
+    return this.usersService.findByRoleFiltered(UserRole.LABORATOIRE, pays, ville);
+  }
+
   @Get('infirmiers')
   @Roles(UserRole.MEDECIN)
   @ApiOperation({ summary: 'Get infirmiers of current doctor' })
