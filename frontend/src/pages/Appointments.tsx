@@ -196,12 +196,13 @@ export default function Appointments() {
     }
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string): "default" | "warning" | "success" | "info" | "error" => {
     switch (status) {
+      case AppointmentStatus.EN_ATTENTE: return 'warning';
       case AppointmentStatus.CONFIRME: return 'success';
-      case AppointmentStatus.ANNULE: return 'error';
       case AppointmentStatus.TERMINE: return 'info';
-      default: return 'warning';
+      case AppointmentStatus.ANNULE: return 'error';
+      default: return 'default';
     }
   };
 
@@ -230,11 +231,11 @@ export default function Appointments() {
       width: 200,
       valueGetter: (_value: any, row: any) => `Dr. ${row.doctor?.firstName} ${row.doctor?.lastName}`,
     },
-    { field: 'motif', headerName: 'Motif', width: 200 },
+    { field: 'motif', headerName: 'Motif', width: 180 },
     {
       field: 'status',
       headerName: 'Statut',
-      width: 150,
+      width: 140,
       renderCell: (params) => (
         <Chip
           label={getStatusLabel(params.value)}
@@ -246,25 +247,25 @@ export default function Appointments() {
     {
       field: 'actions',
       headerName: 'Actions',
-      width: 200,
+      width: 250,
       renderCell: (params) => (
-        <Box>
+        <Box sx={{ display: 'flex', gap: 1 }}>
           {(user?.role === UserRole.MEDECIN || user?.role === UserRole.INFIRMIER) && params.row.status === AppointmentStatus.EN_ATTENTE && (
             <>
-              <Button size="small" onClick={() => handleConfirm(params.row.id)}>Confirmer</Button>
-              <Button size="small" color="error" onClick={() => handleCancel(params.row.id)}>Annuler</Button>
+              <Button variant="contained" color="success" size="small" onClick={() => handleConfirm(params.row.id)}>Confirmer</Button>
+              <Button variant="outlined" color="error" size="small" onClick={() => handleCancel(params.row.id)}>Annuler</Button>
             </>
           )}
           {(user?.role === UserRole.MEDECIN || user?.role === UserRole.INFIRMIER) && params.row.status === AppointmentStatus.CONFIRME && (
-            <Box sx={{ display: 'flex', gap: 0.5 }}>
-              <Button size="small" color="success" onClick={() => navigate(`/dossier-medical/${params.row.patientId}`)}>
+            <>
+              <Button variant="contained" color="primary" size="small" onClick={() => navigate(`/dossier-medical/${params.row.patientId}`)}>
                 Dossier
               </Button>
-              <Button size="small" color="error" onClick={() => handleCancel(params.row.id)}>Annuler</Button>
-            </Box>
+              <Button variant="outlined" color="error" size="small" onClick={() => handleCancel(params.row.id)}>Annuler</Button>
+            </>
           )}
           {user?.role === UserRole.PATIENT && (params.row.status === AppointmentStatus.EN_ATTENTE || params.row.status === AppointmentStatus.CONFIRME) && (
-            <Button size="small" color="error" onClick={() => handleCancel(params.row.id)}>Annuler</Button>
+            <Button variant="outlined" color="error" size="small" onClick={() => handleCancel(params.row.id)}>Annuler</Button>
           )}
         </Box>
       ),
@@ -274,17 +275,17 @@ export default function Appointments() {
   const today = fmt(new Date());
 
   return (
-    <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
-        <Typography variant="h4">Rendez-vous</Typography>
+    <Box sx={{ animation: 'fadeInUp 0.6s ease-out' }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
+        <Typography variant="h4" fontWeight={900} color="text.primary">Rendez-vous</Typography>
         {user?.role === UserRole.PATIENT && (
-          <Button variant="contained" startIcon={<Add />} onClick={() => setOpen(true)}>
+          <Button variant="contained" color="primary" startIcon={<Add />} onClick={() => setOpen(true)} sx={{ borderRadius: 8, px: 3, py: 1 }}>
             Nouveau RDV
           </Button>
         )}
       </Box>
 
-      <Card>
+      <Box sx={{ width: '100%' }}>
         <DataGrid
           rows={appointments}
           columns={columns}
@@ -293,7 +294,7 @@ export default function Appointments() {
           disableRowSelectionOnClick
           autoHeight
         />
-      </Card>
+      </Box>
 
       {/* ═══════ Dialog Nouveau RDV — Redesigned ═══════ */}
       <Dialog
@@ -301,40 +302,46 @@ export default function Appointments() {
         onClose={() => setOpen(false)}
         maxWidth="md"
         fullWidth
-        PaperProps={{ sx: { borderRadius: 3, overflow: 'hidden' } }}
+        PaperProps={{ sx: { borderRadius: '24px', overflow: 'hidden' } }}
       >
         <DialogContent sx={{ p: 0 }}>
           {/* ── Step 0 : Sélection du médecin (si pas encore choisi) ── */}
           {!formData.doctorId ? (
-            <Box sx={{ p: 3 }}>
-              <Typography variant="h5" gutterBottom fontWeight="bold">
-                Choisir un médecin
+            <Box sx={{ p: 4, bgcolor: '#f4f7f9', minHeight: 400 }}>
+              <Typography variant="h5" gutterBottom fontWeight="900" color="primary.main">
+                Choisir un praticien
               </Typography>
-              <Grid container spacing={2} sx={{ mt: 1 }}>
+              <Grid container spacing={3} sx={{ mt: 1 }}>
                 {doctors.map((doc) => (
                   <Grid item xs={12} sm={6} key={doc.id}>
                     <Card
-                      variant="outlined"
+                      elevation={0}
                       sx={{
                         cursor: 'pointer',
-                        transition: 'all 0.2s',
-                        '&:hover': { borderColor: 'primary.main', boxShadow: 2 },
+                        transition: 'all 0.3s ease-in-out',
+                        border: '1px solid transparent',
+                        borderRadius: '16px',
+                        '&:hover': { 
+                          borderColor: 'primary.main', 
+                          transform: 'translateY(-4px)',
+                          boxShadow: '0 12px 24px rgba(0, 175, 204, 0.15)'
+                        },
                       }}
                       onClick={() => setFormData({ ...formData, doctorId: doc.id })}
                     >
-                      <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                      <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 3 }}>
                         <Avatar
                           src={doc.avatarUrl}
-                          sx={{ width: 56, height: 56, bgcolor: 'primary.main' }}
+                          sx={{ width: 64, height: 64, bgcolor: 'primary.light', color: 'primary.main', fontWeight: 800 }}
                         >
                           {doc.firstName?.[0]}
                         </Avatar>
                         <Box>
-                          <Typography fontWeight="bold">
+                          <Typography fontWeight="800" color="text.primary" variant="subtitle1">
                             Dr {doc.firstName} {doc.lastName}
                           </Typography>
                           {doc.specialite && (
-                            <Typography variant="body2" color="text.secondary">
+                            <Typography variant="body2" color="secondary.main" fontWeight={700}>
                               {doc.specialite}
                             </Typography>
                           )}
@@ -345,7 +352,7 @@ export default function Appointments() {
                 ))}
                 {doctors.length === 0 && (
                   <Grid item xs={12}>
-                    <Alert severity="info">Aucun médecin disponible.</Alert>
+                    <Alert severity="info" sx={{ borderRadius: '12px' }}>Aucun médecin disponible pour le moment.</Alert>
                   </Grid>
                 )}
               </Grid>
@@ -355,39 +362,38 @@ export default function Appointments() {
               {/* ── Doctor info header (blue bar) ── */}
               <Box
                 sx={{
-                  background: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
+                  background: 'linear-gradient(135deg, #00afcc 0%, #0082c8 100%)',
                   color: 'white',
-                  p: 2.5,
+                  p: 4,
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 2,
+                  gap: 3,
                 }}
               >
                 <Avatar
                   src={selectedDoctor?.avatarUrl}
-                  sx={{ width: 64, height: 64, border: '3px solid rgba(255,255,255,0.5)' }}
+                  sx={{ width: 80, height: 80, border: '4px solid rgba(255,255,255,0.3)', bgcolor: 'rgba(255,255,255,0.2)' }}
                 >
                   {selectedDoctor?.firstName?.[0]}
                 </Avatar>
                 <Box sx={{ flex: 1 }}>
-                  <Typography variant="h6" fontWeight="bold">
+                  <Typography variant="h5" fontWeight="900">
                     Dr {selectedDoctor?.firstName} {selectedDoctor?.lastName}
                   </Typography>
                   {selectedDoctor?.specialite && (
-                    <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                    <Typography variant="subtitle1" sx={{ opacity: 0.9, fontWeight: 700 }}>
                       {selectedDoctor.specialite}
                     </Typography>
                   )}
                   {selectedDoctor?.address && (
-                    <Typography variant="body2" sx={{ opacity: 0.8, display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>
+                    <Typography variant="body2" sx={{ opacity: 0.8, display: 'flex', alignItems: 'center', gap: 0.5, mt: 1 }}>
                       <LocationOn fontSize="small" /> {selectedDoctor.address}
                     </Typography>
                   )}
                 </Box>
                 <Button
                   variant="outlined"
-                  size="small"
-                  sx={{ color: 'white', borderColor: 'rgba(255,255,255,0.5)', '&:hover': { borderColor: 'white' } }}
+                  sx={{ color: 'white', borderColor: 'rgba(255,255,255,0.5)', borderRadius: 8, fontWeight: 700, '&:hover': { borderColor: 'white', bgcolor: 'rgba(255,255,255,0.1)' } }}
                   onClick={() => {
                     setFormData({ doctorId: '', date: '', time: '', motif: '' });
                     setDoctorSchedules([]);

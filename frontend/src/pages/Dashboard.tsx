@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Grid, Card, CardContent, Typography, Box, Button, Alert, Chip, Divider, Stack, Paper,
@@ -157,31 +157,54 @@ export default function Dashboard() {
     <Box>
       {/* ═══════════════ ACCÈS RAPIDE ═══════════════ */}
       {quickLinks.length > 0 && (
-        <Box sx={{ mb: 4 }}>
-          <Typography variant="h6" fontWeight="bold" gutterBottom sx={{ mb: 2 }}>Accès rapide</Typography>
+        <Box 
+          sx={{ 
+            mb: 5,
+            animation: 'fadeInDown 0.6s ease-out',
+            '@keyframes fadeInDown': {
+              from: { opacity: 0, transform: 'translateY(-15px)' },
+              to: { opacity: 1, transform: 'translateY(0)' },
+            }
+          }}
+        >
+          <Typography variant="h5" fontWeight={800} sx={{ mb: 3, color: 'text.primary', letterSpacing: '-0.5px' }}>
+            Accès rapide
+          </Typography>
           <Grid container spacing={2}>
-            {quickLinks.map((item) => (
+            {quickLinks.map((item, index) => (
               <Grid item xs={6} sm={4} md={Math.floor(12 / quickLinks.length)} key={item.title}>
                 <Paper
                   elevation={0}
                   onClick={() => navigate(item.path)}
                   sx={{
-                    p: 2.5,
+                    p: 3,
                     textAlign: 'center',
                     cursor: 'pointer',
-                    borderRadius: 3,
+                    borderRadius: 4,
                     border: '1px solid',
-                    borderColor: 'divider',
+                    borderColor: 'transparent',
                     backgroundColor: item.bg,
-                    transition: 'transform 0.18s ease, box-shadow 0.18s ease',
-                    '&:hover': { transform: 'translateY(-5px)', boxShadow: 5 },
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    animation: `fadeIn 0.5s ease-out ${index * 0.05}s backwards`,
+                    position: 'relative',
+                    overflow: 'hidden',
+                    '&:hover': { 
+                      transform: 'translateY(-6px) scale(1.02)', 
+                      boxShadow: `0 14px 28px ${item.color}25`,
+                      borderColor: `${item.color}40`,
+                      '& .hover-bg': { transform: 'scale(1.5)', opacity: 0.1 }
+                    },
                   }}
                 >
-                  <Box sx={{ color: item.color, mb: 1.5 }}>{item.icon}</Box>
-                  <Typography variant="body2" fontWeight="bold" sx={{ color: item.color, mb: 0.5 }}>
+                  <Box className="hover-bg" sx={{ position: 'absolute', top: -20, left: -20, width: 80, height: 80, borderRadius: '50%', backgroundColor: item.color, opacity: 0.03, transition: 'all 0.5s ease', pointerEvents: 'none' }} />
+                  
+                  <Box sx={{ color: item.color, mb: 2, display: 'flex', justifyContent: 'center' }}>
+                    {React.cloneElement(item.icon, { sx: { fontSize: 42, filter: `drop-shadow(0 4px 6px ${item.color}30)` } })}
+                  </Box>
+                  <Typography variant="subtitle2" fontWeight={800} sx={{ color: item.color, mb: 0.5, letterSpacing: '0.3px' }}>
                     {item.title}
                   </Typography>
-                  <Typography variant="caption" color="text.secondary" display="block">
+                  <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, opacity: 0.8 }} display="block">
                     {item.desc}
                   </Typography>
                 </Paper>
@@ -291,54 +314,120 @@ export default function Dashboard() {
         );
       })()}
 
-      {/* ═══════════════ DOCTOR / INFIRMIER / OTHER DASHBOARD ═══════════════ */}
+      {/* ═══════════════ DOCTOR / INFIRMIER DASHBOARD ═══════════════ */}
       {!isPatient && (
-        <Box>
-          <Typography variant="h4" gutterBottom>
-            Bienvenue, {user?.firstName} {user?.lastName}
-          </Typography>
-          <Typography variant="body1" color="text.secondary" gutterBottom>
-            Rôle: {user?.role}
-          </Typography>
+        <Box
+          sx={{
+            animation: 'fadeIn 0.8s ease-out',
+            '@keyframes fadeIn': {
+              from: { opacity: 0, transform: 'translateY(20px)' },
+              to: { opacity: 1, transform: 'translateY(0)' },
+            },
+          }}
+        >
+          <Box sx={{ mb: 4, display: 'flex', flexDirection: 'column', gap: 1 }}>
+            <Typography variant="h3" fontWeight={800} sx={{ letterSpacing: '-1px', color: 'text.primary' }}>
+              Tableau de bord {isDoctor ? 'Médecin' : 'Infirmier'}
+            </Typography>
+            <Typography variant="subtitle1" color="text.secondary" sx={{ fontWeight: 500 }}>
+              Bienvenue, {user?.firstName} {user?.lastName} — Gérez votre activité quotidienne avec efficacité.
+            </Typography>
+          </Box>
 
           {isDoctor && !hasSchedule && (
             <Alert
               severity="warning"
-              icon={<Warning />}
+              icon={<Warning sx={{ fontSize: 28 }} />}
               action={
                 <Button
                   color="warning"
                   size="small"
-                  variant="outlined"
+                  variant="contained"
                   onClick={() => navigate('/schedule')}
                   endIcon={<ArrowForward />}
+                  sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600, boxShadow: 'none' }}
                 >
                   Configurer
                 </Button>
               }
-              sx={{ mb: 3, mt: 2 }}
+              sx={{
+                mb: 4,
+                borderRadius: 3,
+                border: '1px solid',
+                borderColor: 'warning.light',
+                backgroundColor: 'warning.50',
+                '& .MuiAlert-message': { width: '100%' },
+              }}
             >
-              <strong>Aucune disponibilité définie !</strong> Vos patients ne peuvent pas encore prendre
-              de rendez-vous. Configurez vos créneaux de consultation.
+              <Typography variant="subtitle2" fontWeight={700} gutterBottom>
+                Aucune disponibilité définie
+              </Typography>
+              <Typography variant="body2">
+                Vos patients ne peuvent pas encore prendre de rendez-vous. Configurez vos créneaux de consultation pour démarrer.
+              </Typography>
             </Alert>
           )}
 
-          <Grid container spacing={3} sx={{ mt: 1 }}>
-            {cards.map((card) => (
+          {/* KPI CARDS */}
+          <Grid container spacing={3} sx={{ mb: 4 }}>
+            {cards.map((card, index) => (
               <Grid item xs={12} sm={6} md={3} key={card.title}>
-                <Card>
-                  <CardContent>
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <Box>
-                        <Typography color="text.secondary" gutterBottom>
-                          {card.title}
-                        </Typography>
-                        <Typography variant="h4">{card.value}</Typography>
-                      </Box>
-                      <Box sx={{ color: card.color, fontSize: 48 }}>
+                <Card
+                  sx={{
+                    height: '100%',
+                    borderRadius: 4,
+                    boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    animation: `slideUp 0.6s ease-out ${index * 0.1}s backwards`,
+                    '@keyframes slideUp': {
+                      from: { opacity: 0, transform: 'translateY(30px)' },
+                      to: { opacity: 1, transform: 'translateY(0)' },
+                    },
+                    '&:hover': {
+                      transform: 'translateY(-6px)',
+                      boxShadow: `0 12px 24px ${card.color}20`,
+                      borderColor: card.color,
+                      '& .bg-icon': {
+                        transform: 'scale(1.1) rotate(-5deg)',
+                        opacity: 0.1,
+                      }
+                    },
+                  }}
+                >
+                  {/* Decorative background icon */}
+                  <Box
+                    className="bg-icon"
+                    sx={{
+                      position: 'absolute', right: -20, bottom: -20, color: card.color,
+                      opacity: 0.05, transition: 'all 0.4s ease', zIndex: 0, pointerEvents: 'none',
+                      '& > svg': { fontSize: 120 }
+                    }}
+                  >
+                    {card.icon}
+                  </Box>
+
+                  <CardContent sx={{ position: 'relative', zIndex: 1, p: 3 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                      <Box
+                        sx={{
+                          width: 48, height: 48, borderRadius: '50%',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          backgroundColor: `${card.color}15`, color: card.color,
+                        }}
+                      >
                         {card.icon}
                       </Box>
+                      <Typography variant="h3" fontWeight={800} sx={{ color: 'text.primary' }}>
+                        {card.value}
+                      </Typography>
                     </Box>
+                    <Typography variant="subtitle2" sx={{ color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      {card.title}
+                    </Typography>
                   </CardContent>
                 </Card>
               </Grid>
@@ -346,153 +435,234 @@ export default function Dashboard() {
           </Grid>
 
           {isDoctorOrInfirmier && (
-            <>
-              <Grid container spacing={3} sx={{ mt: 1 }}>
-                <Grid item xs={12} md={6}>
-                  <Card sx={{ height: '100%' }}>
-                    <CardContent>
-                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Schedule color="primary" />
-                          <Typography variant="h6">{isInfirmier ? 'Disponibilités du Médecin' : 'Mes Disponibilités'}</Typography>
+            <Grid container spacing={4} sx={{ mt: 1 }}>
+              {/* PLANNING DU JOUR */}
+              <Grid item xs={12} lg={7}>
+                <Card
+                  sx={{
+                    height: '100%', borderRadius: 4, border: '1px solid', borderColor: 'divider',
+                    boxShadow: '0 8px 32px rgba(0,0,0,0.04)', overflow: 'visible',
+                  }}
+                >
+                  <CardContent sx={{ p: '0 !important' }}>
+                    <Box sx={{ p: 3, borderBottom: '1px solid', borderColor: 'divider', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                        <Box sx={{ p: 1, borderRadius: 2, backgroundColor: 'primary.50', color: 'primary.main', display: 'flex' }}>
+                          <CalendarMonth />
                         </Box>
-                        {isDoctor && (
-                          <Button
-                            size="small"
-                            variant="outlined"
-                            onClick={() => navigate('/schedule')}
-                            endIcon={<ArrowForward />}
-                          >
-                            {hasSchedule ? 'Modifier' : 'Configurer'}
-                          </Button>
-                        )}
+                        <Box>
+                          <Typography variant="h6" fontWeight={700}>Aujourd'hui</Typography>
+                          <Typography variant="caption" color="text.secondary" fontWeight={500}>
+                            {new Date().toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                          </Typography>
+                        </Box>
                       </Box>
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        onClick={() => navigate('/appointments')}
+                        endIcon={<ArrowForward />}
+                        sx={{ borderRadius: 2, fontWeight: 600, textTransform: 'none' }}
+                      >
+                        Voir l'agenda complet
+                      </Button>
+                    </Box>
 
+                    {pendingCount > 0 && (
+                      <Box sx={{ px: 3, pt: 2 }}>
+                        <Alert
+                          severity="info"
+                          icon={<AccessTime sx={{ color: '#0288d1' }} />}
+                          sx={{ borderRadius: 2, border: '1px solid #0288d130', backgroundColor: '#e1f5fe' }}
+                        >
+                          Vous avez <strong>{pendingCount} rendez-vous</strong> en attente de confirmation.
+                        </Alert>
+                      </Box>
+                    )}
+
+                    <Box sx={{ p: 2 }}>
+                      {todayAppointments.length > 0 ? (
+                        <Stack spacing={2}>
+                          {todayAppointments.map((apt) => (
+                            <Box
+                              key={apt.id}
+                              sx={{
+                                display: 'flex', alignItems: 'center', p: 2, borderRadius: 3,
+                                transition: 'all 0.2s ease', backgroundColor: 'background.paper',
+                                border: '1px solid', borderColor: 'divider',
+                                '&:hover': { backgroundColor: 'grey.50', borderColor: 'grey.300', transform: 'translateX(4px)' }
+                              }}
+                            >
+                              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 60, pr: 2, borderRight: '1px solid', borderColor: 'divider' }}>
+                                <Typography variant="subtitle2" fontWeight={800} color="primary.main">
+                                  {apt.time}
+                                </Typography>
+                                <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                                  Heure
+                                </Typography>
+                              </Box>
+                              
+                              <Box sx={{ flex: 1, pl: 2 }}>
+                                <Typography variant="subtitle1" fontWeight={700}>
+                                  {apt.patient?.firstName} {apt.patient?.lastName}
+                                </Typography>
+                                {apt.motif && (
+                                  <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>
+                                    <MedicalServices sx={{ fontSize: 14 }} /> {apt.motif}
+                                  </Typography>
+                                )}
+                              </Box>
+
+                              <Chip
+                                label={
+                                  apt.status === AppointmentStatus.CONFIRME ? 'Confirmé' :
+                                  apt.status === AppointmentStatus.EN_ATTENTE ? 'À valider' :
+                                  apt.status === AppointmentStatus.TERMINE ? 'Terminé' : apt.status
+                                }
+                                color={
+                                  apt.status === AppointmentStatus.CONFIRME ? 'success' :
+                                  apt.status === AppointmentStatus.EN_ATTENTE ? 'warning' : 'default'
+                                }
+                                sx={{ fontWeight: 600, borderRadius: 2 }}
+                              />
+                            </Box>
+                          ))}
+                        </Stack>
+                      ) : (
+                        <Box sx={{ textAlign: 'center', py: 6, px: 2 }}>
+                          <Box sx={{ display: 'inline-flex', p: 3, borderRadius: '50%', backgroundColor: 'grey.50', mb: 2 }}>
+                            <Schedule sx={{ fontSize: 40, color: 'text.disabled' }} />
+                          </Box>
+                          <Typography variant="h6" fontWeight={700} color="text.secondary" gutterBottom>
+                            Journée calme
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            Aucun rendez-vous n'est prévu pour aujourd'hui.
+                          </Typography>
+                        </Box>
+                      )}
+                    </Box>
+                  </CardContent>
+                </Card>
+              </Grid>
+
+              {/* DISPONIBILITÉS */}
+              <Grid item xs={12} lg={5}>
+                <Card
+                  sx={{
+                    height: '100%', borderRadius: 4, border: '1px solid', borderColor: 'divider',
+                    boxShadow: '0 8px 32px rgba(0,0,0,0.04)',
+                    background: 'linear-gradient(180deg, #ffffff 0%, #fafafa 100%)',
+                  }}
+                >
+                  <CardContent sx={{ p: '0 !important' }}>
+                    <Box sx={{ p: 3, borderBottom: '1px solid', borderColor: 'divider', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                        <Box sx={{ p: 1, borderRadius: 2, backgroundColor: 'secondary.50', color: 'secondary.main', display: 'flex' }}>
+                          <HourglassEmpty />
+                        </Box>
+                        <Typography variant="h6" fontWeight={700}>
+                          {isInfirmier ? 'Horaires du Cabinet' : 'Mes Horaires'}
+                        </Typography>
+                      </Box>
+                      {isDoctor && (
+                        <Button
+                          size="small"
+                          onClick={() => navigate('/schedule')}
+                          sx={{ fontWeight: 600, textTransform: 'none', minWidth: 'auto', p: 1 }}
+                        >
+                          {hasSchedule ? 'Modifier' : 'Configurer'}
+                        </Button>
+                      )}
+                    </Box>
+
+                    <Box sx={{ p: 3 }}>
                       {hasSchedule ? (
                         <>
-                          <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mb: 2 }}>
+                          <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mb: 4 }}>
                             {[1, 2, 3, 4, 5, 6, 0].map((day) => {
                               const hasDay = schedulesByDay[day] !== undefined;
                               return (
-                                <Chip
+                                <Box
                                   key={day}
-                                  label={DAY_LABELS[day].substring(0, 3)}
-                                  size="small"
-                                  color={hasDay ? 'primary' : 'default'}
-                                  variant={hasDay ? 'filled' : 'outlined'}
-                                  icon={hasDay ? <CheckCircle /> : undefined}
-                                />
+                                  sx={{
+                                    width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    borderRadius: '50%', fontSize: '0.75rem', fontWeight: 700,
+                                    border: '1px solid',
+                                    backgroundColor: hasDay ? 'primary.main' : 'transparent',
+                                    color: hasDay ? 'primary.contrastText' : 'text.disabled',
+                                    borderColor: hasDay ? 'primary.main' : 'divider',
+                                    transition: 'all 0.2s',
+                                    '&:hover': hasDay ? { transform: 'scale(1.1)' } : {},
+                                  }}
+                                >
+                                  {DAY_LABELS[day].substring(0, 1)}
+                                </Box>
                               );
                             })}
                           </Stack>
-                          <Divider sx={{ mb: 1.5 }} />
-                          {scheduledDayNumbers.map((day) => {
-                            const periods = schedulesByDay[day];
-                            return (
-                              <Box key={day} sx={{ mb: 1.5 }}>
-                                <Typography variant="body2" fontWeight="bold" sx={{ mb: 0.5 }}>
-                                  {DAY_LABELS[day]}
-                                </Typography>
-                                {periods.morning && (
-                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, pl: 1, py: 0.2 }}>
-                                    <WbSunny sx={{ fontSize: 16, color: '#ed6c02' }} />
-                                    <Typography variant="body2" color="text.secondary">
-                                      Matin : {periods.morning.startTime.substring(0, 5)} — {periods.morning.endTime.substring(0, 5)} • {periods.morning.slotDuration} min
-                                    </Typography>
-                                  </Box>
-                                )}
-                                {periods.afternoon && (
-                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, pl: 1, py: 0.2 }}>
-                                    <NightsStay sx={{ fontSize: 16, color: '#1565c0' }} />
-                                    <Typography variant="body2" color="text.secondary">
-                                      Après-midi : {periods.afternoon.startTime.substring(0, 5)} — {periods.afternoon.endTime.substring(0, 5)} • {periods.afternoon.slotDuration} min
-                                    </Typography>
-                                  </Box>
-                                )}
-                              </Box>
-                            );
-                          })}
+                          
+                          <Stack spacing={2.5}>
+                            {scheduledDayNumbers.map((day) => {
+                              const periods = schedulesByDay[day];
+                              return (
+                                <Box key={day}>
+                                  <Typography variant="subtitle2" fontWeight={800} sx={{ mb: 1, color: 'text.primary', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                                    {DAY_LABELS[day]}
+                                  </Typography>
+                                  <Stack spacing={1}>
+                                    {periods.morning && (
+                                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 1.5, borderRadius: 2, backgroundColor: '#fff', border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
+                                        <WbSunny sx={{ fontSize: 20, color: '#f57c00' }} />
+                                        <Box>
+                                          <Typography variant="body2" fontWeight={700}>
+                                            {periods.morning.startTime.substring(0, 5)} — {periods.morning.endTime.substring(0, 5)}
+                                          </Typography>
+                                          <Typography variant="caption" color="text.secondary">
+                                            Créneaux de {periods.morning.slotDuration} min
+                                          </Typography>
+                                        </Box>
+                                      </Box>
+                                    )}
+                                    {periods.afternoon && (
+                                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 1.5, borderRadius: 2, backgroundColor: '#fff', border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
+                                        <NightsStay sx={{ fontSize: 20, color: '#1976d2' }} />
+                                        <Box>
+                                          <Typography variant="body2" fontWeight={700}>
+                                            {periods.afternoon.startTime.substring(0, 5)} — {periods.afternoon.endTime.substring(0, 5)}
+                                          </Typography>
+                                          <Typography variant="caption" color="text.secondary">
+                                            Créneaux de {periods.afternoon.slotDuration} min
+                                          </Typography>
+                                        </Box>
+                                      </Box>
+                                    )}
+                                  </Stack>
+                                </Box>
+                              );
+                            })}
+                          </Stack>
                         </>
                       ) : (
-                        <Box sx={{ textAlign: 'center', py: 3, color: 'text.secondary' }}>
-                          <Schedule sx={{ fontSize: 48, opacity: 0.3, mb: 1 }} />
-                          <Typography variant="body2">Aucun horaire configuré.</Typography>
-                          <Typography variant="caption">Cliquez sur « Configurer » pour définir vos créneaux.</Typography>
+                        <Box sx={{ textAlign: 'center', py: 4, px: 2, backgroundColor: 'grey.50', borderRadius: 3, border: '1px dashed', borderColor: 'divider' }}>
+                          <Schedule sx={{ fontSize: 40, color: 'text.disabled', mb: 2 }} />
+                          <Typography variant="subtitle1" fontWeight={700} color="text.secondary" gutterBottom>
+                            Aucun horaire configuré
+                          </Typography>
+                          <Typography variant="body2" color="text.disabled" sx={{ mb: 3 }}>
+                            Définissez vos jours et heures de consultation.
+                          </Typography>
+                          <Button variant="contained" onClick={() => navigate('/schedule')} sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600, boxShadow: 'none' }}>
+                            Définir mes horaires
+                          </Button>
                         </Box>
                       )}
-                    </CardContent>
-                  </Card>
-                </Grid>
-
-                <Grid item xs={12} md={6}>
-                  <Card sx={{ height: '100%' }}>
-                    <CardContent>
-                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <CalendarMonth color="primary" />
-                          <Typography variant="h6">Aujourd'hui</Typography>
-                        </Box>
-                        <Button
-                          size="small"
-                          variant="outlined"
-                          onClick={() => navigate('/appointments')}
-                          endIcon={<ArrowForward />}
-                        >
-                          Voir tout
-                        </Button>
-                      </Box>
-
-                      {pendingCount > 0 && (
-                        <Alert severity="info" sx={{ mb: 2 }} icon={<AccessTime />}>
-                          <strong>{pendingCount}</strong> rendez-vous en attente de confirmation
-                        </Alert>
-                      )}
-
-                      {todayAppointments.length > 0 ? (
-                        todayAppointments.map((apt) => (
-                          <Box
-                            key={apt.id}
-                            sx={{
-                              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                              py: 1, borderBottom: '1px solid', borderColor: 'divider',
-                            }}
-                          >
-                            <Box>
-                              <Typography variant="body2" fontWeight="bold">
-                                {apt.time} — {apt.patient?.firstName} {apt.patient?.lastName}
-                              </Typography>
-                              {apt.motif && (
-                                <Typography variant="caption" color="text.secondary">
-                                  {apt.motif}
-                                </Typography>
-                              )}
-                            </Box>
-                            <Chip
-                              size="small"
-                              label={
-                                apt.status === AppointmentStatus.CONFIRME ? 'Confirmé' :
-                                apt.status === AppointmentStatus.EN_ATTENTE ? 'En attente' :
-                                apt.status === AppointmentStatus.TERMINE ? 'Terminé' : apt.status
-                              }
-                              color={
-                                apt.status === AppointmentStatus.CONFIRME ? 'success' :
-                                apt.status === AppointmentStatus.EN_ATTENTE ? 'warning' : 'info'
-                              }
-                            />
-                          </Box>
-                        ))
-                      ) : (
-                        <Box sx={{ textAlign: 'center', py: 3, color: 'text.secondary' }}>
-                          <CalendarMonth sx={{ fontSize: 48, opacity: 0.3, mb: 1 }} />
-                          <Typography variant="body2">Aucun rendez-vous aujourd'hui.</Typography>
-                        </Box>
-                      )}
-                    </CardContent>
-                  </Card>
-                </Grid>
+                    </Box>
+                  </CardContent>
+                </Card>
               </Grid>
 
-            </>
+            </Grid>
           )}
         </Box>
       )}
