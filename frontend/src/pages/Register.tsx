@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Box, Card, TextField, Button, Typography, Container, MenuItem, Grid, IconButton, InputAdornment, Autocomplete } from '@mui/material';
 import { ArrowBack, Visibility, VisibilityOff, Email, Badge, Phone, LocationOn, Lock, LocalHospital, Science, LocalPharmacy, Person } from '@mui/icons-material';
 import { Country, City } from 'country-state-city';
+import { isValidPhoneNumber, parsePhoneNumber, AsYouType } from 'libphonenumber-js';
 import { useAuth } from '../context/AuthContext';
 import { UserRole } from '../types/user.types';
 
@@ -22,6 +23,7 @@ export default function Register() {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [countryIsoCode, setCountryIsoCode] = useState('');
+  const [phoneError, setPhoneError] = useState('');
   const { register } = useAuth();
   const navigate = useNavigate();
 
@@ -30,23 +32,54 @@ export default function Register() {
     () => countryIsoCode ? (City.getCitiesOfCountry(countryIsoCode) ?? []) : [],
     [countryIsoCode]
   );
+  const selectedCountry = useMemo(
+    () => allCountries.find(c => c.isoCode === countryIsoCode) ?? null,
+    [allCountries, countryIsoCode]
+  );
 
   const isMedecin = formData.role === UserRole.MEDECIN;
   const isPharmacienOrLabo = [UserRole.PHARMACIEN, UserRole.LABORATOIRE].includes(formData.role);
   const isPatient = formData.role === UserRole.PATIENT;
 
+  const handlePhoneChange = (value: string) => {
+    // Format as-you-type if country is known
+    const formatted = countryIsoCode
+      ? new AsYouType(countryIsoCode as any).input(value)
+      : value;
+    setFormData(prev => ({ ...prev, phone: formatted }));
+
+    if (!formatted) {
+      setPhoneError('');
+      return;
+    }
+    if (countryIsoCode) {
+      const valid = isValidPhoneNumber(formatted, countryIsoCode as any);
+      setPhoneError(valid ? '' : `Numéro invalide pour ${selectedCountry?.name ?? 'ce pays'}`);
+    } else {
+      setPhoneError('');
+    }
+  };
+
   const handleCountryChange = (isoCode: string, name: string) => {
     setCountryIsoCode(isoCode);
-    setFormData(prev => ({ ...prev, pays: name, ville: '' }));
+    setFormData(prev => ({ ...prev, pays: name, ville: '', phone: '' }));
+    setPhoneError('');
   };
 
   const handleRoleChange = (role: UserRole) => {
     setCountryIsoCode('');
-    setFormData({ ...formData, role, specialite: '', numeroOrdre: '', ville: '', pays: '' });
+    setPhoneError('');
+    setFormData({ ...formData, role, specialite: '', numeroOrdre: '', ville: '', pays: '', phone: '' });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (phoneError) return;
+    // Final validation before submit
+    if (countryIsoCode && formData.phone && !isValidPhoneNumber(formData.phone, countryIsoCode as any)) {
+      setPhoneError(`Numéro invalide pour ${selectedCountry?.name ?? 'ce pays'}`);
+      return;
+    }
     try {
       const dataToSend = { ...formData };
       if (!isMedecin) delete (dataToSend as any).numeroOrdre;
@@ -178,8 +211,14 @@ export default function Register() {
                   <TextField
                     fullWidth label="Téléphone" variant="outlined" required
                     value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    InputProps={{ startAdornment: <InputAdornment position="start"><Phone color="action" /></InputAdornment> }}
+                    onChange={(e) => handlePhoneChange(e.target.value)}
+                    error={!!phoneError}
+                    helperText={
+                      phoneError ||
+                      (selectedCountry?.phonecode ? `Indicatif : +${selectedCountry.phonecode}` : 'Sélectionnez un pays pour valider')
+                    }
+                    placeholder={selectedCountry ? `+${selectedCountry.phonecode} ...` : '+...'}
+                    InputProps={{ startAdornment: <InputAdornment position="start"><Phone color={phoneError ? 'error' : 'action'} /></InputAdornment> }}
                   />
                 </Grid>
                 

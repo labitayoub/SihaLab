@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Grid, Card, CardContent, Typography, Box, Button, Alert, Chip, Divider, Stack, Paper,
-  Tabs, Tab,
+  Tabs, Tab, Avatar,
 } from '@mui/material';
 import {
   CalendarMonth, MedicalServices, LocalPharmacy, Science, Schedule,
@@ -34,9 +34,19 @@ export default function Dashboard() {
   const isInfirmier = user?.role === UserRole.INFIRMIER;
   const isPatient = user?.role === UserRole.PATIENT;
   const isDoctorOrInfirmier = isDoctor || isInfirmier;
+  const isAdmin = user?.role === UserRole.ADMIN;
+
+  // Admin state
+  const [adminStats, setAdminStats] = useState({ patients: 0, medecins: 0, pharmaciens: 0, laboratoires: 0, infirmiers: 0 });
+  const [medecinsList, setMedecinsList] = useState<User[]>([]);
+  const [allPatients, setAllPatients] = useState<User[]>([]);
+  const [allInfirmiers, setAllInfirmiers] = useState<User[]>([]);
+  const [adminAppointments, setAdminAppointments] = useState<Appointment[]>([]);
 
   useEffect(() => {
-    if (isPatient) {
+    if (isAdmin) {
+      loadAdminData();
+    } else if (isPatient) {
       loadPatientData();
     } else {
       loadStats();
@@ -123,6 +133,32 @@ export default function Dashboard() {
     try {
       const { data } = await api.get('/appointments/my-patients');
       setMyPatients(data);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const loadAdminData = async () => {
+    try {
+      const [patients, medecins, pharmaciens, laboratoires, infirmiers, appointments] = await Promise.all([
+        api.get('/users?role=patient&limit=200'),
+        api.get('/users?role=medecin&limit=200'),
+        api.get('/users?role=pharmacien&limit=200'),
+        api.get('/users?role=laboratoire&limit=200'),
+        api.get('/users?role=infirmier&limit=200'),
+        api.get('/appointments'),
+      ]);
+      setAdminStats({
+        patients: patients.data.total ?? (patients.data.data?.length || 0),
+        medecins: medecins.data.total ?? (medecins.data.data?.length || 0),
+        pharmaciens: pharmaciens.data.total ?? (pharmaciens.data.data?.length || 0),
+        laboratoires: laboratoires.data.total ?? (laboratoires.data.data?.length || 0),
+        infirmiers: infirmiers.data.total ?? (infirmiers.data.data?.length || 0),
+      });
+      setMedecinsList(medecins.data.data || []);
+      setAllPatients(patients.data.data || []);
+      setAllInfirmiers(infirmiers.data.data || []);
+      setAdminAppointments(appointments.data || []);
     } catch (error) {
       console.error(error);
     }
@@ -322,8 +358,101 @@ export default function Dashboard() {
         );
       })()}
 
+      {/* ═══════════════ ADMIN DASHBOARD ═══════════════ */}
+      {isAdmin && (
+        <Box sx={{ animation: 'fadeIn 0.8s ease-out', '@keyframes fadeIn': { from: { opacity: 0, transform: 'translateY(20px)' }, to: { opacity: 1, transform: 'translateY(0)' } } }}>
+          <Box sx={{ mb: 4, display: 'flex', flexDirection: 'column', gap: 1 }}>
+            <Typography variant="h3" fontWeight={800} sx={{ letterSpacing: '-1px', color: 'text.primary' }}>
+              Tableau de bord Administrateur
+            </Typography>
+            <Typography variant="subtitle1" color="text.secondary" sx={{ fontWeight: 500 }}>
+              Bienvenue, {user?.firstName} {user?.lastName} — Supervisez et administrez la plateforme médicale.
+            </Typography>
+          </Box>
+
+          {/* Statistiques globales */}
+          <Grid container spacing={3} sx={{ mb: 4 }}>
+            {[
+              { label: 'Patients',     value: adminStats.patients,     color: '#1976d2', bg: '#e3f2fd' },
+              { label: 'Médecins',     value: adminStats.medecins,     color: '#2e7d32', bg: '#e8f5e9' },
+              { label: 'Pharmaciens',  value: adminStats.pharmaciens,  color: '#e65100', bg: '#fff3e0' },
+              { label: 'Laboratoires', value: adminStats.laboratoires, color: '#6a1b9a', bg: '#f3e5f5' },
+              { label: 'Infirmiers',   value: adminStats.infirmiers,   color: '#00695c', bg: '#e0f2f1' },
+            ].map((s) => (
+              <Grid item xs={6} sm={4} md={12/5} key={s.label}>
+                <Card sx={{ borderRadius: 4, border: '1px solid', borderColor: 'divider', boxShadow: 'none' }}>
+                  <CardContent sx={{ textAlign: 'center', p: 3 }}>
+                    <Typography variant="h3" fontWeight={800} sx={{ color: s.color }}>{s.value}</Typography>
+                    <Typography variant="subtitle2" sx={{ color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', mt: 0.5 }}>{s.label}</Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+
+          {/* Équipes Médicales */}
+          <Typography variant="h5" fontWeight={800} sx={{ mb: 3, color: 'text.primary' }}>Équipes Médicales</Typography>
+          {medecinsList.length === 0 ? (
+            <Paper variant="outlined" sx={{ p: 4, textAlign: 'center', borderRadius: 3 }}>
+              <Typography color="text.secondary">Aucun médecin enregistré.</Typography>
+            </Paper>
+          ) : (
+            <Grid container spacing={3}>
+              {medecinsList.map((medecin) => {
+                const linkedPatientIds = new Set(
+                  adminAppointments
+                    .filter((a) => a.doctorId === medecin.id && a.status === AppointmentStatus.TERMINE)
+                    .map((a) => a.patientId)
+                );
+                const linkedPatients = allPatients.filter((p) => linkedPatientIds.has(p.id));
+                const linkedInfirmiers = allInfirmiers.filter((inf) => inf.createdBy === medecin.id);
+                return (
+                  <Grid item xs={12} md={6} lg={4} key={medecin.id}>
+                    <Card sx={{ borderRadius: 4, border: '1px solid', borderColor: 'divider', boxShadow: 'none', height: '100%' }}>
+                      <CardContent sx={{ p: 3 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                          <Avatar sx={{ bgcolor: '#1976d2', width: 48, height: 48, fontWeight: 700 }}>
+                            {medecin.firstName?.[0]}{medecin.lastName?.[0]}
+                          </Avatar>
+                          <Box>
+                            <Typography fontWeight={700}>Dr. {medecin.firstName} {medecin.lastName}</Typography>
+                            <Typography variant="caption" color="text.secondary">{medecin.specialite || 'Médecin généraliste'}</Typography>
+                          </Box>
+                        </Box>
+                        <Divider sx={{ mb: 2 }} />
+                        <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                          Patients ({linkedPatients.length})
+                        </Typography>
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 1, mb: 2 }}>
+                          {linkedPatients.length === 0 ? (
+                            <Typography variant="body2" color="text.disabled">Aucun patient</Typography>
+                          ) : linkedPatients.slice(0, 5).map((p) => (
+                            <Chip key={p.id} size="small" label={`${p.firstName} ${p.lastName}`} />
+                          ))}
+                          {linkedPatients.length > 5 && <Chip size="small" label={`+${linkedPatients.length - 5}`} variant="outlined" />}
+                        </Box>
+                        <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                          Infirmiers ({linkedInfirmiers.length})
+                        </Typography>
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 1 }}>
+                          {linkedInfirmiers.length === 0 ? (
+                            <Typography variant="body2" color="text.disabled">Aucun infirmier</Typography>
+                          ) : linkedInfirmiers.map((inf) => (
+                            <Chip key={inf.id} size="small" label={`${inf.firstName} ${inf.lastName}`} color="info" variant="outlined" />
+                          ))}
+                        </Box>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                );
+              })}
+            </Grid>
+          )}
+        </Box>
+      )}
+
       {/* ═══════════════ DOCTOR / INFIRMIER DASHBOARD ═══════════════ */}
-      {!isPatient && (
+      {isDoctorOrInfirmier && (
         <Box
           sx={{
             animation: 'fadeIn 0.8s ease-out',
@@ -335,7 +464,7 @@ export default function Dashboard() {
         >
           <Box sx={{ mb: 4, display: 'flex', flexDirection: 'column', gap: 1 }}>
             <Typography variant="h3" fontWeight={800} sx={{ letterSpacing: '-1px', color: 'text.primary' }}>
-              Tableau de bord {isDoctor ? 'Médecin' : 'Infirmier'}
+              Tableau de bord {isDoctor ? 'Médecin' : 'Infirmier(ère)'}
             </Typography>
             <Typography variant="subtitle1" color="text.secondary" sx={{ fontWeight: 500 }}>
               Bienvenue, {user?.firstName} {user?.lastName} — Gérez votre activité quotidienne avec efficacité.
