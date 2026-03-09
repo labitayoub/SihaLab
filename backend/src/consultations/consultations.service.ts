@@ -260,10 +260,6 @@ export class ConsultationsService {
       throw new NotFoundException('Consultation not found');
     }
 
-    if (consultation.status === ConsultationStatus.TERMINEE) {
-      throw new BadRequestException('Cette consultation est déjà terminée. Impossible de regénérer les PDFs.');
-    }
-
     const results: { ordonnanceUrl?: string; analyseUrl?: string; ordonnanceFileName?: string; analyseFileName?: string } = {};
     const dateISO = new Date(consultation.date).toISOString().split('T')[0]; // 2026-03-08
     const dateFr = new Date(consultation.date).toLocaleDateString('fr-FR');
@@ -352,5 +348,95 @@ export class ConsultationsService {
       message: `${count} PDF(s) générés — Consultation terminée`,
       ...results,
     };
+  }
+
+  /**
+   * Génère un PDF séparé pour une seule ordonnance.
+   * Ne modifie PAS le statut de la consultation.
+   */
+  async generateSingleOrdonnancePdf(consultationId: string, ordonnanceId: string, doctorId: string) {
+    const consultation = await this.consultationRepository
+      .createQueryBuilder('consultation')
+      .leftJoinAndSelect('consultation.patient', 'patient')
+      .leftJoinAndSelect('consultation.doctor', 'doctor')
+      .where('consultation.id = :consultationId', { consultationId })
+      .getOne();
+
+    if (!consultation) throw new NotFoundException('Consultation not found');
+
+    const ordonnance = await this.ordonnanceRepository.findOne({ where: { id: ordonnanceId } });
+    if (!ordonnance) throw new NotFoundException('Ordonnance not found');
+
+    const pdfBuffer = await this.pdfGeneratorService.generateOrdonnancePdf([ordonnance], consultation);
+
+    const dateISO = new Date(consultation.date).toISOString().split('T')[0];
+    const dateFr  = new Date(consultation.date).toLocaleDateString('fr-FR');
+    const patientLast  = consultation.patient?.lastName  || 'Patient';
+    const patientFirst = consultation.patient?.firstName || '';
+    const suffix = ordonnanceId.substring(0, 8).toUpperCase();
+
+    const fileName   = PdfGeneratorService.buildFileName(patientLast, patientFirst, 'Ordonnance', dateISO, suffix);
+    const objectName = `consultations/${consultationId}/${fileName}`;
+    const fileUrl    = await this.minioService.uploadFile(objectName, pdfBuffer, 'application/pdf');
+
+    await this.ordonnanceRepository.update(ordonnanceId, { pdfUrl: fileUrl });
+
+    await this.documentRepository.save(this.documentRepository.create({
+      patientId:  consultation.patientId,
+      uploadedBy: doctorId,
+      type:       DocumentType.ORDONNANCE,
+      fileName,
+      fileUrl,
+      mimeType:  'application/pdf',
+      fileSize:   pdfBuffer.length,
+      description: `Ordonnance — ${patientLast} ${patientFirst} — ${dateFr}`,
+    }));
+
+    return { message: 'PDF ordonnance généré', ordonnanceUrl: fileUrl, ordonnanceFileName: fileName };
+  }
+
+  /**
+   * Génère un PDF séparé pour une seule analyse.
+   * Ne modifie PAS le statut de la consultation.
+   */
+  async generateSingleAnalysePdf(consultationId: string, analyseId: string, doctorId: string) {
+    const consultation = await this.consultationRepository
+      .createQueryBuilder('consultation')
+      .leftJoinAndSelect('consultation.patient', 'patient')
+      .leftJoinAndSelect('consultation.doctor', 'doctor')
+      .where('consultation.id = :consultationId', { consultationId })
+      .getOne();
+
+    if (!consultation) throw new NotFoundException('Consultation not found');
+
+    const analyse = await this.analyseRepository.findOne({ where: { id: analyseId } });
+    if (!analyse) throw new NotFoundException('Analyse not found');
+
+    const pdfBuffer = await this.pdfGeneratorService.generateAnalysePdf([analyse], consultation);
+
+    const dateISO = new Date(consultation.date).toISOString().split('T')[0];
+    const dateFr  = new Date(consultation.date).toLocaleDateString('fr-FR');
+    const patientLast  = consultation.patient?.lastName  || 'Patient';
+    const patientFirst = consultation.patient?.firstName || '';
+    const suffix = analyseId.substring(0, 8).toUpperCase();
+
+    const fileName   = PdfGeneratorService.buildFileName(patientLast, patientFirst, 'Analyses', dateISO, suffix);
+    const objectName = `consultations/${consultationId}/${fileName}`;
+    const fileUrl    = await this.minioService.uploadFile(objectName, pdfBuffer, 'application/pdf');
+
+    await this.analyseRepository.update(analyseId, { pdfUrl: fileUrl });
+
+    await this.documentRepository.save(this.documentRepository.create({
+      patientId:  consultation.patientId,
+      uploadedBy: doctorId,
+      type:       DocumentType.ANALYSE,
+      fileName,
+      fileUrl,
+      mimeType:  'application/pdf',
+      fileSize:   pdfBuffer.length,
+      description: `Analyse — ${patientLast} ${patientFirst} — ${dateFr}`,
+    }));
+
+    return { message: 'PDF analyse généré', analyseUrl: fileUrl, analyseFileName: fileName };
   }
 }

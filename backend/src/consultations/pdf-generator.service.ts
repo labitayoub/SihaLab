@@ -293,14 +293,16 @@ export class PdfGeneratorService {
     return bufferPromise;
   }
 
-  /** Build a clean filename: PatientNom_Type_Date.pdf */
+  /** Build a clean filename: PatientNom_Type_Date[_suffix].pdf */
   static buildFileName(
     patientLastName: string,
     patientFirstName: string,
     type: 'Ordonnance' | 'Analyses',
     dateStr: string,
+    suffix?: string,
   ): string {
     const clean = (s: string) => s.replace(/[^a-zA-Z0-9àâäéèêëïîôùûüç]/g, '_').replace(/_+/g, '_');
-    return `${clean(patientLastName)}_${clean(patientFirstName)}_${type}_${dateStr}.pdf`;
+    const base = `${clean(patientLastName)}_${clean(patientFirstName)}_${type}_${dateStr}`;
+    return suffix ? `${base}_${suffix}.pdf` : `${base}.pdf`;
   }
 }

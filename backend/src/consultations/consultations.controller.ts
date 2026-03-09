@@ -83,4 +83,26 @@ export class ConsultationsController {
     const doctorId = user.role === UserRole.INFIRMIER ? user.createdBy : user.id;
     return this.consultationsService.generatePdfs(id, doctorId);
   }
+
+  @Post(':id/generate-ordonnance-pdf/:ordonnanceId')
+  @Roles(UserRole.MEDECIN, UserRole.INFIRMIER)
+  generateSingleOrdonnancePdf(
+    @Param('id') id: string,
+    @Param('ordonnanceId') ordonnanceId: string,
+    @CurrentUser() user: User,
+  ) {
+    const doctorId = user.role === UserRole.INFIRMIER ? user.createdBy : user.id;
+    return this.consultationsService.generateSingleOrdonnancePdf(id, ordonnanceId, doctorId);
+  }
+
+  @Post(':id/generate-analyse-pdf/:analyseId')
+  @Roles(UserRole.MEDECIN, UserRole.INFIRMIER)
+  generateSingleAnalysePdf(
+    @Param('id') id: string,
+    @Param('analyseId') analyseId: string,
+    @CurrentUser() user: User,
+  ) {
+    const doctorId = user.role === UserRole.INFIRMIER ? user.createdBy : user.id;
+    return this.consultationsService.generateSingleAnalysePdf(id, analyseId, doctorId);
+  }
 }

@@ -39,6 +39,9 @@ export class Analyse {
   @Column({ nullable: true })
   resultatFileUrl: string;
 
+  @Column({ nullable: true })
+  pdfUrl: string;
+
   @Column({ type: 'timestamp', nullable: true })
   dateResultat: Date;
 
