@@ -45,4 +45,14 @@ export class RegisterDto {
   @IsString()
   @IsOptional()
   numeroOrdre?: string;
+
+  @ApiProperty({ example: 'Casablanca', required: false })
+  @IsString()
+  @IsOptional()
+  ville?: string;
+
+  @ApiProperty({ example: 'Maroc', required: false })
+  @IsString()
+  @IsOptional()
+  pays?: string;
 }

@@ -44,4 +44,14 @@ export class CreateUserDto {
   @IsString()
   @IsOptional()
   numeroOrdre?: string;
+
+  @ApiProperty({ required: false })
+  @IsString()
+  @IsOptional()
+  ville?: string;
+
+  @ApiProperty({ required: false })
+  @IsString()
+  @IsOptional()
+  pays?: string;
 }
