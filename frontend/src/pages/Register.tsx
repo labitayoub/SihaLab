@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Box, Card, TextField, Button, Typography, Container, MenuItem, Grid, IconButton, InputAdornment } from '@mui/material';
+import { Box, Card, TextField, Button, Typography, Container, MenuItem, Grid, IconButton, InputAdornment, Autocomplete } from '@mui/material';
 import { ArrowBack, Visibility, VisibilityOff, Email, Badge, Phone, LocationOn, Lock, LocalHospital, Science, LocalPharmacy, Person } from '@mui/icons-material';
+import { Country, City } from 'country-state-city';
 import { useAuth } from '../context/AuthContext';
 import { UserRole } from '../types/user.types';
 
@@ -20,14 +21,27 @@ export default function Register() {
     pays: '',
   });
   const [showPassword, setShowPassword] = useState(false);
+  const [countryIsoCode, setCountryIsoCode] = useState('');
   const { register } = useAuth();
   const navigate = useNavigate();
+
+  const allCountries = useMemo(() => Country.getAllCountries(), []);
+  const cities = useMemo(
+    () => countryIsoCode ? (City.getCitiesOfCountry(countryIsoCode) ?? []) : [],
+    [countryIsoCode]
+  );
 
   const isMedecin = formData.role === UserRole.MEDECIN;
   const isPharmacienOrLabo = [UserRole.PHARMACIEN, UserRole.LABORATOIRE].includes(formData.role);
   const isPatient = formData.role === UserRole.PATIENT;
 
+  const handleCountryChange = (isoCode: string, name: string) => {
+    setCountryIsoCode(isoCode);
+    setFormData(prev => ({ ...prev, pays: name, ville: '' }));
+  };
+
   const handleRoleChange = (role: UserRole) => {
+    setCountryIsoCode('');
     setFormData({ ...formData, role, specialite: '', numeroOrdre: '', ville: '', pays: '' });
   };
 
@@ -35,23 +49,55 @@ export default function Register() {
     e.preventDefault();
     try {
       const dataToSend = { ...formData };
-      if (!isMedecin) {
-        delete (dataToSend as any).numeroOrdre;
-      }
-      if (!isMedecin && !isPharmacienOrLabo) {
-        delete (dataToSend as any).specialite;
-      }
-      // ville: patient, medecin, pharmacien, labo → keep for all 4 available roles
-      // pays: patient + medecin only
-      if (!isMedecin && !isPatient) {
-        delete (dataToSend as any).pays;
-      }
+      if (!isMedecin) delete (dataToSend as any).numeroOrdre;
+      if (!isMedecin && !isPharmacienOrLabo) delete (dataToSend as any).specialite;
       await register(dataToSend);
       navigate('/login');
     } catch {
       // Error toast already shown by AuthContext.register()
     }
   };
+
+  const renderLocationFields = (paysRequired: boolean) => (
+    <>
+      <Grid item xs={12} sm={6}>
+        <Autocomplete
+          options={allCountries}
+          getOptionLabel={(opt) => `${opt.flag ?? ''} ${opt.name}`}
+          isOptionEqualToValue={(opt, val) => opt.isoCode === val.isoCode}
+          value={allCountries.find(c => c.isoCode === countryIsoCode) ?? null}
+          onChange={(_, country) =>
+            country ? handleCountryChange(country.isoCode, country.name) : handleCountryChange('', '')
+          }
+          renderInput={(params) => (
+            <TextField {...params} label="Pays" required={paysRequired} variant="outlined" />
+          )}
+        />
+      </Grid>
+      <Grid item xs={12} sm={6}>
+        {cities.length > 0 ? (
+          <TextField
+            select fullWidth label="Ville" required variant="outlined"
+            value={formData.ville}
+            onChange={(e) => setFormData(prev => ({ ...prev, ville: e.target.value }))}
+            InputProps={{ startAdornment: <InputAdornment position="start"><LocationOn color="action" /></InputAdornment> }}
+          >
+            {cities.map((c) => (
+              <MenuItem key={`${c.name}-${c.stateCode ?? ''}`} value={c.name}>{c.name}</MenuItem>
+            ))}
+          </TextField>
+        ) : (
+          <TextField
+            fullWidth label="Ville" required variant="outlined"
+            value={formData.ville}
+            onChange={(e) => setFormData(prev => ({ ...prev, ville: e.target.value }))}
+            helperText={!countryIsoCode ? "Sélectionnez d'abord un pays" : ''}
+            InputProps={{ startAdornment: <InputAdornment position="start"><LocationOn color="action" /></InputAdornment> }}
+          />
+        )}
+      </Grid>
+    </>
+  );
 
   return (
     <Box sx={{ minHeight: '100vh', display: 'flex', bgcolor: '#f4f7f9', py: 4, px: 2 }}>
@@ -180,22 +226,7 @@ export default function Register() {
                         onChange={(e) => setFormData({ ...formData, numeroOrdre: e.target.value })}
                       />
                     </Grid>
-                    <Grid item xs={12} sm={6}>
-                      <TextField
-                        fullWidth label="Ville" variant="outlined" required
-                        value={formData.ville}
-                        onChange={(e) => setFormData({ ...formData, ville: e.target.value })}
-                        InputProps={{ startAdornment: <InputAdornment position="start"><LocationOn color="action" /></InputAdornment> }}
-                      />
-                    </Grid>
-                    <Grid item xs={12} sm={6}>
-                      <TextField
-                        fullWidth label="Pays" variant="outlined" required
-                        value={formData.pays}
-                        onChange={(e) => setFormData({ ...formData, pays: e.target.value })}
-                        InputProps={{ startAdornment: <InputAdornment position="start"><LocationOn color="action" /></InputAdornment> }}
-                      />
-                    </Grid>
+                    {renderLocationFields(true)}
                   </>
                 )}
 
@@ -209,35 +240,13 @@ export default function Register() {
                         onChange={(e) => setFormData({ ...formData, specialite: e.target.value })}
                       />
                     </Grid>
-                    <Grid item xs={12}>
-                      <TextField
-                        fullWidth label="Ville" variant="outlined" required
-                        value={formData.ville}
-                        onChange={(e) => setFormData({ ...formData, ville: e.target.value })}
-                        InputProps={{ startAdornment: <InputAdornment position="start"><LocationOn color="action" /></InputAdornment> }}
-                      />
-                    </Grid>
+                    {renderLocationFields(true)}
                   </>
                 )}
 
                 {isPatient && (
                   <>
-                    <Grid item xs={12} sm={6}>
-                      <TextField
-                        fullWidth label="Ville" variant="outlined" required
-                        value={formData.ville}
-                        onChange={(e) => setFormData({ ...formData, ville: e.target.value })}
-                        InputProps={{ startAdornment: <InputAdornment position="start"><LocationOn color="action" /></InputAdornment> }}
-                      />
-                    </Grid>
-                    <Grid item xs={12} sm={6}>
-                      <TextField
-                        fullWidth label="Pays" variant="outlined" required
-                        value={formData.pays}
-                        onChange={(e) => setFormData({ ...formData, pays: e.target.value })}
-                        InputProps={{ startAdornment: <InputAdornment position="start"><LocationOn color="action" /></InputAdornment> }}
-                      />
-                    </Grid>
+                    {renderLocationFields(true)}
                   </>
                 )}
               </Grid>
