@@ -17,6 +17,8 @@ export interface User {
   address?: string;
   specialite?: string;
   numeroOrdre?: string;
+  ville?: string;
+  pays?: string;
   avatarUrl?: string;
   isActive: boolean;
   createdBy?: string;

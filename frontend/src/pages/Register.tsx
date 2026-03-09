@@ -16,6 +16,8 @@ export default function Register() {
     address: '',
     specialite: '',
     numeroOrdre: '',
+    ville: '',
+    pays: '',
   });
   const [showPassword, setShowPassword] = useState(false);
   const { register } = useAuth();
@@ -23,9 +25,10 @@ export default function Register() {
 
   const isMedecin = formData.role === UserRole.MEDECIN;
   const isPharmacienOrLabo = [UserRole.PHARMACIEN, UserRole.LABORATOIRE].includes(formData.role);
+  const isPatient = formData.role === UserRole.PATIENT;
 
   const handleRoleChange = (role: UserRole) => {
-    setFormData({ ...formData, role, specialite: '', numeroOrdre: '' });
+    setFormData({ ...formData, role, specialite: '', numeroOrdre: '', ville: '', pays: '' });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -37,6 +40,11 @@ export default function Register() {
       }
       if (!isMedecin && !isPharmacienOrLabo) {
         delete (dataToSend as any).specialite;
+      }
+      // ville: patient, medecin, pharmacien, labo → keep for all 4 available roles
+      // pays: patient + medecin only
+      if (!isMedecin && !isPatient) {
+        delete (dataToSend as any).pays;
       }
       await register(dataToSend);
       navigate('/login');
@@ -172,18 +180,65 @@ export default function Register() {
                         onChange={(e) => setFormData({ ...formData, numeroOrdre: e.target.value })}
                       />
                     </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        fullWidth label="Ville" variant="outlined" required
+                        value={formData.ville}
+                        onChange={(e) => setFormData({ ...formData, ville: e.target.value })}
+                        InputProps={{ startAdornment: <InputAdornment position="start"><LocationOn color="action" /></InputAdornment> }}
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        fullWidth label="Pays" variant="outlined" required
+                        value={formData.pays}
+                        onChange={(e) => setFormData({ ...formData, pays: e.target.value })}
+                        InputProps={{ startAdornment: <InputAdornment position="start"><LocationOn color="action" /></InputAdornment> }}
+                      />
+                    </Grid>
                   </>
                 )}
 
                 {isPharmacienOrLabo && (
-                  <Grid item xs={12}>
-                    <TextField
-                      fullWidth variant="outlined" required
-                      label={formData.role === UserRole.PHARMACIEN ? 'Nom de la pharmacie' : 'Nom du laboratoire'}
-                      value={formData.specialite}
-                      onChange={(e) => setFormData({ ...formData, specialite: e.target.value })}
-                    />
-                  </Grid>
+                  <>
+                    <Grid item xs={12}>
+                      <TextField
+                        fullWidth variant="outlined" required
+                        label={formData.role === UserRole.PHARMACIEN ? 'Nom de la pharmacie' : 'Nom du laboratoire'}
+                        value={formData.specialite}
+                        onChange={(e) => setFormData({ ...formData, specialite: e.target.value })}
+                      />
+                    </Grid>
+                    <Grid item xs={12}>
+                      <TextField
+                        fullWidth label="Ville" variant="outlined" required
+                        value={formData.ville}
+                        onChange={(e) => setFormData({ ...formData, ville: e.target.value })}
+                        InputProps={{ startAdornment: <InputAdornment position="start"><LocationOn color="action" /></InputAdornment> }}
+                      />
+                    </Grid>
+                  </>
+                )}
+
+                {isPatient && (
+                  <>
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        fullWidth label="Ville" variant="outlined" required
+                        value={formData.ville}
+                        onChange={(e) => setFormData({ ...formData, ville: e.target.value })}
+                        InputProps={{ startAdornment: <InputAdornment position="start"><LocationOn color="action" /></InputAdornment> }}
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        fullWidth label="Pays" variant="outlined" required
+                        value={formData.pays}
+                        onChange={(e) => setFormData({ ...formData, pays: e.target.value })}
+                        InputProps={{ startAdornment: <InputAdornment position="start"><LocationOn color="action" /></InputAdornment> }}
+                      />
+                    </Grid>
+                  </>
                 )}
               </Grid>
 
