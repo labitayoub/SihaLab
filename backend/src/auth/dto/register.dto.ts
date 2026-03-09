@@ -26,10 +26,10 @@ export class RegisterDto {
   @IsNotEmpty()
   lastName: string;
 
-  @ApiProperty({ example: '0612345678', required: false })
+  @ApiProperty({ example: '0612345678' })
   @IsString()
-  @IsOptional()
-  phone?: string;
+  @IsNotEmpty()
+  phone: string;
 
   @ApiProperty({ example: '123 Main St', required: false })
   @IsString()
