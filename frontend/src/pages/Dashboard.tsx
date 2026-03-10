@@ -278,6 +278,130 @@ export default function Dashboard() {
         </Box>
       )}
 
+      {/* DOCTOR DASHBOARD */}
+      {isDoctorOrInfirmier && (
+        <Box sx={{ mb: 5 }}>
+          <Typography variant="h5" fontWeight={800} sx={{ mb: 3, color: 'text.primary', letterSpacing: '-0.5px' }}>
+            Tableau de bord medecin
+          </Typography>
+          <Grid container spacing={2}>
+            <Grid item xs={12} md={6}>
+              <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, height: '100%' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                  <Typography variant="h6" fontWeight="bold">Rendez-vous du jour</Typography>
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    {pendingCount > 0 && <Chip label={`${pendingCount} en attente`} color="warning" size="small" />}
+                    <Button size="small" onClick={() => navigate('/appointments')} endIcon={<ArrowForward />}>
+                      Voir tout
+                    </Button>
+                  </Stack>
+                </Box>
+                {todayAppointments.length === 0 ? (
+                  <Alert severity="info">Aucun rendez-vous aujourd'hui.</Alert>
+                ) : (
+                  <Stack spacing={1}>
+                    {[...todayAppointments]
+                      .sort((a, b) => a.time.localeCompare(b.time))
+                      .map((apt) => (
+                        <Paper
+                          key={apt.id}
+                          variant="outlined"
+                          sx={{ p: 1.5, borderRadius: 2, display: 'flex', alignItems: 'center', gap: 1.5 }}
+                        >
+                          <Avatar sx={{ bgcolor: '#1976d2', width: 36, height: 36 }}>
+                            {(apt.patient?.firstName?.[0] || '?').toUpperCase()}
+                          </Avatar>
+                          <Box sx={{ flex: 1 }}>
+                            <Typography variant="subtitle2" fontWeight="bold">
+                              {apt.patient?.firstName} {apt.patient?.lastName}
+                            </Typography>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                              <AccessTime sx={{ fontSize: 13, color: 'text.secondary' }} />
+                              <Typography variant="caption" color="text.secondary">
+                                {apt.time?.substring(0, 5)} — {apt.motif || 'Sans motif'}
+                              </Typography>
+                            </Box>
+                          </Box>
+                          <Chip
+                            label={
+                              apt.status === AppointmentStatus.CONFIRME ? 'Confirme' :
+                              apt.status === AppointmentStatus.EN_ATTENTE ? 'En attente' :
+                              apt.status === AppointmentStatus.ANNULE ? 'Annule' :
+                              apt.status === AppointmentStatus.TERMINE ? 'Termine' : apt.status
+                            }
+                            color={
+                              apt.status === AppointmentStatus.CONFIRME ? 'success' :
+                              apt.status === AppointmentStatus.ANNULE ? 'error' :
+                              apt.status === AppointmentStatus.EN_ATTENTE ? 'warning' : 'default'
+                            }
+                            size="small"
+                          />
+                        </Paper>
+                      ))}
+                  </Stack>
+                )}
+              </Paper>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, height: '100%' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                  <Typography variant="h6" fontWeight="bold">Creneaux de disponibilite</Typography>
+                  <Button size="small" onClick={() => navigate('/schedule')} endIcon={<ArrowForward />}>
+                    Gerer
+                  </Button>
+                </Box>
+                {!hasSchedule ? (
+                  <Alert severity="info">Aucun creneau actif. Configurez votre planning.</Alert>
+                ) : (
+                  <Stack spacing={1}>
+                    {scheduledDayNumbers.map((day) => {
+                      const daySchedule = schedulesByDay[day];
+                      return (
+                        <Box
+                          key={day}
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            gap: 1,
+                            p: 1,
+                            border: '1px dashed',
+                            borderColor: 'divider',
+                            borderRadius: 1,
+                          }}
+                        >
+                          <Typography variant="subtitle2" fontWeight="bold">{DAY_LABELS[day]}</Typography>
+                          <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+                            {daySchedule.morning && (
+                              <Chip
+                                icon={<WbSunny />}
+                                label={`Matin ${daySchedule.morning.startTime}-${daySchedule.morning.endTime}`}
+                                size="small"
+                                color="warning"
+                                variant="outlined"
+                              />
+                            )}
+                            {daySchedule.afternoon && (
+                              <Chip
+                                icon={<NightsStay />}
+                                label={`Apres-midi ${daySchedule.afternoon.startTime}-${daySchedule.afternoon.endTime}`}
+                                size="small"
+                                color="info"
+                                variant="outlined"
+                              />
+                            )}
+                          </Stack>
+                        </Box>
+                      );
+                    })}
+                  </Stack>
+                )}
+              </Paper>
+            </Grid>
+          </Grid>
+        </Box>
+      )}
+
       {/* ═══════════════ PHARMACIE DASHBOARD ═══════════════ */}
       {isPharmacien && (() => {
         const stats = {
@@ -405,7 +529,7 @@ export default function Dashboard() {
                     </Box>
                   </Paper>
                 </React.Fragment>
-              ))}
+              ))
             )}
           </Box>
         );
