@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
-import { Box, Button, Card, Typography, Dialog, DialogTitle, DialogContent, TextField, Chip, IconButton, MenuItem, Divider, Alert, Autocomplete } from '@mui/material';
+import { Box, Button, Card, Typography, Dialog, DialogTitle, DialogContent, TextField, Chip, IconButton, MenuItem, Divider, Alert, Autocomplete, Paper } from '@mui/material';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
-import { Add, Delete, Close, LocalPharmacy, CheckCircle } from '@mui/icons-material';
+import { Add, Delete, Close, LocalPharmacy, CheckCircle, Visibility, Print } from '@mui/icons-material';
 import { Country, City } from 'country-state-city';
 import { useAuth } from '../context/AuthContext';
 import { UserRole } from '../types/user.types';
@@ -176,11 +176,23 @@ export default function Ordonnances() {
     {
       field: 'actions',
       headerName: 'Actions',
-      width: 120,
+      width: 200,
       renderCell: (params) => (
-        user?.role === UserRole.PHARMACIEN && params.row.status === OrdonnanceStatus.EN_ATTENTE && (
-          <Button size="small" onClick={() => handleDelivrer(params.row.id)}>Délivrer</Button>
-        )
+        <Box sx={{ display: 'flex', gap: 0.5 }}>
+          {params.row.pdfUrl && (
+            <>
+              <IconButton size="small" color="primary" href={params.row.pdfUrl} target="_blank" title="Voir PDF">
+                <Visibility fontSize="small" />
+              </IconButton>
+              <IconButton size="small" color="secondary" onClick={() => window.print()} title="Imprimer">
+                <Print fontSize="small" />
+              </IconButton>
+            </>
+          )}
+          {user?.role === UserRole.PHARMACIEN && params.row.status === OrdonnanceStatus.EN_ATTENTE && (
+            <Button size="small" onClick={() => handleDelivrer(params.row.id)}>Délivrer</Button>
+          )}
+        </Box>
       ),
     },
   ];
@@ -196,8 +208,16 @@ export default function Ordonnances() {
         )}
       </Box>
 
+      {/* Affichage pour pharmacien: ordonnances assignées */}
+      {user?.role === UserRole.PHARMACIEN && (
+        <Alert severity="info" sx={{ mb: 2 }}>
+          <Typography variant="body2" fontWeight="bold">Ordonnances qui vous sont assignées</Typography>
+          <Typography variant="caption">Vous pouvez voir et imprimer les ordonnances qui vous ont été attribuées par les médecins.</Typography>
+        </Alert>
+      )}
+
       <Card>
-        <DataGrid rows={ordonnances} columns={columns} autoHeight pageSizeOptions={[10, 20]} />
+        <DataGrid rows={ordonnances} columns={columns} autoHeight pageSizeOptions={[10, 20, 50]} />
       </Card>
 
       <Dialog open={open} onClose={() => setOpen(false)} maxWidth="md" fullWidth>

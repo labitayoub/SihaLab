@@ -56,6 +56,11 @@ function getAnalyseStatusColor(status: AnalyseStatus): 'warning' | 'success' | '
 }
 
 export default function DossierMedical() {
+  // Pharmaciens pour affichage pharmacie assignée
+  const [pharmaciens, setPharmaciens] = useState<any[]>([]);
+  useEffect(() => {
+    api.get('/users/pharmaciens').then(({ data }) => setPharmaciens(data.data || data || [])).catch(() => setPharmaciens([]));
+  }, []);
   const { patientId } = useParams<{ patientId: string }>();
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -296,7 +301,7 @@ export default function DossierMedical() {
                     <Paper
                       key={o.id}
                       variant="outlined"
-                      sx={{ p: 2, mb: 1.5, borderRadius: 2 }}
+                      sx={{ p: 2, mb: 1.5, borderRadius: 2, position: 'relative' }}
                     >
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                         <Typography fontWeight="bold">
@@ -318,6 +323,35 @@ export default function DossierMedical() {
                           </Typography>
                         </Box>
                       ))}
+                      {/* Affichage pharmacie assignée */}
+                      {o.pharmacienId && (() => {
+                        const ph = pharmaciens.find((p) => p.id === o.pharmacienId);
+                        if (!ph) return null;
+                        return (
+                          <Box sx={{
+                            bgcolor: '#fff',
+                            boxShadow: '0 2px 8px rgba(33,150,243,0.10)',
+                            border: '1px solid #90caf9',
+                            p: 1,
+                            borderRadius: 2,
+                            minWidth: 160,
+                            mt: 1,
+                            display: 'flex',
+                            alignItems: 'flex-start',
+                            gap: 1
+                          }}>
+                            <span style={{marginRight: 6, color: '#1976d2'}}>
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" fill="#1976d2"/></svg>
+                            </span>
+                            <Box>
+                              <Typography variant="caption" color="primary" fontWeight="bold">Pharmacie assignée</Typography>
+                              <Typography variant="body2" fontWeight={500}>{ph.firstName} {ph.lastName}</Typography>
+                              {ph.address && <Typography variant="body2" sx={{ color: '#888' }}>Adresse: {ph.address}</Typography>}
+                              {ph.phone && <Typography variant="body2" sx={{ color: '#888' }}>Tél: {ph.phone}</Typography>}
+                            </Box>
+                          </Box>
+                        );
+                      })()}
                       {o.pdfUrl && o.pdfUrl !== c.ordonnancePdfUrl && (
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1, pt: 1, borderTop: '1px dashed #ffb300', flexWrap: 'wrap' }}>
                           <Chip

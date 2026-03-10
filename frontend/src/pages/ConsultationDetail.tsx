@@ -1,11 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box, Typography, Paper, TextField, Button, Divider, MenuItem,
   IconButton, CircularProgress, Alert, Chip, Dialog, DialogTitle,
-  DialogContent, DialogActions,
+  DialogContent, DialogActions, Autocomplete,
 } from '@mui/material';
-import { Delete, Add, Save, CheckCircle, Edit, PictureAsPdf, Cancel, Download, Visibility, Close, PostAdd } from '@mui/icons-material';
+import { Delete, Add, Save, CheckCircle, Edit, PictureAsPdf, Cancel, Download, Visibility, Close, PostAdd, LocalPharmacy, Science } from '@mui/icons-material';
+import { Country, City } from 'country-state-city';
 import { toast, confirm } from '../utils/toast';
 import api from '../config/api';
 
@@ -87,20 +88,71 @@ export default function ConsultationDetail() {
   const [medicaments, setMedicaments] = useState<Medicament[]>([
     { nom: '', dosage: '', frequence: '', duree: '' },
   ]);
+  // Ordonnance form – country/city filter
+  const [ordCountryIso, setOrdCountryIso] = useState('');
+  const [ordCountryName, setOrdCountryName] = useState('');
+  const [ordVille, setOrdVille] = useState('');
 
   // Edit existing ordonnance
   const [editingOrdId, setEditingOrdId] = useState<string | null>(null);
   const [editOrdMeds, setEditOrdMeds] = useState<Medicament[]>([]);
   const [editOrdPharmacienId, setEditOrdPharmacienId] = useState('');
+  // Edit ordonnance – country/city filter
+  const [editOrdCountryIso, setEditOrdCountryIso] = useState('');
+  const [editOrdCountryName, setEditOrdCountryName] = useState('');
+  const [editOrdVille, setEditOrdVille] = useState('');
 
   // Analyse form
   const [labId, setLabId] = useState('');
   const [descriptionAnalyse, setDescriptionAnalyse] = useState('');
+  // Analyse form – country/city filter
+  const [anCountryIso, setAnCountryIso] = useState('');
+  const [anCountryName, setAnCountryName] = useState('');
+  const [anVille, setAnVille] = useState('');
 
   // Edit existing analyse
   const [editingAnId, setEditingAnId] = useState<string | null>(null);
   const [editAnDescription, setEditAnDescription] = useState('');
   const [editAnLabId, setEditAnLabId] = useState('');
+  // Edit analyse – country/city filter
+  const [editAnCountryIso, setEditAnCountryIso] = useState('');
+  const [editAnCountryName, setEditAnCountryName] = useState('');
+  const [editAnVille, setEditAnVille] = useState('');
+
+  // country-state-city data
+  const allCountries = useMemo(() => Country.getAllCountries(), []);
+
+  // Cities for each form
+  const ordCities = useMemo(() => ordCountryIso ? (City.getCitiesOfCountry(ordCountryIso) ?? []) : [], [ordCountryIso]);
+  const editOrdCities = useMemo(() => editOrdCountryIso ? (City.getCitiesOfCountry(editOrdCountryIso) ?? []) : [], [editOrdCountryIso]);
+  const anCities = useMemo(() => anCountryIso ? (City.getCitiesOfCountry(anCountryIso) ?? []) : [], [anCountryIso]);
+  const editAnCities = useMemo(() => editAnCountryIso ? (City.getCitiesOfCountry(editAnCountryIso) ?? []) : [], [editAnCountryIso]);
+
+  // Filtered pharmaciens by country/city
+  const filteredPharmaciens = useMemo(() =>
+    pharmaciens.filter((p) =>
+      (!ordCountryName || p.pays === ordCountryName) &&
+      (!ordVille || p.ville === ordVille)
+    ), [pharmaciens, ordCountryName, ordVille]);
+
+  const editOrdFilteredPharmaciens = useMemo(() =>
+    pharmaciens.filter((p) =>
+      (!editOrdCountryName || p.pays === editOrdCountryName) &&
+      (!editOrdVille || p.ville === editOrdVille)
+    ), [pharmaciens, editOrdCountryName, editOrdVille]);
+
+  // Filtered laboratoires by country/city
+  const filteredLaboratoires = useMemo(() =>
+    laboratoires.filter((l) =>
+      (!anCountryName || l.pays === anCountryName) &&
+      (!anVille || l.ville === anVille)
+    ), [laboratoires, anCountryName, anVille]);
+
+  const editAnFilteredLaboratoires = useMemo(() =>
+    laboratoires.filter((l) =>
+      (!editAnCountryName || l.pays === editAnCountryName) &&
+      (!editAnVille || l.ville === editAnVille)
+    ), [laboratoires, editAnCountryName, editAnVille]);
 
   // Confirm delete dialog
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; type: 'ordonnance' | 'analyse'; id: string; label: string } | null>(null);
@@ -144,7 +196,7 @@ export default function ConsultationDetail() {
 
   const loadPharmaciens = async () => {
     try {
-      const { data } = await api.get('/users?role=pharmacien');
+      const { data } = await api.get('/users/pharmaciens');
       setPharmaciens(data.data || data || []);
     } catch {
       setPharmaciens([]);
@@ -153,7 +205,7 @@ export default function ConsultationDetail() {
 
   const loadLaboratoires = async () => {
     try {
-      const { data } = await api.get('/users?role=laboratoire');
+      const { data } = await api.get('/users/laboratoires');
       setLaboratoires(data.data || data || []);
     } catch {
       setLaboratoires([]);
@@ -200,6 +252,7 @@ export default function ConsultationDetail() {
       toast.success('Ordonnance créée');
       setMedicaments([{ nom: '', dosage: '', frequence: '', duree: '' }]);
       setPharmacienId('');
+      setOrdCountryIso(''); setOrdCountryName(''); setOrdVille('');
       loadAll();
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Erreur');
@@ -220,6 +273,7 @@ export default function ConsultationDetail() {
       toast.success('Analyse prescrite');
       setDescriptionAnalyse('');
       setLabId('');
+      setAnCountryIso(''); setAnCountryName(''); setAnVille('');
       loadAll();
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Erreur');
@@ -231,9 +285,22 @@ export default function ConsultationDetail() {
     setEditingOrdId(o.id);
     setEditOrdMeds(o.medicaments?.map((m: any) => ({ ...m })) || [{ nom: '', dosage: '', frequence: '', duree: '' }]);
     setEditOrdPharmacienId(o.pharmacienId || '');
+    // Pre-populate country/city from pharmacien
+    const ph = pharmaciens.find((p) => p.id === o.pharmacienId);
+    if (ph?.pays) {
+      const country = allCountries.find((c) => c.name === ph.pays);
+      setEditOrdCountryIso(country?.isoCode || '');
+      setEditOrdCountryName(ph.pays);
+      setEditOrdVille(ph.ville || '');
+    } else {
+      setEditOrdCountryIso(''); setEditOrdCountryName(''); setEditOrdVille('');
+    }
   };
 
-  const cancelEditOrd = () => { setEditingOrdId(null); };
+  const cancelEditOrd = () => {
+    setEditingOrdId(null);
+    setEditOrdCountryIso(''); setEditOrdCountryName(''); setEditOrdVille('');
+  };
 
   const handleSaveOrd = async (ordId: string) => {
     const filled = editOrdMeds.filter((m) => m.nom.trim());
@@ -257,9 +324,22 @@ export default function ConsultationDetail() {
     setEditingAnId(a.id);
     setEditAnDescription(a.description || '');
     setEditAnLabId(a.labId || '');
+    // Pre-populate country/city from laboratoire
+    const lab = laboratoires.find((l) => l.id === a.labId);
+    if (lab?.pays) {
+      const country = allCountries.find((c) => c.name === lab.pays);
+      setEditAnCountryIso(country?.isoCode || '');
+      setEditAnCountryName(lab.pays);
+      setEditAnVille(lab.ville || '');
+    } else {
+      setEditAnCountryIso(''); setEditAnCountryName(''); setEditAnVille('');
+    }
   };
 
-  const cancelEditAn = () => { setEditingAnId(null); };
+  const cancelEditAn = () => {
+    setEditingAnId(null);
+    setEditAnCountryIso(''); setEditAnCountryName(''); setEditAnVille('');
+  };
 
   const handleSaveAn = async (anId: string) => {
     if (!editAnDescription.trim()) { toast.warning('Entrez une description'); return; }
@@ -476,19 +556,82 @@ export default function ConsultationDetail() {
             {ordonnances.map((o: any, idx: number) => (
               <Box
                 key={o.id}
-                sx={{ bgcolor: '#f5faf5', border: '1px solid #c8e6c9', borderRadius: 1, p: 2 }}
+                sx={{ bgcolor: '#f5faf5', border: '1px solid #c8e6c9', borderRadius: 1, p: 2, position: 'relative' }}
               >
+                {/* Affichage pharmacien assigné */}
+                {o.pharmacienId && (() => {
+                  const ph = pharmaciens.find((p) => p.id === o.pharmacienId);
+                  if (!ph) return null;
+                  return (
+                    <Box sx={{
+                      bgcolor: '#f0f9ff',
+                      border: '1px solid #3b82f6',
+                      p: 1.5,
+                      borderRadius: 1.5,
+                      mb: 2,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1.5
+                    }}>
+                      <LocalPharmacy sx={{ color: '#3b82f6', fontSize: 22 }} />
+                      <Box>
+                        <Typography variant="caption" sx={{ color: '#3b82f6', fontWeight: 700, display: 'block', mb: 0.3 }}>
+                          Pharmacie assignée
+                        </Typography>
+                        <Typography variant="body2" fontWeight={600} sx={{ color: '#1e293b' }}>
+                          {ph.firstName} {ph.lastName}
+                        </Typography>
+                        {ph.phone && (
+                          <Typography variant="caption" sx={{ color: '#64748b', display: 'block' }}>
+                            📞 {ph.phone}
+                          </Typography>
+                        )}
+                        {ph.address && (
+                          <Typography variant="caption" sx={{ color: '#64748b', display: 'block' }}>
+                            📍 {ph.address}
+                          </Typography>
+                        )}
+                      </Box>
+                    </Box>
+                  );
+                })()}
                 {editingOrdId === o.id ? (
                   /* ── Inline edit form ── */
                   <Box>
+                    <Autocomplete
+                      options={allCountries}
+                      getOptionLabel={(c) => `${c.flag ?? ''} ${c.name}`}
+                      value={allCountries.find((c) => c.isoCode === editOrdCountryIso) || null}
+                      onChange={(_, val) => {
+                        setEditOrdCountryIso(val?.isoCode || '');
+                        setEditOrdCountryName(val?.name || '');
+                        setEditOrdVille('');
+                        setEditOrdPharmacienId('');
+                      }}
+                      renderInput={(params) => <TextField {...params} label="Pays (optionnel)" size="small" />}
+                      sx={{ mb: 2 }}
+                    />
+                    {editOrdCountryIso && (
+                      <TextField
+                        select fullWidth label="Ville"
+                        value={editOrdVille}
+                        onChange={(e) => { setEditOrdVille(e.target.value); setEditOrdPharmacienId(''); }}
+                        size="small" sx={{ mb: 2 }}
+                      >
+                        <MenuItem value="">— Toutes les villes —</MenuItem>
+                        {editOrdCities.map((city) => (
+                          <MenuItem key={city.name} value={city.name}>{city.name}</MenuItem>
+                        ))}
+                      </TextField>
+                    )}
                     <TextField
                       select fullWidth label="Pharmacien" value={editOrdPharmacienId}
                       onChange={(e) => setEditOrdPharmacienId(e.target.value)}
                       size="small" sx={{ mb: 2 }}
                     >
                       <MenuItem value="">— Aucun pharmacien —</MenuItem>
-                      {pharmaciens.map((p) => (
-                        <MenuItem key={p.id} value={p.id}>{p.firstName} {p.lastName}</MenuItem>
+                      {editOrdFilteredPharmaciens.map((p) => (
+                        <MenuItem key={p.id} value={p.id}>{p.firstName} {p.lastName}{p.ville ? ` — ${p.ville}` : ''}</MenuItem>
                       ))}
                     </TextField>
                     {editOrdMeds.map((med, mi) => (
@@ -522,6 +665,7 @@ export default function ConsultationDetail() {
                         </>
                       )}
                     </Box>
+
                     {o.medicaments?.map((med: any, mi: number) => (
                       <Typography key={mi} variant="body2" sx={{ pl: 4, py: 0.5, color: '#333', borderBottom: mi !== o.medicaments.length - 1 ? '1px dashed #e0e0e0' : 'none' }}>
                         • <strong>{med.nom}</strong> {med.dosage && `- ${med.dosage}`} {(med.frequence || med.duree) && `(${med.frequence} pendant ${med.duree})`}
@@ -539,6 +683,34 @@ export default function ConsultationDetail() {
           <Box>
             <Divider sx={{ mb: 3 }} />
             <Typography variant="subtitle2" sx={{ mb: 2, color: 'text.secondary' }}>Nouvelle ordonnance</Typography>
+
+            {/* Country → City → Pharmacien */}
+            <Autocomplete
+              options={allCountries}
+              getOptionLabel={(c) => `${c.flag ?? ''} ${c.name}`}
+              value={allCountries.find((c) => c.isoCode === ordCountryIso) || null}
+              onChange={(_, val) => {
+                setOrdCountryIso(val?.isoCode || '');
+                setOrdCountryName(val?.name || '');
+                setOrdVille('');
+                setPharmacienId('');
+              }}
+              renderInput={(params) => <TextField {...params} label="Pays (optionnel)" size="small" />}
+              sx={{ mb: 2 }}
+            />
+            {ordCountryIso && (
+              <TextField
+                select fullWidth label="Ville"
+                value={ordVille}
+                onChange={(e) => { setOrdVille(e.target.value); setPharmacienId(''); }}
+                size="small" sx={{ mb: 2 }}
+              >
+                <MenuItem value="">— Toutes les villes —</MenuItem>
+                {ordCities.map((city) => (
+                  <MenuItem key={city.name} value={city.name}>{city.name}</MenuItem>
+                ))}
+              </TextField>
+            )}
             <TextField
               select
               fullWidth
@@ -549,9 +721,14 @@ export default function ConsultationDetail() {
               size="small"
             >
               <MenuItem value="">— Aucun pharmacien —</MenuItem>
-              {pharmaciens.map((p) => (
+              {filteredPharmaciens.map((p) => (
                 <MenuItem key={p.id} value={p.id}>
-                  {p.firstName} {p.lastName}
+                  <Box>
+                    <strong>{p.firstName} {p.lastName}</strong>
+                    {p.ville && ` — ${p.ville}`}
+                    {p.address && <><br /><span style={{ color: '#888' }}>Adresse: {p.address}</span></>}
+                    {p.phone && <><br /><span style={{ color: '#888' }}>Tél: {p.phone}</span></>}
+                  </Box>
                 </MenuItem>
               ))}
             </TextField>
@@ -619,19 +796,82 @@ export default function ConsultationDetail() {
             {analyses.map((a: any, idx: number) => (
               <Box
                 key={a.id}
-                sx={{ bgcolor: '#f5faf5', border: '1px solid #c8e6c9', borderRadius: 1, p: 2 }}
+                sx={{ bgcolor: '#f5faf5', border: '1px solid #c8e6c9', borderRadius: 1, p: 2, position: 'relative' }}
               >
+                {/* Affichage labo assigné */}
+                {a.labId && (() => {
+                  const lab = laboratoires.find((l) => l.id === a.labId);
+                  if (!lab) return null;
+                  return (
+                    <Box sx={{
+                      bgcolor: '#f0fdf4',
+                      border: '1px solid #22c55e',
+                      p: 1.5,
+                      borderRadius: 1.5,
+                      mb: 2,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1.5
+                    }}>
+                      <Science sx={{ color: '#22c55e', fontSize: 22 }} />
+                      <Box>
+                        <Typography variant="caption" sx={{ color: '#22c55e', fontWeight: 700, display: 'block', mb: 0.3 }}>
+                          Laboratoire assigné
+                        </Typography>
+                        <Typography variant="body2" fontWeight={600} sx={{ color: '#1e293b' }}>
+                          {lab.firstName} {lab.lastName}
+                        </Typography>
+                        {lab.phone && (
+                          <Typography variant="caption" sx={{ color: '#64748b', display: 'block' }}>
+                            📞 {lab.phone}
+                          </Typography>
+                        )}
+                        {lab.address && (
+                          <Typography variant="caption" sx={{ color: '#64748b', display: 'block' }}>
+                            📍 {lab.address}
+                          </Typography>
+                        )}
+                      </Box>
+                    </Box>
+                  );
+                })()}
                 {editingAnId === a.id ? (
                   /* ── Inline edit form ── */
                   <Box>
+                    <Autocomplete
+                      options={allCountries}
+                      getOptionLabel={(c) => `${c.flag ?? ''} ${c.name}`}
+                      value={allCountries.find((c) => c.isoCode === editAnCountryIso) || null}
+                      onChange={(_, val) => {
+                        setEditAnCountryIso(val?.isoCode || '');
+                        setEditAnCountryName(val?.name || '');
+                        setEditAnVille('');
+                        setEditAnLabId('');
+                      }}
+                      renderInput={(params) => <TextField {...params} label="Pays (optionnel)" size="small" />}
+                      sx={{ mb: 2 }}
+                    />
+                    {editAnCountryIso && (
+                      <TextField
+                        select fullWidth label="Ville"
+                        value={editAnVille}
+                        onChange={(e) => { setEditAnVille(e.target.value); setEditAnLabId(''); }}
+                        size="small" sx={{ mb: 2 }}
+                      >
+                        <MenuItem value="">— Toutes les villes —</MenuItem>
+                        {editAnCities.map((city) => (
+                          <MenuItem key={city.name} value={city.name}>{city.name}</MenuItem>
+                        ))}
+                      </TextField>
+                    )}
                     <TextField
                       select fullWidth label="Laboratoire" value={editAnLabId}
                       onChange={(e) => setEditAnLabId(e.target.value)}
                       size="small" sx={{ mb: 2 }}
                     >
                       <MenuItem value="">— Aucun laboratoire —</MenuItem>
-                      {laboratoires.map((l) => (
-                        <MenuItem key={l.id} value={l.id}>{l.firstName} {l.lastName}</MenuItem>
+                      {editAnFilteredLaboratoires.map((l) => (
+                        <MenuItem key={l.id} value={l.id}>{l.firstName} {l.lastName}{l.ville ? ` — ${l.ville}` : ''}</MenuItem>
                       ))}
                     </TextField>
                     <TextField
@@ -690,6 +930,34 @@ export default function ConsultationDetail() {
           <Box>
             <Divider sx={{ mb: 3 }} />
             <Typography variant="subtitle2" sx={{ mb: 2, color: 'text.secondary' }}>Prescrire une nouvelle analyse</Typography>
+
+            {/* Country → City → Laboratoire */}
+            <Autocomplete
+              options={allCountries}
+              getOptionLabel={(c) => `${c.flag ?? ''} ${c.name}`}
+              value={allCountries.find((c) => c.isoCode === anCountryIso) || null}
+              onChange={(_, val) => {
+                setAnCountryIso(val?.isoCode || '');
+                setAnCountryName(val?.name || '');
+                setAnVille('');
+                setLabId('');
+              }}
+              renderInput={(params) => <TextField {...params} label="Pays (optionnel)" size="small" />}
+              sx={{ mb: 2 }}
+            />
+            {anCountryIso && (
+              <TextField
+                select fullWidth label="Ville"
+                value={anVille}
+                onChange={(e) => { setAnVille(e.target.value); setLabId(''); }}
+                size="small" sx={{ mb: 2 }}
+              >
+                <MenuItem value="">— Toutes les villes —</MenuItem>
+                {anCities.map((city) => (
+                  <MenuItem key={city.name} value={city.name}>{city.name}</MenuItem>
+                ))}
+              </TextField>
+            )}
             <TextField
               select
               fullWidth
@@ -700,9 +968,14 @@ export default function ConsultationDetail() {
               size="small"
             >
               <MenuItem value="">— Aucun laboratoire —</MenuItem>
-              {laboratoires.map((l) => (
+              {filteredLaboratoires.map((l) => (
                 <MenuItem key={l.id} value={l.id}>
-                  {l.firstName} {l.lastName}
+                  <Box>
+                    <strong>{l.firstName} {l.lastName}</strong>
+                    {l.ville && ` — ${l.ville}`}
+                    {l.address && <><br /><span style={{ color: '#888' }}>Adresse: {l.address}</span></>}
+                    {l.phone && <><br /><span style={{ color: '#888' }}>Tél: {l.phone}</span></>}
+                  </Box>
                 </MenuItem>
               ))}
             </TextField>

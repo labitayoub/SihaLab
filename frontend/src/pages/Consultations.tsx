@@ -13,6 +13,7 @@ import {
 import { Country, City } from 'country-state-city';
 import { isValidPhoneNumber, AsYouType } from 'libphonenumber-js';
 import { useAuth } from '../context/AuthContext';
+import { useEffect as useEffectPharma, useState as useStatePharma } from 'react';
 import { UserRole } from '../types/user.types';
 import { ConsultationWithDetails } from '../types/dossier.types';
 import { OrdonnanceStatus } from '../types/ordonnance.types';
@@ -55,6 +56,14 @@ function getStatusLabel(status: string): string {
 }
 
 export default function Consultations() {
+  // Pharmaciens pour affichage pharmacie assignée
+  const [pharmaciens, setPharmaciens] = useStatePharma<any[]>([]);
+  // Laboratoires pour affichage labo assigné
+  const [laboratoires, setLaboratoires] = useStatePharma<any[]>([]);
+  useEffectPharma(() => {
+    api.get('/users/pharmaciens').then(({ data }) => setPharmaciens(data.data || data || [])).catch(() => setPharmaciens([]));
+    api.get('/users/laboratoires').then(({ data }) => setLaboratoires(data.data || data || [])).catch(() => setLaboratoires([]));
+  }, []);
   const { user } = useAuth();
   const navigate = useNavigate();
   const [consultations, setConsultations] = useState<ConsultationWithDetails[]>([]);
@@ -282,16 +291,54 @@ export default function Consultations() {
                     <Typography variant="body2" fontWeight="bold" sx={{ mb: 0.5 }}>
                       Ordonnances:
                     </Typography>
-                    <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
-                      {c.ordonnances.map((o: any, idx: number) => (
-                        <Chip
-                          key={o.id}
-                          label={`#${idx + 1} - ${getStatusLabel(o.status)}`}
-                          size="small"
-                          color={getOrdonnanceChipColor(o.status)}
-                        />
-                      ))}
-                    </Box>
+                    {c.ordonnances.map((o: any, idx: number) => (
+                      <Box key={o.id} sx={{ mb: 1 }}>
+                        <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', alignItems: 'center' }}>
+                          <Chip
+                            label={`#${idx + 1} - ${getStatusLabel(o.status)}`}
+                            size="small"
+                            color={getOrdonnanceChipColor(o.status)}
+                          />
+                          {/* Affichage pharmacie assignée */}
+                          {o.pharmacienId && (() => {
+                            const ph = pharmaciens.find((p) => p.id === o.pharmacienId);
+                            if (!ph) return null;
+                            return (
+                              <Box sx={{
+                                bgcolor: '#f0f9ff',
+                                border: '1px solid #3b82f6',
+                                p: 1.5,
+                                borderRadius: 1.5,
+                                ml: 1,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 1.5
+                              }}>
+                                <LocalPharmacy sx={{ color: '#3b82f6', fontSize: 20 }} />
+                                <Box>
+                                  <Typography variant="caption" sx={{ color: '#3b82f6', fontWeight: 700, display: 'block', mb: 0.3 }}>
+                                    Pharmacie assignée
+                                  </Typography>
+                                  <Typography variant="body2" fontWeight={600} sx={{ color: '#1e293b' }}>
+                                    {ph.firstName} {ph.lastName}
+                                  </Typography>
+                                  {ph.phone && (
+                                    <Typography variant="caption" sx={{ color: '#64748b', display: 'block' }}>
+                                      📞 {ph.phone}
+                                    </Typography>
+                                  )}
+                                  {ph.address && (
+                                    <Typography variant="caption" sx={{ color: '#64748b', display: 'block' }}>
+                                      📍 {ph.address}
+                                    </Typography>
+                                  )}
+                                </Box>
+                              </Box>
+                            );
+                          })()}
+                        </Box>
+                      </Box>
+                    ))}
                   </Box>
                 )}
 
@@ -301,16 +348,54 @@ export default function Consultations() {
                     <Typography variant="body2" fontWeight="bold" sx={{ mb: 0.5 }}>
                       Analyses:
                     </Typography>
-                    <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
-                      {c.analyses.map((a: any, idx: number) => (
-                        <Chip
-                          key={a.id}
-                          label={`#${idx + 1} - ${getStatusLabel(a.status)}`}
-                          size="small"
-                          color={getAnalyseChipColor(a.status)}
-                        />
-                      ))}
-                    </Box>
+                    {c.analyses.map((a: any, idx: number) => (
+                      <Box key={a.id} sx={{ mb: 1 }}>
+                        <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', alignItems: 'center' }}>
+                          <Chip
+                            label={`#${idx + 1} - ${getStatusLabel(a.status)}`}
+                            size="small"
+                            color={getAnalyseChipColor(a.status)}
+                          />
+                          {/* Affichage laboratoire assigné */}
+                          {a.labId && (() => {
+                            const lab = laboratoires.find((l) => l.id === a.labId);
+                            if (!lab) return null;
+                            return (
+                              <Box sx={{
+                                bgcolor: '#f0fdf4',
+                                border: '1px solid #22c55e',
+                                p: 1.5,
+                                borderRadius: 1.5,
+                                ml: 1,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 1.5
+                              }}>
+                                <Science sx={{ color: '#22c55e', fontSize: 20 }} />
+                                <Box>
+                                  <Typography variant="caption" sx={{ color: '#22c55e', fontWeight: 700, display: 'block', mb: 0.3 }}>
+                                    Laboratoire assigné
+                                  </Typography>
+                                  <Typography variant="body2" fontWeight={600} sx={{ color: '#1e293b' }}>
+                                    {lab.firstName} {lab.lastName}
+                                  </Typography>
+                                  {lab.phone && (
+                                    <Typography variant="caption" sx={{ color: '#64748b', display: 'block' }}>
+                                      📞 {lab.phone}
+                                    </Typography>
+                                  )}
+                                  {lab.address && (
+                                    <Typography variant="caption" sx={{ color: '#64748b', display: 'block' }}>
+                                      📍 {lab.address}
+                                    </Typography>
+                                  )}
+                                </Box>
+                              </Box>
+                            );
+                          })()}
+                        </Box>
+                      </Box>
+                    ))}
                   </Box>
                 )}
               </Box>
