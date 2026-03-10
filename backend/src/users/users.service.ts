@@ -13,7 +13,7 @@ export class UsersService {
     @InjectRepository(User)
     private userRepository: Repository<User>,
     private minioService: MinioService,
-  ) {}
+  ) { }
 
   async create(createUserDto: CreateUserDto) {
     const forbiddenRoles = [UserRole.INFIRMIER, UserRole.ADMIN];
@@ -87,8 +87,8 @@ export class UsersService {
   }
 
   async findByRole(role: UserRole) {
-    const users = await this.userRepository.find({ 
-      where: { role, isActive: true } 
+    const users = await this.userRepository.find({
+      where: { role, isActive: true }
     });
     return users.map(({ password, ...user }) => user);
   }

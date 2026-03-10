@@ -112,10 +112,10 @@ async function seed() {
     ];
 
     for (const userData of users) {
-      const existing = await userRepository.findOne({ 
-        where: { email: userData.email } 
+      const existing = await userRepository.findOne({
+        where: { email: userData.email }
       });
-      
+
       if (!existing) {
         const user = userRepository.create(userData);
         await userRepository.save(user);

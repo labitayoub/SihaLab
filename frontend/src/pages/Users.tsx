@@ -2,25 +2,29 @@ import { useEffect, useState, useMemo } from 'react';
 import {
   Box, Button, Card, Typography, Dialog, DialogTitle, DialogContent,
   TextField, Chip, Grid, InputAdornment, IconButton, MenuItem, Autocomplete,
+  Avatar, Paper, Stack, Tabs, Tab, Tooltip, alpha,
 } from '@mui/material';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import {
   Add, Visibility, VisibilityOff, Email, Badge, Phone, LocationOn,
   Lock, LocalHospital, LocalPharmacy, Science, Person, Close,
+  MedicalServices, People, Search, Biotech, AdminPanelSettings,
+  CheckCircle, Block,
 } from '@mui/icons-material';
 import { Country, City } from 'country-state-city';
 import { isValidPhoneNumber, AsYouType } from 'libphonenumber-js';
 import { User, UserRole } from '../types/user.types';
 import api from '../config/api';
 import { toast } from '../utils/toast';
+import React from 'react';
 
-const ROLE_LABELS: Record<string, string> = {
-  [UserRole.ADMIN]: 'Admin',
-  [UserRole.MEDECIN]: 'Médecin',
-  [UserRole.PATIENT]: 'Patient',
-  [UserRole.PHARMACIEN]: 'Pharmacien',
-  [UserRole.LABORATOIRE]: 'Laboratoire',
-  [UserRole.INFIRMIER]: 'Infirmier',
+const ROLE_CONFIG: Record<string, { label: string; color: string; bg: string; icon: React.ReactElement }> = {
+  [UserRole.ADMIN]: { label: 'Admin', color: '#d32f2f', bg: '#ffebee', icon: <AdminPanelSettings sx={{ fontSize: 18 }} /> },
+  [UserRole.MEDECIN]: { label: 'Médecin', color: '#1976d2', bg: '#e3f2fd', icon: <MedicalServices sx={{ fontSize: 18 }} /> },
+  [UserRole.PATIENT]: { label: 'Patient', color: '#2e7d32', bg: '#e8f5e9', icon: <Person sx={{ fontSize: 18 }} /> },
+  [UserRole.PHARMACIEN]: { label: 'Pharmacien', color: '#9c27b0', bg: '#f3e5f5', icon: <LocalPharmacy sx={{ fontSize: 18 }} /> },
+  [UserRole.LABORATOIRE]: { label: 'Laboratoire', color: '#e65100', bg: '#fff3e0', icon: <Biotech sx={{ fontSize: 18 }} /> },
+  [UserRole.INFIRMIER]: { label: 'Infirmier', color: '#00838f', bg: '#e0f7fa', icon: <LocalHospital sx={{ fontSize: 18 }} /> },
 };
 
 const initialFormData = {
@@ -36,6 +40,8 @@ export default function Users() {
   const [showPassword, setShowPassword] = useState(false);
   const [countryIso, setCountryIso] = useState('');
   const [phoneError, setPhoneError] = useState('');
+  const [roleFilter, setRoleFilter] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const allCountries = useMemo(() => Country.getAllCountries(), []);
   const cities = useMemo(
@@ -60,6 +66,33 @@ export default function Users() {
       toast.error('Erreur de chargement');
     }
   };
+
+  // Filtered users
+  const filteredUsers = useMemo(() => {
+    let result = users;
+    if (roleFilter !== 'all') {
+      result = result.filter(u => u.role === roleFilter);
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(u =>
+        u.firstName?.toLowerCase().includes(q) ||
+        u.lastName?.toLowerCase().includes(q) ||
+        u.email?.toLowerCase().includes(q) ||
+        u.specialite?.toLowerCase().includes(q)
+      );
+    }
+    return result;
+  }, [users, roleFilter, searchQuery]);
+
+  // Role counts
+  const roleCounts = useMemo(() => {
+    const counts: Record<string, number> = { all: users.length };
+    Object.values(UserRole).forEach(role => {
+      counts[role] = users.filter(u => u.role === role).length;
+    });
+    return counts;
+  }, [users]);
 
   const handleRoleChange = (role: UserRole) => {
     setCountryIso('');
@@ -116,50 +149,233 @@ export default function Users() {
   };
 
   const columns: GridColDef[] = [
-    { field: 'firstName', headerName: 'Prénom', flex: 1, minWidth: 100 },
-    { field: 'lastName', headerName: 'Nom', flex: 1, minWidth: 100 },
-    { field: 'email', headerName: 'Email', flex: 1.5, minWidth: 160 },
     {
-      field: 'role', headerName: 'Rôle', width: 130,
-      renderCell: (params) => <Chip label={ROLE_LABELS[params.value] || params.value} size="small" variant="outlined" />,
-    },
-    {
-      field: 'specialite', headerName: 'Spécialité / Établissement', flex: 1, minWidth: 120,
-      renderCell: (params) => params.value || '—',
-    },
-    {
-      field: 'isActive', headerName: 'Statut', width: 90,
-      renderCell: (params) => <Chip label={params.value ? 'Actif' : 'Inactif'} color={params.value ? 'success' : 'error'} size="small" />,
-    },
-    {
-      field: 'actions', headerName: 'Actions', width: 110,
+      field: 'user', headerName: 'Utilisateur', flex: 1.5, minWidth: 220,
       renderCell: (params) => (
-        <Button size="small" onClick={() => handleToggleActive(params.row.id, params.row.isActive)}>
-          {params.row.isActive ? 'Désactiver' : 'Activer'}
-        </Button>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 0.5 }}>
+          <Avatar
+            src={params.row.avatarUrl || undefined}
+            sx={{
+              width: 38, height: 38, fontWeight: 700, fontSize: 14,
+              bgcolor: ROLE_CONFIG[params.row.role]?.color || '#757575',
+            }}
+          >
+            {(params.row.firstName?.[0] || '').toUpperCase()}{(params.row.lastName?.[0] || '').toUpperCase()}
+          </Avatar>
+          <Box sx={{ minWidth: 0 }}>
+            <Typography variant="body2" fontWeight={700} noWrap>
+              {params.row.role === UserRole.MEDECIN ? 'Dr. ' : ''}{params.row.firstName} {params.row.lastName}
+            </Typography>
+            <Typography variant="caption" color="text.secondary" noWrap sx={{ display: 'block' }}>
+              {params.row.email}
+            </Typography>
+          </Box>
+        </Box>
+      ),
+      valueGetter: (value: any, row: any) => `${row.firstName} ${row.lastName} ${row.email}`,
+    },
+    {
+      field: 'role', headerName: 'Rôle', width: 150,
+      renderCell: (params) => {
+        const config = ROLE_CONFIG[params.value];
+        return config ? (
+          <Chip
+            icon={config.icon}
+            label={config.label}
+            size="small"
+            sx={{
+              fontWeight: 700, fontSize: 12,
+              bgcolor: config.bg, color: config.color,
+              border: `1px solid ${alpha(config.color, 0.3)}`,
+              '& .MuiChip-icon': { color: config.color },
+            }}
+          />
+        ) : <Chip label={params.value} size="small" />;
+      },
+    },
+    {
+      field: 'specialite', headerName: 'Spécialité / Établissement', flex: 1, minWidth: 160,
+      renderCell: (params) => (
+        <Typography variant="body2" color={params.value ? 'text.primary' : 'text.disabled'} noWrap>
+          {params.value || '—'}
+        </Typography>
+      ),
+    },
+    {
+      field: 'ville', headerName: 'Ville', width: 130,
+      renderCell: (params) => (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+          {params.value && <LocationOn sx={{ fontSize: 14, color: 'text.secondary' }} />}
+          <Typography variant="body2" color={params.value ? 'text.primary' : 'text.disabled'} noWrap>
+            {params.value || '—'}
+          </Typography>
+        </Box>
+      ),
+    },
+    {
+      field: 'isActive', headerName: 'Statut', width: 110,
+      renderCell: (params) => (
+        <Chip
+          icon={params.value ? <CheckCircle sx={{ fontSize: 16 }} /> : <Block sx={{ fontSize: 16 }} />}
+          label={params.value ? 'Actif' : 'Inactif'}
+          size="small"
+          sx={{
+            fontWeight: 600, fontSize: 12,
+            bgcolor: params.value ? '#e8f5e9' : '#ffebee',
+            color: params.value ? '#2e7d32' : '#d32f2f',
+            border: `1px solid ${params.value ? '#a5d6a7' : '#ef9a9a'}`,
+            '& .MuiChip-icon': { color: params.value ? '#2e7d32' : '#d32f2f' },
+          }}
+        />
+      ),
+    },
+    {
+      field: 'actions', headerName: '', width: 120, sortable: false,
+      renderCell: (params) => (
+        <Tooltip title={params.row.isActive ? 'Désactiver le compte' : 'Activer le compte'}>
+          <Button
+            size="small"
+            variant={params.row.isActive ? 'outlined' : 'contained'}
+            color={params.row.isActive ? 'error' : 'success'}
+            onClick={() => handleToggleActive(params.row.id, params.row.isActive)}
+            sx={{ textTransform: 'none', fontWeight: 600, borderRadius: 2, fontSize: 12 }}
+          >
+            {params.row.isActive ? 'Désactiver' : 'Activer'}
+          </Button>
+        </Tooltip>
       ),
     },
   ];
 
   return (
-    <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
-        <Typography variant="h4">Utilisateurs</Typography>
-        <Button variant="contained" startIcon={<Add />} onClick={() => setOpen(true)}>
+    <Box sx={{ animation: 'fadeIn 0.4s ease-out', '@keyframes fadeIn': { from: { opacity: 0 }, to: { opacity: 1 } } }}>
+      {/* Header */}
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+        <Box>
+          <Typography variant="h4" fontWeight={800} sx={{ letterSpacing: '-0.5px', display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <People sx={{ fontSize: 36, color: '#1976d2' }} />
+            Utilisateurs
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+            {users.length} comptes enregistrés
+          </Typography>
+        </Box>
+        <Button
+          variant="contained"
+          startIcon={<Add />}
+          onClick={() => setOpen(true)}
+          sx={{
+            borderRadius: 3, px: 3, py: 1.2, textTransform: 'none', fontWeight: 700, fontSize: '0.95rem',
+            boxShadow: '0 4px 14px rgba(25,118,210,0.3)',
+            '&:hover': { boxShadow: '0 6px 20px rgba(25,118,210,0.4)' },
+          }}
+        >
           Nouvel Utilisateur
         </Button>
       </Box>
 
-      <Card sx={{ overflow: 'hidden' }}>
+      {/* Role stat cards */}
+      <Grid container spacing={1.5} sx={{ mb: 3 }}>
+        {Object.entries(ROLE_CONFIG).map(([role, config]) => (
+          <Grid item xs={4} sm={2} key={role}>
+            <Paper
+              elevation={0}
+              onClick={() => setRoleFilter(roleFilter === role ? 'all' : role)}
+              sx={{
+                p: 1.5, textAlign: 'center', borderRadius: 2.5, cursor: 'pointer',
+                bgcolor: roleFilter === role ? config.bg : 'background.paper',
+                border: '2px solid',
+                borderColor: roleFilter === role ? config.color : 'transparent',
+                transition: 'all 0.25s ease',
+                '&:hover': { bgcolor: config.bg, borderColor: alpha(config.color, 0.4) },
+              }}
+            >
+              <Typography variant="h5" fontWeight={800} sx={{ color: config.color, lineHeight: 1.2 }}>
+                {roleCounts[role] || 0}
+              </Typography>
+              <Typography variant="caption" fontWeight={600} color="text.secondary" sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5, mt: 0.3 }}>
+                {config.icon} {config.label}s
+              </Typography>
+            </Paper>
+          </Grid>
+        ))}
+      </Grid>
+
+      {/* Search bar */}
+      <Paper variant="outlined" sx={{ mb: 2, borderRadius: 2.5 }}>
+        <TextField
+          fullWidth
+          placeholder="Rechercher par nom, email, spécialité..."
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+          variant="standard"
+          InputProps={{
+            disableUnderline: true,
+            startAdornment: <InputAdornment position="start" sx={{ ml: 1.5 }}><Search color="action" /></InputAdornment>,
+            endAdornment: searchQuery ? (
+              <InputAdornment position="end" sx={{ mr: 0.5 }}>
+                <IconButton size="small" onClick={() => setSearchQuery('')}><Close sx={{ fontSize: 18 }} /></IconButton>
+              </InputAdornment>
+            ) : null,
+            sx: { py: 1.2, fontSize: '0.95rem' },
+          }}
+        />
+      </Paper>
+
+      {/* Info bar */}
+      {(roleFilter !== 'all' || searchQuery) && (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+          <Typography variant="body2" color="text.secondary">
+            {filteredUsers.length} résultat{filteredUsers.length !== 1 ? 's' : ''}
+          </Typography>
+          {roleFilter !== 'all' && (
+            <Chip
+              label={ROLE_CONFIG[roleFilter]?.label || roleFilter}
+              size="small"
+              onDelete={() => setRoleFilter('all')}
+              sx={{ fontWeight: 600, bgcolor: ROLE_CONFIG[roleFilter]?.bg, color: ROLE_CONFIG[roleFilter]?.color }}
+            />
+          )}
+          {searchQuery && (
+            <Chip label={`"${searchQuery}"`} size="small" onDelete={() => setSearchQuery('')} sx={{ fontWeight: 600 }} />
+          )}
+        </Box>
+      )}
+
+      {/* Data Table */}
+      <Paper variant="outlined" sx={{ borderRadius: 3, overflow: 'hidden' }}>
         <DataGrid
-          rows={users}
+          rows={filteredUsers}
           columns={columns}
           autoHeight
-          pageSizeOptions={[10, 20]}
+          pageSizeOptions={[10, 20, 50]}
+          initialState={{ pagination: { paginationModel: { pageSize: 10 } } }}
           disableColumnResize
-          sx={{ '& .MuiDataGrid-scrollbar--horizontal': { display: 'none' } }}
+          disableRowSelectionOnClick
+          rowHeight={60}
+          sx={{
+            border: 'none',
+            '& .MuiDataGrid-columnHeaders': {
+              bgcolor: 'grey.50',
+              borderBottom: '2px solid',
+              borderColor: 'divider',
+            },
+            '& .MuiDataGrid-columnHeaderTitle': {
+              fontWeight: 700,
+              fontSize: 13,
+              color: 'text.secondary',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
+            },
+            '& .MuiDataGrid-row': {
+              transition: 'background 0.15s',
+              '&:hover': { bgcolor: 'action.hover' },
+            },
+            '& .MuiDataGrid-cell': { borderColor: 'divider' },
+            '& .MuiDataGrid-scrollbar--horizontal': { display: 'none' },
+          }}
         />
-      </Card>
+      </Paper>
 
       {/* ── DIALOG CRÉATION ── */}
       <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth
@@ -173,18 +389,20 @@ export default function Users() {
           {/* Sélecteur rôle */}
           <Box sx={{ display: 'flex', gap: 1.5, mb: 3, flexWrap: 'wrap' }}>
             {[
-              { role: UserRole.PATIENT,     label: 'Patient',     icon: <Person /> },
-              { role: UserRole.MEDECIN,     label: 'Médecin',     icon: <LocalHospital /> },
-              { role: UserRole.PHARMACIEN,  label: 'Pharmacien',  icon: <LocalPharmacy /> },
+              { role: UserRole.PATIENT, label: 'Patient', icon: <Person /> },
+              { role: UserRole.MEDECIN, label: 'Médecin', icon: <LocalHospital /> },
+              { role: UserRole.PHARMACIEN, label: 'Pharmacien', icon: <LocalPharmacy /> },
               { role: UserRole.LABORATOIRE, label: 'Laboratoire', icon: <Science /> },
             ].map(({ role, label, icon }) => (
               <Button key={role}
                 variant={formData.role === role ? 'contained' : 'outlined'}
                 onClick={() => handleRoleChange(role)}
                 startIcon={icon}
-                sx={{ borderRadius: 3, px: 2.5, py: 1, textTransform: 'none', fontWeight: 700,
+                sx={{
+                  borderRadius: 3, px: 2.5, py: 1, textTransform: 'none', fontWeight: 700,
                   borderWidth: formData.role === role ? 0 : 2,
-                  '&:hover': { borderWidth: formData.role === role ? 0 : 2 } }}
+                  '&:hover': { borderWidth: formData.role === role ? 0 : 2 }
+                }}
               >{label}</Button>
             ))}
           </Box>
@@ -298,8 +516,10 @@ export default function Users() {
           </Grid>
 
           <Button fullWidth variant="contained" size="large" onClick={handleCreate}
-            sx={{ mt: 3, py: 1.6, borderRadius: 3, fontWeight: 700, textTransform: 'none', fontSize: '1rem',
-              boxShadow: '0 6px 18px rgba(25,118,210,0.3)' }}>
+            sx={{
+              mt: 3, py: 1.6, borderRadius: 3, fontWeight: 700, textTransform: 'none', fontSize: '1rem',
+              boxShadow: '0 6px 18px rgba(25,118,210,0.3)'
+            }}>
             Créer le compte
           </Button>
         </DialogContent>

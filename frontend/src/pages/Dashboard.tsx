@@ -8,6 +8,7 @@ import {
   CalendarMonth, MedicalServices, LocalPharmacy, Science, Schedule,
   AccessTime, CheckCircle, Warning, ArrowForward, WbSunny, NightsStay,
   FolderShared, People, Add, Person, Cancel, HourglassEmpty,
+  AdminPanelSettings, LocalHospital, TrendingUp, Biotech, EventNote,
 } from '@mui/icons-material';
 import { OrdonnanceStatus } from '../types/ordonnance.types';
 import { useAuth } from '../context/AuthContext';
@@ -401,6 +402,246 @@ export default function Dashboard() {
           </Grid>
         </Box>
       )}
+
+      {/* ═══════════════ ADMIN DASHBOARD ═══════════════ */}
+      {isAdmin && (() => {
+        const totalUsers = adminStats.patients + adminStats.medecins + adminStats.pharmaciens + adminStats.laboratoires + adminStats.infirmiers;
+        const todayStr = new Date().toISOString().split('T')[0];
+        const todayAdminAppts = adminAppointments.filter((a: any) => a.date === todayStr);
+        const pendingAdminAppts = adminAppointments.filter((a: any) => a.status === AppointmentStatus.EN_ATTENTE);
+        const confirmedAdminAppts = adminAppointments.filter((a: any) => a.status === AppointmentStatus.CONFIRME);
+
+        const statCards = [
+          { title: 'Médecins',    value: adminStats.medecins,     icon: <MedicalServices />, color: '#1976d2', bg: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)' },
+          { title: 'Patients',    value: adminStats.patients,     icon: <People />,          color: '#2e7d32', bg: 'linear-gradient(135deg, #2e7d32 0%, #66bb6a 100%)' },
+          { title: 'Infirmiers',  value: adminStats.infirmiers,   icon: <LocalHospital />,   color: '#ed6c02', bg: 'linear-gradient(135deg, #ed6c02 0%, #ffa726 100%)' },
+          { title: 'Pharmaciens', value: adminStats.pharmaciens,  icon: <LocalPharmacy />,   color: '#9c27b0', bg: 'linear-gradient(135deg, #9c27b0 0%, #ba68c8 100%)' },
+          { title: 'Laboratoires',value: adminStats.laboratoires, icon: <Biotech />,         color: '#d32f2f', bg: 'linear-gradient(135deg, #d32f2f 0%, #ef5350 100%)' },
+          { title: 'Total RDV',   value: adminAppointments.length,icon: <CalendarMonth />,   color: '#0288d1', bg: 'linear-gradient(135deg, #0288d1 0%, #29b6f6 100%)' },
+        ];
+
+        return (
+          <Box sx={{ animation: 'fadeIn 0.5s ease-out', '@keyframes fadeIn': { from: { opacity: 0 }, to: { opacity: 1 } } }}>
+            {/* Header */}
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 4 }}>
+              <Box>
+                <Typography variant="h4" fontWeight={800} sx={{ letterSpacing: '-0.5px', display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                  <AdminPanelSettings sx={{ fontSize: 36, color: '#1976d2' }} />
+                  Tableau de bord Admin
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                  Vue d'ensemble de la plateforme SihatiLab — {totalUsers} utilisateurs inscrits
+                </Typography>
+              </Box>
+            </Box>
+
+            {/* Stats Cards */}
+            <Grid container spacing={2.5} sx={{ mb: 4 }}>
+              {statCards.map((card, index) => (
+                <Grid item xs={6} sm={4} md={2} key={card.title}>
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      p: 2.5,
+                      borderRadius: 3,
+                      background: card.bg,
+                      color: '#fff',
+                      position: 'relative',
+                      overflow: 'hidden',
+                      transition: 'all 0.3s ease',
+                      animation: `slideUp 0.4s ease-out ${index * 0.08}s backwards`,
+                      '@keyframes slideUp': { from: { opacity: 0, transform: 'translateY(20px)' }, to: { opacity: 1, transform: 'translateY(0)' } },
+                      '&:hover': { transform: 'translateY(-4px)', boxShadow: `0 12px 24px ${card.color}40` },
+                    }}
+                  >
+                    <Box sx={{ position: 'absolute', top: -10, right: -10, opacity: 0.15 }}>
+                      {React.cloneElement(card.icon, { sx: { fontSize: 80 } })}
+                    </Box>
+                    <Box sx={{ position: 'relative', zIndex: 1 }}>
+                      <Typography variant="h3" fontWeight={800} sx={{ lineHeight: 1.1 }}>{card.value}</Typography>
+                      <Typography variant="body2" sx={{ mt: 0.5, opacity: 0.9, fontWeight: 600 }}>{card.title}</Typography>
+                    </Box>
+                  </Paper>
+                </Grid>
+              ))}
+            </Grid>
+
+            {/* Main Content: 2 columns */}
+            <Grid container spacing={3}>
+              {/* Left Column: Médecins */}
+              <Grid item xs={12} md={7}>
+                <Paper variant="outlined" sx={{ borderRadius: 3, overflow: 'hidden' }}>
+                  <Box sx={{ p: 2.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid', borderColor: 'divider', bgcolor: 'grey.50' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                      <MedicalServices sx={{ color: '#1976d2' }} />
+                      <Typography variant="h6" fontWeight={700}>Médecins ({adminStats.medecins})</Typography>
+                    </Box>
+                    <Button size="small" onClick={() => navigate('/users')} endIcon={<ArrowForward />} sx={{ textTransform: 'none', fontWeight: 600 }}>
+                      Voir tous
+                    </Button>
+                  </Box>
+                  {medecinsList.length === 0 ? (
+                    <Box sx={{ p: 4, textAlign: 'center' }}>
+                      <Typography color="text.secondary">Aucun médecin inscrit.</Typography>
+                    </Box>
+                  ) : (
+                    <Box sx={{ maxHeight: 420, overflowY: 'auto' }}>
+                      {medecinsList.map((doc: any, i: number) => {
+                        const docPatients = adminAppointments.filter(
+                          (a: any) => a.doctorId === doc.id && (a.status === AppointmentStatus.CONFIRME || a.status === AppointmentStatus.TERMINE)
+                        );
+                        const uniquePatientIds = new Set(docPatients.map((a: any) => a.patientId));
+                        const docInfirmiers = allInfirmiers.filter((inf: any) => inf.createdBy === doc.id);
+
+                        return (
+                          <Box
+                            key={doc.id}
+                            sx={{
+                              p: 2,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 2,
+                              borderBottom: i < medecinsList.length - 1 ? '1px solid' : 'none',
+                              borderColor: 'divider',
+                              transition: 'background 0.2s',
+                              '&:hover': { bgcolor: 'action.hover' },
+                            }}
+                          >
+                            <Avatar sx={{ bgcolor: '#1976d2', width: 44, height: 44, fontWeight: 700, fontSize: 16 }}>
+                              {(doc.firstName?.[0] || '').toUpperCase()}{(doc.lastName?.[0] || '').toUpperCase()}
+                            </Avatar>
+                            <Box sx={{ flex: 1, minWidth: 0 }}>
+                              <Typography variant="subtitle2" fontWeight={700} noWrap>
+                                Dr. {doc.firstName} {doc.lastName}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary" noWrap>
+                                {doc.specialite || 'Généraliste'} — {doc.ville || 'Non spécifié'}
+                              </Typography>
+                            </Box>
+                            <Stack direction="row" spacing={1}>
+                              <Chip
+                                icon={<People sx={{ fontSize: 14 }} />}
+                                label={`${uniquePatientIds.size} patients`}
+                                size="small"
+                                sx={{ fontWeight: 600, bgcolor: '#e3f2fd', color: '#1565c0' }}
+                              />
+                              <Chip
+                                icon={<LocalHospital sx={{ fontSize: 14 }} />}
+                                label={`${docInfirmiers.length} inf.`}
+                                size="small"
+                                sx={{ fontWeight: 600, bgcolor: '#fff3e0', color: '#e65100' }}
+                              />
+                            </Stack>
+                          </Box>
+                        );
+                      })}
+                    </Box>
+                  )}
+                </Paper>
+              </Grid>
+
+              {/* Right Column: Today Appointments + Summary */}
+              <Grid item xs={12} md={5}>
+                <Stack spacing={3}>
+                  {/* Summary mini-cards */}
+                  <Paper variant="outlined" sx={{ borderRadius: 3, p: 2.5 }}>
+                    <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <TrendingUp sx={{ color: '#2e7d32' }} /> Résumé des rendez-vous
+                    </Typography>
+                    <Grid container spacing={1.5}>
+                      <Grid item xs={4}>
+                        <Box sx={{ textAlign: 'center', p: 1.5, borderRadius: 2, bgcolor: '#fff3e0' }}>
+                          <Typography variant="h5" fontWeight={800} color="#e65100">{pendingAdminAppts.length}</Typography>
+                          <Typography variant="caption" fontWeight={600} color="text.secondary">En attente</Typography>
+                        </Box>
+                      </Grid>
+                      <Grid item xs={4}>
+                        <Box sx={{ textAlign: 'center', p: 1.5, borderRadius: 2, bgcolor: '#e8f5e9' }}>
+                          <Typography variant="h5" fontWeight={800} color="#2e7d32">{confirmedAdminAppts.length}</Typography>
+                          <Typography variant="caption" fontWeight={600} color="text.secondary">Confirmés</Typography>
+                        </Box>
+                      </Grid>
+                      <Grid item xs={4}>
+                        <Box sx={{ textAlign: 'center', p: 1.5, borderRadius: 2, bgcolor: '#e3f2fd' }}>
+                          <Typography variant="h5" fontWeight={800} color="#1565c0">{todayAdminAppts.length}</Typography>
+                          <Typography variant="caption" fontWeight={600} color="text.secondary">Aujourd'hui</Typography>
+                        </Box>
+                      </Grid>
+                    </Grid>
+                  </Paper>
+
+                  {/* Recent Appointments */}
+                  <Paper variant="outlined" sx={{ borderRadius: 3, overflow: 'hidden' }}>
+                    <Box sx={{ p: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid', borderColor: 'divider', bgcolor: 'grey.50' }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <EventNote sx={{ color: '#e65100' }} />
+                        <Typography variant="subtitle1" fontWeight={700}>Rendez-vous récents</Typography>
+                      </Box>
+                      <Button size="small" onClick={() => navigate('/appointments')} endIcon={<ArrowForward />} sx={{ textTransform: 'none', fontWeight: 600 }}>
+                        Tout voir
+                      </Button>
+                    </Box>
+                    {adminAppointments.length === 0 ? (
+                      <Box sx={{ p: 4, textAlign: 'center' }}>
+                        <Typography color="text.secondary">Aucun rendez-vous.</Typography>
+                      </Box>
+                    ) : (
+                      <Box sx={{ maxHeight: 300, overflowY: 'auto' }}>
+                        {[...adminAppointments]
+                          .sort((a: any, b: any) => (b.date + b.time).localeCompare(a.date + a.time))
+                          .slice(0, 10)
+                          .map((apt: any) => (
+                            <Box
+                              key={apt.id}
+                              sx={{
+                                p: 1.5,
+                                px: 2,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 1.5,
+                                borderBottom: '1px solid',
+                                borderColor: 'divider',
+                                '&:last-child': { borderBottom: 'none' },
+                                '&:hover': { bgcolor: 'action.hover' },
+                              }}
+                            >
+                              <Avatar sx={{ bgcolor: '#e3f2fd', color: '#1976d2', width: 34, height: 34, fontSize: 13, fontWeight: 700 }}>
+                                {(apt.patient?.firstName?.[0] || '?').toUpperCase()}
+                              </Avatar>
+                              <Box sx={{ flex: 1, minWidth: 0 }}>
+                                <Typography variant="body2" fontWeight={600} noWrap>
+                                  {apt.patient?.firstName || 'Patient'} {apt.patient?.lastName || ''}
+                                </Typography>
+                                <Typography variant="caption" color="text.secondary">
+                                  {apt.date} à {apt.time?.substring(0, 5)} — Dr. {apt.doctor?.lastName || '?'}
+                                </Typography>
+                              </Box>
+                              <Chip
+                                label={
+                                  apt.status === AppointmentStatus.CONFIRME ? 'Confirmé' :
+                                  apt.status === AppointmentStatus.EN_ATTENTE ? 'En attente' :
+                                  apt.status === AppointmentStatus.ANNULE ? 'Annulé' :
+                                  apt.status === AppointmentStatus.TERMINE ? 'Terminé' : apt.status
+                                }
+                                color={
+                                  apt.status === AppointmentStatus.CONFIRME ? 'success' :
+                                  apt.status === AppointmentStatus.ANNULE ? 'error' :
+                                  apt.status === AppointmentStatus.EN_ATTENTE ? 'warning' : 'default'
+                                }
+                                size="small"
+                                sx={{ fontWeight: 600, fontSize: 11 }}
+                              />
+                            </Box>
+                          ))}
+                      </Box>
+                    )}
+                  </Paper>
+                </Stack>
+              </Grid>
+            </Grid>
+          </Box>
+        );
+      })()}
 
       {/* ═══════════════ PHARMACIE DASHBOARD ═══════════════ */}
       {isPharmacien && (() => {

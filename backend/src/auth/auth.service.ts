@@ -15,7 +15,7 @@ export class AuthService {
     private userRepository: Repository<User>,
     private jwtService: JwtService,
     private configService: ConfigService,
-  ) {}
+  ) { }
 
   async register(registerDto: RegisterDto) {
     const blockedRoles = ['infirmier', 'admin'];
@@ -23,10 +23,10 @@ export class AuthService {
       throw new ConflictException('Inscription non autorisée avec ce rôle');
     }
 
-    const existingUser = await this.userRepository.findOne({ 
-      where: { email: registerDto.email } 
+    const existingUser = await this.userRepository.findOne({
+      where: { email: registerDto.email }
     });
-    
+
     if (existingUser) {
       throw new ConflictException('Email already exists');
     }
@@ -48,10 +48,10 @@ export class AuthService {
   }
 
   async login(loginDto: LoginDto) {
-    const user = await this.userRepository.findOne({ 
-      where: { email: loginDto.email } 
+    const user = await this.userRepository.findOne({
+      where: { email: loginDto.email }
     });
-    
+
     if (!user || !user.isActive) {
       throw new UnauthorizedException('Invalid credentials');
     }
@@ -62,9 +62,9 @@ export class AuthService {
     }
 
     const tokens = await this.generateTokens(user);
-    
+
     const { password, ...userWithoutPassword } = user;
-    
+
     return {
       user: userWithoutPassword,
       ...tokens,
@@ -77,10 +77,10 @@ export class AuthService {
         secret: this.configService.get('JWT_REFRESH_SECRET'),
       });
 
-      const user = await this.userRepository.findOne({ 
-        where: { id: payload.sub } 
+      const user = await this.userRepository.findOne({
+        where: { id: payload.sub }
       });
-      
+
       if (!user || !user.isActive) {
         throw new UnauthorizedException();
       }
