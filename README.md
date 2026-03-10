@@ -329,7 +329,8 @@ npm run seed
 - Entités: 100%
 - Auth: 100%
 - Users: 100%
-- Modules: 30% (2/8)
+- Modules: 100% (9/9)
+- Tests: ✅ (Jest)
 - Documentation: 100%
 
 ### ✅ Frontend
