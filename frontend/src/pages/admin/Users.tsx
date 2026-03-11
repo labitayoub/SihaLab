@@ -121,6 +121,7 @@ export default function Users() {
     setCountryIso('');
     setPhoneError('');
     setShowPassword(false);
+    setSearchQuery('');
   };
 
   const handleCreate = async () => {
@@ -330,6 +331,9 @@ export default function Users() {
           value={searchQuery}
           onChange={e => setSearchQuery(e.target.value)}
           variant="standard"
+          name="user-search-filter"
+          autoComplete="new-password"
+          inputProps={{ autoComplete: 'new-password' }}
           InputProps={{
             disableUnderline: true,
             startAdornment: <InputAdornment position="start" sx={{ ml: 1.5 }}><Search color="action" /></InputAdornment>,
@@ -410,6 +414,7 @@ export default function Users() {
         </DialogTitle>
 
         <DialogContent sx={{ pt: 1 }}>
+          <form autoComplete="off" onSubmit={e => e.preventDefault()}>
           {/* Sélecteur rôle */}
           <Box sx={{ display: 'flex', gap: 1.5, mb: 3, flexWrap: 'wrap' }}>
             {[
@@ -546,6 +551,7 @@ export default function Users() {
             }}>
             Créer le compte
           </Button>
+          </form>
         </DialogContent>
       </Dialog>
     </Box>
