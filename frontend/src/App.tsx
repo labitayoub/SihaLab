@@ -1,30 +1,45 @@
 import React, { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider, createTheme, CssBaseline, Box, CircularProgress } from '@mui/material';
-import type {} from '@mui/x-data-grid/themeAugmentation';
+import type { } from '@mui/x-data-grid/themeAugmentation';
 import { AuthProvider } from './context/AuthContext';
 import { UserRole } from './types/user.types';
 import Layout from './components/layout/Layout';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import GuestRoute from './components/auth/GuestRoute';
 
-const Login = lazy(() => import('./pages/Login'));
-const Register = lazy(() => import('./pages/Register'));
-const Dashboard = lazy(() => import('./pages/Dashboard'));
-const Appointments = lazy(() => import('./pages/Appointments'));
-const Consultations = lazy(() => import('./pages/Consultations'));
-const Ordonnances = lazy(() => import('./pages/Ordonnances'));
-const Analyses = lazy(() => import('./pages/Analyses'));
-const Livraisons = lazy(() => import('./pages/Livraisons'));
-const Documents = lazy(() => import('./pages/Documents'));
-const Users = lazy(() => import('./pages/Users'));
-const Infirmiers = lazy(() => import('./pages/Infirmiers'));
-const DoctorSchedule = lazy(() => import('./pages/DoctorSchedule'));
-const DossierMedical = lazy(() => import('./pages/DossierMedical'));
-const MesPatients = lazy(() => import('./pages/MesPatients'));
-const ConsultationDetail = lazy(() => import('./pages/ConsultationDetail'));
-const Profile = lazy(() => import('./pages/Profile'));
-const Landing = lazy(() => import('./pages/Landing'));
+// Auth
+const Login = lazy(() => import('./pages/auth/Login'));
+const Register = lazy(() => import('./pages/auth/Register'));
+
+// Public
+const Landing = lazy(() => import('./pages/public/Landing'));
+
+// Dashboard
+const Dashboard = lazy(() => import('./pages/dashboard/Dashboard'));
+
+// Scheduling
+const Appointments = lazy(() => import('./pages/scheduling/Appointments'));
+const DoctorSchedule = lazy(() => import('./pages/scheduling/DoctorSchedule'));
+
+// Medical
+const Consultations = lazy(() => import('./pages/medical/Consultations'));
+const ConsultationDetail = lazy(() => import('./pages/medical/ConsultationDetail'));
+const Ordonnances = lazy(() => import('./pages/medical/Ordonnances'));
+const Analyses = lazy(() => import('./pages/medical/Analyses'));
+const DossierMedical = lazy(() => import('./pages/medical/DossierMedical'));
+const Documents = lazy(() => import('./pages/medical/Documents'));
+
+// Admin
+const Users = lazy(() => import('./pages/admin/Users'));
+const Infirmiers = lazy(() => import('./pages/admin/Infirmiers'));
+const MesPatients = lazy(() => import('./pages/admin/MesPatients'));
+
+// Pharmacy
+const Livraisons = lazy(() => import('./pages/pharmacy/Livraisons'));
+
+// Common
+const Profile = lazy(() => import('./pages/profile/Profile'));
 
 const PageLoader = () => (
   <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', bgcolor: '#f4f7f9' }}>

@@ -3,11 +3,11 @@ import { Box, Button, Card, Typography, Dialog, DialogTitle, DialogContent, Text
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { Add, Delete, Close, LocalPharmacy, CheckCircle, Visibility, Print } from '@mui/icons-material';
 import { Country, City } from 'country-state-city';
-import { useAuth } from '../context/AuthContext';
-import { UserRole } from '../types/user.types';
-import { Ordonnance, OrdonnanceStatus } from '../types/ordonnance.types';
-import api from '../config/api';
-import { toast } from '../utils/toast';
+import { useAuth } from '../../context/AuthContext';
+import { UserRole } from '../../types/user.types';
+import { Ordonnance, OrdonnanceStatus } from '../../types/ordonnance.types';
+import api from '../../config/api';
+import { toast } from '../../utils/toast';
 
 export default function Ordonnances() {
   const { user } = useAuth();

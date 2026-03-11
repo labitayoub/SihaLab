@@ -4,10 +4,10 @@ import {
   Divider, Chip, CircularProgress, IconButton, Tooltip,
 } from '@mui/material';
 import { Edit, Save, Cancel, CameraAlt, Person } from '@mui/icons-material';
-import { useAuth } from '../context/AuthContext';
-import { UserRole } from '../types/user.types';
-import api from '../config/api';
-import { toast } from '../utils/toast';
+import { useAuth } from '../../context/AuthContext';
+import { UserRole } from '../../types/user.types';
+import api from '../../config/api';
+import { toast } from '../../utils/toast';
 
 const ROLE_LABELS: Record<string, string> = {
   [UserRole.ADMIN]: 'Administrateur',

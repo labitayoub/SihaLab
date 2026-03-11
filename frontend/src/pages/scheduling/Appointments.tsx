@@ -8,12 +8,12 @@ import {
   Add, ChevronLeft, ChevronRight, AccessTime, EventBusy, LocationOn,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { UserRole } from '../types/user.types';
-import { Appointment, AppointmentStatus } from '../types/appointment.types';
-import { DoctorAvailability, DoctorSchedule } from '../types/schedule.types';
-import api from '../config/api';
-import { toast, confirm } from '../utils/toast';
+import { useAuth } from '../../context/AuthContext';
+import { UserRole } from '../../types/user.types';
+import { Appointment, AppointmentStatus } from '../../types/appointment.types';
+import { DoctorAvailability, DoctorSchedule } from '../../types/schedule.types';
+import api from '../../config/api';
+import { toast, confirm } from '../../utils/toast';
 
 const SHORT_DAY = ['Dim.', 'Lun.', 'Mar.', 'Mer.', 'Jeu.', 'Ven.', 'Sam.'];
 const MONTH_NAMES = [

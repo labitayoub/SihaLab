@@ -7,8 +7,8 @@ import {
 } from '@mui/material';
 import { Delete, Add, Save, CheckCircle, Edit, PictureAsPdf, Cancel, Download, Visibility, Close, PostAdd, LocalPharmacy, Science } from '@mui/icons-material';
 import { Country, City } from 'country-state-city';
-import { toast, confirm } from '../utils/toast';
-import api from '../config/api';
+import { toast, confirm } from '../../utils/toast';
+import api from '../../config/api';
 
 interface Medicament {
   nom: string;

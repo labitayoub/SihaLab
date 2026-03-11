@@ -8,13 +8,13 @@ import {
   ExpandMore, LocalPharmacy, Science, ArrowBack, PictureAsPdf,
   CheckCircle, HourglassEmpty, PlayArrow, Add as AddIcon, Print, Visibility, Description, PostAdd, Download,
 } from '@mui/icons-material';
-import { useAuth } from '../context/AuthContext';
-import { UserRole } from '../types/user.types';
-import { DossierMedical as DossierMedicalType, ConsultationWithDetails } from '../types/dossier.types';
-import { OrdonnanceStatus } from '../types/ordonnance.types';
-import { AnalyseStatus } from '../types/analyse.types';
-import api from '../config/api';
-import { toast } from '../utils/toast';
+import { useAuth } from '../../context/AuthContext';
+import { UserRole } from '../../types/user.types';
+import { DossierMedical as DossierMedicalType, ConsultationWithDetails } from '../../types/dossier.types';
+import { OrdonnanceStatus } from '../../types/ordonnance.types';
+import { AnalyseStatus } from '../../types/analyse.types';
+import api from '../../config/api';
+import { toast } from '../../utils/toast';
 
 function formatDate(d: string | null) {
   if (!d) return '—';

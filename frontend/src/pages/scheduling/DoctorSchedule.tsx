@@ -5,11 +5,11 @@ import {
   FormControlLabel, Divider, Chip, Alert, CircularProgress, Stack,
 } from '@mui/material';
 import { Schedule, Save, WbSunny, NightsStay, Restaurant } from '@mui/icons-material';
-import { DoctorSchedule as DoctorScheduleType, DayScheduleForm, DAY_LABELS } from '../types/schedule.types';
-import { useAuth } from '../context/AuthContext';
-import { UserRole } from '../types/user.types';
-import api from '../config/api';
-import { toast } from '../utils/toast';
+import { DoctorSchedule as DoctorScheduleType, DayScheduleForm, DAY_LABELS } from '../../types/schedule.types';
+import { useAuth } from '../../context/AuthContext';
+import { UserRole } from '../../types/user.types';
+import api from '../../config/api';
+import { toast } from '../../utils/toast';
 
 const DEFAULT_SCHEDULES: DayScheduleForm[] = [
   { dayOfWeek: 1, isActive: true, morningActive: true, morningStart: '08:00', morningEnd: '12:00', afternoonActive: true, afternoonStart: '14:00', afternoonEnd: '18:00', slotDuration: 30 },

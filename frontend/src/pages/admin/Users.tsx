@@ -13,9 +13,9 @@ import {
 } from '@mui/icons-material';
 import { Country, City } from 'country-state-city';
 import { isValidPhoneNumber, AsYouType } from 'libphonenumber-js';
-import { User, UserRole } from '../types/user.types';
-import api from '../config/api';
-import { toast } from '../utils/toast';
+import { User, UserRole } from '../../types/user.types';
+import api from '../../config/api';
+import { toast } from '../../utils/toast';
 import React from 'react';
 
 const ROLE_CONFIG: Record<string, { label: string; color: string; bg: string; icon: React.ReactElement }> = {

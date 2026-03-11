@@ -3,11 +3,11 @@ import { Box, Button, Card, Typography, Dialog, DialogTitle, DialogContent, Text
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { Add, Upload, Close, Biotech, CheckCircle } from '@mui/icons-material';
 import { Country, City } from 'country-state-city';
-import { useAuth } from '../context/AuthContext';
-import { UserRole } from '../types/user.types';
-import { Analyse, AnalyseStatus } from '../types/analyse.types';
-import api from '../config/api';
-import { toast } from '../utils/toast';
+import { useAuth } from '../../context/AuthContext';
+import { UserRole } from '../../types/user.types';
+import { Analyse, AnalyseStatus } from '../../types/analyse.types';
+import api from '../../config/api';
+import { toast } from '../../utils/toast';
 
 export default function Analyses() {
   const { user } = useAuth();

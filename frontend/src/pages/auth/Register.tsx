@@ -4,8 +4,8 @@ import { Box, Card, TextField, Button, Typography, Container, MenuItem, Grid, Ic
 import { ArrowBack, Visibility, VisibilityOff, Email, Badge, Phone, LocationOn, Lock, LocalHospital, Science, LocalPharmacy, Person } from '@mui/icons-material';
 import { Country, City } from 'country-state-city';
 import { isValidPhoneNumber, parsePhoneNumber, AsYouType } from 'libphonenumber-js';
-import { useAuth } from '../context/AuthContext';
-import { UserRole } from '../types/user.types';
+import { useAuth } from '../../context/AuthContext';
+import { UserRole } from '../../types/user.types';
 
 export default function Register() {
   const [formData, setFormData] = useState({

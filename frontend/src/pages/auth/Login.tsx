@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Box, Card, TextField, Button, Typography, Container, InputAdornment, IconButton, Grid } from '@mui/material';
 import { MailOutline, LockOutlined, Visibility, VisibilityOff, ArrowBack } from '@mui/icons-material';
-import { useAuth } from '../context/AuthContext';
-import { toast } from '../utils/toast';
+import { useAuth } from '../../context/AuthContext';
+import { toast } from '../../utils/toast';
 
 export default function Login() {
   const [email, setEmail] = useState('');

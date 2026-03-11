@@ -2,10 +2,10 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Box, Typography, Paper, Button, CircularProgress, Alert } from '@mui/material';
 import { People, FolderShared } from '@mui/icons-material';
-import { useAuth } from '../context/AuthContext';
-import { User } from '../types/user.types';
-import api from '../config/api';
-import { toast } from '../utils/toast';
+import { useAuth } from '../../context/AuthContext';
+import { User } from '../../types/user.types';
+import api from '../../config/api';
+import { toast } from '../../utils/toast';
 
 export default function MesPatients() {
   const { user } = useAuth();

@@ -2,9 +2,9 @@ import { useEffect, useState } from 'react';
 import { Box, Button, Card, Typography, Dialog, DialogTitle, DialogContent, TextField, Chip, IconButton, Tooltip } from '@mui/material';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { Add, ToggleOn, ToggleOff, Close } from '@mui/icons-material';
-import { User } from '../types/user.types';
-import api from '../config/api';
-import { toast } from '../utils/toast';
+import { User } from '../../types/user.types';
+import api from '../../config/api';
+import { toast } from '../../utils/toast';
 
 export default function Infirmiers() {
   const [infirmiers, setInfirmiers] = useState<User[]>([]);

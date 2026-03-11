@@ -10,13 +10,13 @@ import {
   FolderShared, People, Add, Person, Cancel, HourglassEmpty,
   AdminPanelSettings, LocalHospital, TrendingUp, Biotech, EventNote,
 } from '@mui/icons-material';
-import { OrdonnanceStatus } from '../types/ordonnance.types';
-import { useAuth } from '../context/AuthContext';
-import { UserRole, User } from '../types/user.types';
-import { DoctorSchedule, DAY_LABELS } from '../types/schedule.types';
-import { Appointment, AppointmentStatus } from '../types/appointment.types';
-import api from '../config/api';
-import { toast, confirm } from '../utils/toast';
+import { OrdonnanceStatus } from '../../types/ordonnance.types';
+import { useAuth } from '../../context/AuthContext';
+import { UserRole, User } from '../../types/user.types';
+import { DoctorSchedule, DAY_LABELS } from '../../types/schedule.types';
+import { Appointment, AppointmentStatus } from '../../types/appointment.types';
+import api from '../../config/api';
+import { toast, confirm } from '../../utils/toast';
 
 export default function Dashboard() {
   const { user } = useAuth();

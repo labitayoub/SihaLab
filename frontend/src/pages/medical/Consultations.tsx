@@ -12,14 +12,14 @@ import {
 } from '@mui/icons-material';
 import { Country, City } from 'country-state-city';
 import { isValidPhoneNumber, AsYouType } from 'libphonenumber-js';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../../context/AuthContext';
 import { useEffect as useEffectPharma, useState as useStatePharma } from 'react';
-import { UserRole } from '../types/user.types';
-import { ConsultationWithDetails } from '../types/dossier.types';
-import { OrdonnanceStatus } from '../types/ordonnance.types';
-import { AnalyseStatus } from '../types/analyse.types';
-import api from '../config/api';
-import { toast } from '../utils/toast';
+import { UserRole } from '../../types/user.types';
+import { ConsultationWithDetails } from '../../types/dossier.types';
+import { OrdonnanceStatus } from '../../types/ordonnance.types';
+import { AnalyseStatus } from '../../types/analyse.types';
+import api from '../../config/api';
+import { toast } from '../../utils/toast';
 
 function formatDate(d: string | null) {
   if (!d) return '—';
