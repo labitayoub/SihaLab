@@ -243,17 +243,19 @@ export default function Users() {
     {
       field: 'actions', headerName: '', width: 120, sortable: false,
       renderCell: (params) => (
-        <Tooltip title={params.row.isActive ? 'Désactiver le compte' : 'Activer le compte'}>
-          <Button
-            size="small"
-            variant={params.row.isActive ? 'outlined' : 'contained'}
-            color={params.row.isActive ? 'error' : 'success'}
-            onClick={() => handleToggleActive(params.row.id, params.row.isActive)}
-            sx={{ textTransform: 'none', fontWeight: 600, borderRadius: 2, fontSize: 12 }}
-          >
-            {params.row.isActive ? 'Désactiver' : 'Activer'}
-          </Button>
-        </Tooltip>
+        params.row.role === UserRole.ADMIN ? null : (
+          <Tooltip title={params.row.isActive ? 'Désactiver le compte' : 'Activer le compte'}>
+            <Button
+              size="small"
+              variant={params.row.isActive ? 'outlined' : 'contained'}
+              color={params.row.isActive ? 'error' : 'success'}
+              onClick={() => handleToggleActive(params.row.id, params.row.isActive)}
+              sx={{ textTransform: 'none', fontWeight: 600, borderRadius: 2, fontSize: 12 }}
+            >
+              {params.row.isActive ? 'Désactiver' : 'Activer'}
+            </Button>
+          </Tooltip>
+        )
       ),
     },
   ];
