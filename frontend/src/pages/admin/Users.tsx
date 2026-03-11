@@ -250,7 +250,15 @@ export default function Users() {
               variant={params.row.isActive ? 'outlined' : 'contained'}
               color={params.row.isActive ? 'error' : 'success'}
               onClick={() => handleToggleActive(params.row.id, params.row.isActive)}
-              sx={{ textTransform: 'none', fontWeight: 600, borderRadius: 2, fontSize: 12 }}
+              sx={{ 
+                textTransform: 'none', 
+                fontWeight: 600, 
+                borderRadius: 2, 
+                fontSize: 12,
+                minWidth: 95,
+                height: 32,
+                whiteSpace: 'nowrap' 
+              }}
             >
               {params.row.isActive ? 'Désactiver' : 'Activer'}
             </Button>
@@ -362,7 +370,10 @@ export default function Users() {
           columns={columns}
           autoHeight
           pageSizeOptions={[10, 20, 50]}
-          initialState={{ pagination: { paginationModel: { pageSize: 10 } } }}
+          initialState={{ 
+            pagination: { paginationModel: { pageSize: 10 } },
+            sorting: { sortModel: [{ field: 'user', sort: 'asc' }] }
+          }}
           disableColumnResize
           disableRowSelectionOnClick
           rowHeight={60}
