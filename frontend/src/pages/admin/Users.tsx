@@ -194,19 +194,30 @@ export default function Users() {
       },
     },
     {
-      field: 'specialite', headerName: 'Spécialité / Établissement', flex: 1, minWidth: 160,
+      field: 'specialite',
+      headerName: 'Spécialité / Établissement',
+      flex: 1,
+      minWidth: 160,
+      align: 'center',
+      headerAlign: 'center',
       renderCell: (params) => (
-        <Typography variant="body2" color={params.value ? 'text.primary' : 'text.disabled'} noWrap>
-          {params.value || '—'}
-        </Typography>
+        <Box sx={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', p: 0, m: 0 }}>
+          <Typography variant="body2" color={params.value ? 'text.primary' : 'text.disabled'} noWrap sx={{ width: '100%', textAlign: 'center', lineHeight: 'normal', p: 0, m: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            {params.value || '—'}
+          </Typography>
+        </Box>
       ),
     },
     {
-      field: 'ville', headerName: 'Ville', width: 130,
+      field: 'ville',
+      headerName: 'Ville',
+      width: 130,
+      align: 'center',
+      headerAlign: 'center',
       renderCell: (params) => (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+        <Box sx={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5, p: 0, m: 0 }}>
           {params.value && <LocationOn sx={{ fontSize: 14, color: 'text.secondary' }} />}
-          <Typography variant="body2" color={params.value ? 'text.primary' : 'text.disabled'} noWrap>
+          <Typography variant="body2" color={params.value ? 'text.primary' : 'text.disabled'} noWrap sx={{ width: '100%', textAlign: 'center', lineHeight: 'normal', p: 0, m: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             {params.value || '—'}
           </Typography>
         </Box>
