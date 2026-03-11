@@ -431,7 +431,7 @@ export default function Users() {
             ))}
           </Box>
 
-          <Grid container spacing={2}>
+          <Grid container spacing={3}>
             {/* Prénom + Nom */}
             <Grid item xs={12} sm={6}>
               <TextField fullWidth label="Prénom" required variant="outlined" value={formData.firstName}
@@ -449,6 +449,38 @@ export default function Users() {
               <TextField fullWidth label="Adresse Email" type="email" required variant="outlined" value={formData.email}
                 onChange={e => setFormData(p => ({ ...p, email: e.target.value }))}
                 InputProps={{ startAdornment: <InputAdornment position="start"><Email color="action" /></InputAdornment> }} />
+            </Grid>
+
+            {/* Pays */}
+            <Grid item xs={12} sm={6}>
+              <Autocomplete
+                options={allCountries}
+                getOptionLabel={opt => `${(opt as any).flag ?? ''} ${(opt as any).name}`}
+                isOptionEqualToValue={(opt, val) => (opt as any).isoCode === (val as any).isoCode}
+                value={allCountries.find(c => c.isoCode === countryIso) ?? null}
+                onChange={(_, country: any) =>
+                  country ? handleCountryChange(country.isoCode, country.name) : handleCountryChange('', '')
+                }
+                renderInput={params => <TextField {...params} label="Pays" required variant="outlined" />}
+              />
+            </Grid>
+
+            {/* Ville */}
+            <Grid item xs={12} sm={6}>
+              {cities.length > 0 ? (
+                <TextField select fullWidth label="Ville" required variant="outlined" value={formData.ville}
+                  onChange={e => setFormData(p => ({ ...p, ville: e.target.value }))}
+                  InputProps={{ startAdornment: <InputAdornment position="start"><LocationOn color="action" /></InputAdornment> }}>
+                  {cities.map(c => (
+                    <MenuItem key={`${c.name}-${(c as any).stateCode ?? ''}`} value={c.name}>{c.name}</MenuItem>
+                  ))}
+                </TextField>
+              ) : (
+                <TextField fullWidth label="Ville" required variant="outlined" value={formData.ville}
+                  onChange={e => setFormData(p => ({ ...p, ville: e.target.value }))}
+                  helperText={!countryIso ? "Sélectionnez d'abord un pays" : ''}
+                  InputProps={{ startAdornment: <InputAdornment position="start"><LocationOn color="action" /></InputAdornment> }} />
+              )}
             </Grid>
 
             {/* Téléphone + Mot de passe */}
@@ -505,38 +537,6 @@ export default function Users() {
                   onChange={e => setFormData(p => ({ ...p, specialite: e.target.value }))} />
               </Grid>
             )}
-
-            {/* Pays */}
-            <Grid item xs={12} sm={6}>
-              <Autocomplete
-                options={allCountries}
-                getOptionLabel={opt => `${(opt as any).flag ?? ''} ${(opt as any).name}`}
-                isOptionEqualToValue={(opt, val) => (opt as any).isoCode === (val as any).isoCode}
-                value={allCountries.find(c => c.isoCode === countryIso) ?? null}
-                onChange={(_, country: any) =>
-                  country ? handleCountryChange(country.isoCode, country.name) : handleCountryChange('', '')
-                }
-                renderInput={params => <TextField {...params} label="Pays" required variant="outlined" />}
-              />
-            </Grid>
-
-            {/* Ville */}
-            <Grid item xs={12} sm={6}>
-              {cities.length > 0 ? (
-                <TextField select fullWidth label="Ville" required variant="outlined" value={formData.ville}
-                  onChange={e => setFormData(p => ({ ...p, ville: e.target.value }))}
-                  InputProps={{ startAdornment: <InputAdornment position="start"><LocationOn color="action" /></InputAdornment> }}>
-                  {cities.map(c => (
-                    <MenuItem key={`${c.name}-${(c as any).stateCode ?? ''}`} value={c.name}>{c.name}</MenuItem>
-                  ))}
-                </TextField>
-              ) : (
-                <TextField fullWidth label="Ville" required variant="outlined" value={formData.ville}
-                  onChange={e => setFormData(p => ({ ...p, ville: e.target.value }))}
-                  helperText={!countryIso ? "Sélectionnez d'abord un pays" : ''}
-                  InputProps={{ startAdornment: <InputAdornment position="start"><LocationOn color="action" /></InputAdornment> }} />
-              )}
-            </Grid>
           </Grid>
 
           <Button fullWidth variant="contained" size="large" onClick={handleCreate}
