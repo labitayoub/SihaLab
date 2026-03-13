@@ -11,6 +11,162 @@ import { toast } from '../../utils/toast';
 
 type OrdonnanceWithPdf = Ordonnance & { pdfUrl?: string };
 
+type OrdonnanceViewProps = {
+  ordonnance: Ordonnance;
+};
+
+const CaduceusLogo = () => (
+  <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <path d="M50 5 L50 95 M46 92 L50 98 L54 92 M35 25 C45 25 50 15 50 10 C50 15 55 25 65 25 C80 25 85 30 85 35 C85 45 70 45 60 40 C55 37 45 37 40 40 C30 45 15 45 15 35 C15 30 20 25 35 25 Z" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M40 50 C30 50 30 40 40 40 C50 40 50 50 60 50 C70 50 70 60 60 60 C50 60 50 70 40 70 C30 70 30 80 40 80 M60 50 C70 50 70 40 60 40 C50 40 50 50 40 50 C30 50 30 60 40 60 C50 60 50 70 60 70 C70 70 70 80 60 80" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+    <circle cx="50" cy="10" r="4" fill="currentColor" />
+  </svg>
+);
+
+function OrdonnanceView({ ordonnance }: OrdonnanceViewProps) {
+  return (
+    <>
+      <style>{`
+        .ordonnance-a4 {
+          position: relative;
+          width: 210mm;
+          height: 297mm;
+          background: #ffffff;
+          margin: 0 auto;
+          overflow: hidden;
+          padding: 16mm 12mm 10mm;
+          font-family: 'Inter', sans-serif;
+          color: #334155;
+          border-radius: 4px;
+          box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .watermark-bg {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          width: 420px;
+          height: 420px;
+          opacity: 0.05;
+          color: #0f172a;
+          pointer-events: none;
+          z-index: 0;
+        }
+        .content-layer { position: relative; z-index: 1; }
+        .header-flex { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
+        .dr-name { font-size: 26px; font-weight: 700; color: #0f172a; line-height: 1.2; }
+        .dr-spec { font-size: 13px; color: #475569; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
+        .contact-info { text-align: left; max-width: 250px; font-size: 11px; color: #475569; line-height: 1.5; }
+        .minimal-divider { border-top: 1px solid #e2e8f0; margin: 16px 0 18px; }
+        .doc-title { text-align: center; margin-bottom: 18px; }
+        .doc-title h1 { font-size: 20px; font-weight: 700; color: #0f172a; letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 10px; }
+        .meta-row { display: flex; justify-content: space-between; font-size: 12px; color: #64748b; }
+        .patient-box { background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px 12px; margin-bottom: 16px; }
+        .patient-label { font-size: 10px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px; }
+        .patient-val { font-size: 14px; font-weight: 600; color: #0f172a; }
+        .section-heading { font-size: 16px; font-weight: 700; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; }
+        .analysis-grid { display: grid; grid-template-columns: 180px 1fr; padding: 4px 0; margin-bottom: 8px; }
+        .analysis-label { color: #64748b; font-size: 12px; font-weight: 500; }
+        .analysis-val { color: #334155; font-size: 13px; }
+        .med-content { max-height: 600px; overflow: hidden; padding-bottom: 192px; }
+        .med-list { display: grid; gap: 8px; }
+        .med-item { border: 1px dashed #cbd5e1; border-radius: 6px; padding: 10px 12px; background: #ffffff; }
+        .med-name { font-weight: 700; color: #0f172a; margin-bottom: 3px; font-size: 15px; }
+        .med-meta { font-size: 12px; color: #475569; line-height: 1.5; }
+        .signature-area { position: absolute; bottom: 160px; right: 48px; display: flex; justify-content: flex-end; }
+        .signature-box { text-align: center; width: 240px; }
+        .signature-title { font-size: 13px; font-weight: 600; color: #0f172a; border-bottom: 1px dashed #cbd5e1; padding-bottom: 8px; }
+        .doc-footer { position: absolute; bottom: 32px; left: 48px; right: 48px; text-align: center; font-size: 11px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 16px; }
+        @media print {
+          @page { size: A4; margin: 0; }
+          body { margin: 0; padding: 0; background: #ffffff; }
+          .ordonnance-a4 { box-shadow: none; border-radius: 0; }
+          .no-print { display: none !important; }
+        }
+      `}</style>
+
+      <div className="ordonnance-a4">
+        <div className="watermark-bg">
+          <CaduceusLogo />
+        </div>
+
+        <div className="content-layer">
+          <div className="header-flex">
+            <div>
+              <div className="dr-name">
+                Dr. {ordonnance.consultation?.doctor?.firstName} {ordonnance.consultation?.doctor?.lastName}
+              </div>
+              <div className="dr-spec">
+                {ordonnance.consultation?.doctor?.specialite || 'MEDECIN GENERALISTE'}
+              </div>
+            </div>
+
+            <div className="contact-info">
+              {ordonnance.consultation?.doctor?.address && <div>{ordonnance.consultation.doctor.address}</div>}
+              {ordonnance.consultation?.doctor?.ville && <div>{ordonnance.consultation.doctor.ville}</div>}
+              {ordonnance.consultation?.doctor?.phone && <div>Tel : {ordonnance.consultation.doctor.phone}</div>}
+            </div>
+          </div>
+
+          <div className="minimal-divider" />
+
+          <div className="doc-title">
+            <h1>Ordonnance Medicale</h1>
+            <div className="meta-row">
+              <span>Reference : OR-{ordonnance.id.substring(0, 8).toUpperCase()}</span>
+              <span>Date : {new Date(ordonnance.createdAt).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}</span>
+            </div>
+          </div>
+
+          <div className="patient-box">
+            <div className="patient-label">Nom Complet</div>
+            <div className="patient-val">
+              {ordonnance.consultation?.patient?.lastName?.toUpperCase()} {ordonnance.consultation?.patient?.firstName}
+            </div>
+          </div>
+
+          <div className="med-content">
+            <div className="section-heading">Prescription</div>
+
+            {ordonnance.pharmacien && (
+              <div className="analysis-grid">
+                <div className="analysis-label">Pharmacie assignee</div>
+                <div className="analysis-val">{ordonnance.pharmacien.firstName} {ordonnance.pharmacien.lastName}</div>
+              </div>
+            )}
+
+            <div className="med-list">
+              {ordonnance.medicaments?.map((med: any, idx: number) => (
+                <div className="med-item" key={`${med.nom}-${idx}`}>
+                  <div className="med-name">{idx + 1}. {med.nom || 'Medicament'}</div>
+                  <div className="med-meta">
+                    Dosage : {med.dosage || '-'} | Frequence : {med.frequence || '-'} | Duree : {med.duree || '-'}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="signature-area">
+          <div className="signature-box">
+            <div className="signature-title">Signature et Cachet du Medecin</div>
+          </div>
+        </div>
+
+        <div className="doc-footer">
+          <div>
+            {ordonnance.consultation?.doctor?.address} {ordonnance.consultation?.doctor?.address && ordonnance.consultation?.doctor?.ville ? '-' : ''} {ordonnance.consultation?.doctor?.ville}
+          </div>
+          <div style={{ fontSize: '9px', marginTop: '6px' }}>
+            {ordonnance.consultation?.doctor?.phone ? `Tel : ${ordonnance.consultation.doctor.phone}` : ''}
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
 export default function Ordonnances() {
   const { user } = useAuth();
   const [ordonnances, setOrdonnances] = useState<Ordonnance[]>([]);
@@ -157,13 +313,17 @@ export default function Ordonnances() {
             * { margin: 0; padding: 0; box-sizing: border-box; }
             body {
               font-family: 'Inter', sans-serif;
-              background-color: #f1f5f9;
+              background-color: #ffffff;
               color: #334155;
-              padding: 40px;
+              padding: 0;
+              margin: 0;
+            }
+            .no-print {
+              display: none !important;
             }
             @media print {
-              @page { margin: 0; }
-              body { margin: 1cm; background: transparent; padding: 0; }
+              @page { size: A4; margin: 0; }
+              body { margin: 0; background: transparent; padding: 0; }
             }
           </style>
         </head>
@@ -178,14 +338,6 @@ export default function Ordonnances() {
 
   const getPdfUrl = (ordonnance: Ordonnance | null) => (ordonnance as OrdonnanceWithPdf | null)?.pdfUrl;
   const selectedPdfUrl = getPdfUrl(viewOrdonnance);
-
-  const CaduceusLogo = () => (
-    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-      <path d="M50 5 L50 95 M46 92 L50 98 L54 92 M35 25 C45 25 50 15 50 10 C50 15 55 25 65 25 C80 25 85 30 85 35 C85 45 70 45 60 40 C55 37 45 37 40 40 C30 45 15 45 15 35 C15 30 20 25 35 25 Z" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M40 50 C30 50 30 40 40 40 C50 40 50 50 60 50 C70 50 70 60 60 60 C50 60 50 70 40 70 C30 70 30 80 40 80 M60 50 C70 50 70 40 60 40 C50 40 50 50 40 50 C30 50 30 60 40 60 C50 60 50 70 60 70 C70 70 70 80 60 80" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-      <circle cx="50" cy="10" r="4" fill="currentColor" />
-    </svg>
-  );
 
   const columns: GridColDef[] = [
     { field: 'createdAt', headerName: 'Date', width: 155, valueFormatter: (params) => new Date(params).toLocaleString('fr-FR') },
@@ -294,116 +446,7 @@ export default function Ordonnances() {
         <DialogContent sx={{ bgcolor: '#e2e8f0', p: { xs: 2, md: 4 } }}>
           {viewOrdonnance && (
             <Box ref={printRef}>
-              <style>{`
-                .a4-container { background: #ffffff; max-width: 210mm; min-height: 297mm; margin: 0 auto; padding: 80px 60px 40px; position: relative; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); font-family: 'Inter', sans-serif; color: #334155; border-radius: 4px; overflow: hidden; }
-                .watermark-bg { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 450px; height: 450px; opacity: 0.04; color: #0f172a; pointer-events: none; z-index: 0; }
-                .content-layer { position: relative; z-index: 1; min-height: calc(100% - 100px); }
-                .text-navy { color: #0f172a; } .text-slate { color: #475569; } .font-bold { font-weight: 700; } .font-medium { font-weight: 500; } .text-xs { font-size: 11px; }
-                .header-flex { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
-                .dr-info { max-width: 50%; } .dr-name { font-size: 22px; margin-bottom: 4px; letter-spacing: -0.5px; } .dr-spec { font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; }
-                .contact-info { text-align: left; line-height: 1.6; }
-                .minimal-divider { border-top: 1px solid #e2e8f0; margin: 24px 0 32px 0; }
-                .doc-title { text-align: center; margin-bottom: 32px; }
-                .doc-title h1 { font-size: 20px; font-weight: 700; color: #0f172a; letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 12px; }
-                .meta-row { display: flex; justify-content: space-between; font-size: 13px; color: #475569; padding: 0 20px; }
-                .patient-box { background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 20px; margin-bottom: 36px; }
-                .patient-label { font-size: 12px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
-                .patient-val { font-size: 15px; font-weight: 600; color: #0f172a; }
-                .section-heading { font-size: 16px; font-weight: 700; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 20px; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px; }
-                .analysis-grid { display: grid; grid-template-columns: 180px 1fr; padding: 6px 0; }
-                .analysis-label { color: #64748b; font-size: 13px; font-weight: 500; }
-                .analysis-val { color: #334155; font-size: 14px; }
-                .med-list { margin-top: 20px; display: grid; gap: 10px; }
-                .med-item { border: 1px dashed #cbd5e1; border-radius: 6px; padding: 12px 14px; background: #ffffff; }
-                .med-name { font-weight: 700; color: #0f172a; margin-bottom: 4px; }
-                .med-meta { font-size: 13px; color: #475569; line-height: 1.6; }
-                .signature-area { position: absolute; bottom: 128px; right: 60px; display: flex; justify-content: flex-end; }
-                .signature-box { text-align: center; width: 220px; }
-                .signature-title { font-size: 13px; font-weight: 600; color: #0f172a; border-bottom: 1px dashed #cbd5e1; padding-bottom: 8px; margin-bottom: 60px; }
-                .doc-footer { position: absolute; bottom: 32px; left: 48px; right: 48px; text-align: center; font-size: 11px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 16px; }
-                @media print { @page { margin: 0; } body { margin: 1cm; } .a4-container { box-shadow: none !important; border-radius: 0; padding: 30px 40px; } }
-              `}</style>
-
-              <div className="a4-container">
-                <div className="watermark-bg">
-                  <CaduceusLogo />
-                </div>
-
-                <div className="content-layer">
-                  <div className="header-flex">
-                    <div className="dr-info">
-                      <div className="dr-name text-navy font-bold">
-                        Dr. {viewOrdonnance.consultation?.doctor?.firstName} {viewOrdonnance.consultation?.doctor?.lastName}
-                      </div>
-                      <div className="dr-spec text-slate font-medium">
-                        {viewOrdonnance.consultation?.doctor?.specialite || 'MEDECIN GENERALISTE'}
-                      </div>
-                    </div>
-
-                    <div className="contact-info text-xs text-slate">
-                      {viewOrdonnance.consultation?.doctor?.address && <div>{viewOrdonnance.consultation.doctor.address}</div>}
-                      {viewOrdonnance.consultation?.doctor?.ville && <div>{viewOrdonnance.consultation.doctor.ville}</div>}
-                      {viewOrdonnance.consultation?.doctor?.phone && <div style={{ marginTop: '4px' }}>Tel : {viewOrdonnance.consultation.doctor.phone}</div>}
-                    </div>
-                  </div>
-
-                  <div className="minimal-divider" />
-
-                  <div className="doc-title">
-                    <h1>Ordonnance Medicale</h1>
-                    <div className="meta-row">
-                      <span>Reference : OR-{viewOrdonnance.id.substring(0, 8).toUpperCase()}</span>
-                      <span>Date : {new Date(viewOrdonnance.createdAt).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}</span>
-                    </div>
-                  </div>
-
-                  <div className="patient-box">
-                    <div>
-                      <div className="patient-label">Nom Complet</div>
-                      <div className="patient-val text-navy">
-                        {viewOrdonnance.consultation?.patient?.lastName?.toUpperCase()} {viewOrdonnance.consultation?.patient?.firstName}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="section-heading">Prescription</div>
-
-                    {viewOrdonnance.pharmacien && (
-                      <div className="analysis-grid" style={{ marginTop: '8px' }}>
-                        <div className="analysis-label">Pharmacie assignee</div>
-                        <div className="analysis-val">{viewOrdonnance.pharmacien.firstName} {viewOrdonnance.pharmacien.lastName}</div>
-                      </div>
-                    )}
-
-                    <div className="med-list">
-                      {viewOrdonnance.medicaments?.map((med: any, idx: number) => (
-                        <div className="med-item" key={`${med.nom}-${idx}`}>
-                          <div className="med-name">{idx + 1}. {med.nom || 'Medicament'}</div>
-                          <div className="med-meta">
-                            Dosage : {med.dosage || '-'} | Frequence : {med.frequence || '-'} | Duree : {med.duree || '-'}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="signature-area">
-                    <div className="signature-box">
-                      <div className="signature-title">Signature et Cachet du Medecin</div>
-                    </div>
-                  </div>
-
-                  <div className="doc-footer">
-                    <div>
-                      {viewOrdonnance.consultation?.doctor?.address} {viewOrdonnance.consultation?.doctor?.address && viewOrdonnance.consultation?.doctor?.ville ? '-' : ''} {viewOrdonnance.consultation?.doctor?.ville}
-                    </div>
-                    <div style={{ fontSize: '9px', marginTop: '6px' }}>
-                      {viewOrdonnance.consultation?.doctor?.phone ? `Tel : ${viewOrdonnance.consultation.doctor.phone}` : ''}
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <OrdonnanceView ordonnance={viewOrdonnance} />
             </Box>
           )}
         </DialogContent>
