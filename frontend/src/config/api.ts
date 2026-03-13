@@ -36,7 +36,8 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    // Only handle 401 for token refresh, not for login errors
+    if (error.response?.status === 401 && !originalRequest._retry && !originalRequest.url?.includes('/auth/login')) {
       originalRequest._retry = true;
 
       try {
@@ -61,7 +62,8 @@ api.interceptors.response.use(
         return api(originalRequest);
       } catch (err) {
         localStorage.clear();
-        window.location.href = '/login';
+        // Don't use window.location.href - let React Router handle navigation
+        // The app will redirect to login via the auth context
         return Promise.reject(err);
       }
     }

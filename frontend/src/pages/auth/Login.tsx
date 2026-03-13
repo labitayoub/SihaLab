@@ -4,21 +4,27 @@ import { Box, Card, TextField, Button, Typography, Container, InputAdornment, Ic
 import { MailOutline, LockOutlined, Visibility, VisibilityOff, ArrowBack } from '@mui/icons-material';
 import { useAuth } from '../../context/AuthContext';
 import { toast } from '../../utils/toast';
+import { ToastMessages } from '../../utils/toastMessages';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true);
     try {
       await login(email, password);
       navigate('/dashboard');
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Erreur de connexion');
+      // L'erreur est déjà gérée dans AuthContext avec le toast
+      console.error('Login error:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -141,6 +147,7 @@ export default function Login() {
                   variant="contained" 
                   type="submit" 
                   size="large"
+                  disabled={loading}
                   sx={{ 
                     py: 1.8, 
                     fontSize: '1.1rem', 
@@ -148,7 +155,7 @@ export default function Login() {
                     boxShadow: '0 8px 24px rgba(0, 175, 204, 0.3)'
                   }}
                 >
-                  Se connecter
+                  {loading ? 'Connexion...' : 'Se connecter'}
                 </Button>
 
                 <Box sx={{ mt: 4, textAlign: 'center' }}>
