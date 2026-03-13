@@ -308,7 +308,7 @@ export default function DossierMedical() {
                     >
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                         <Typography fontWeight="bold">
-                          Ordonnance #{oi + 1}
+                          {o.createdAt ? new Date(o.createdAt).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : `Ordonnance #${oi + 1}`}
                         </Typography>
                         <Chip
                           label={getOrdonnanceStatusLabel(o.status)}
@@ -391,10 +391,15 @@ export default function DossierMedical() {
                       variant="outlined"
                       sx={{ p: 2, mb: 1.5, borderRadius: 2 }}
                     >
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5, flexWrap: 'wrap' }}>
-                        <Typography fontWeight="bold">
-                          {a.description}
+                      {a.createdAt && (
+                        <Typography variant="body2" sx={{ color: '#666', mb: 0.5 }}>
+                          {new Date(a.createdAt).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                         </Typography>
+                      )}
+                      <Typography fontWeight="bold" sx={{ mb: 1 }}>
+                        {a.description}
+                      </Typography>
+                      <Box sx={{ mb: 1 }}>
                         <Chip
                           label={getAnalyseStatusLabel(a.status)}
                           size="small"
@@ -521,7 +526,7 @@ export default function DossierMedical() {
                         <PictureAsPdf sx={{ color: '#f57f17', fontSize: 28 }} />
                         <Box sx={{ flex: 1 }}>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Typography variant="body2" fontWeight="bold">Ordonnance #{oi + 1}</Typography>
+                            <Typography variant="body2" fontWeight="bold">{o.createdAt ? new Date(o.createdAt).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : `Ordonnance #${oi + 1}`}</Typography>
                             <Chip label="Ajouté après" size="small" icon={<PostAdd sx={{ fontSize: '14px !important' }} />} sx={{ bgcolor: '#ffe082', color: '#e65100', fontWeight: 600, fontSize: 11, height: 20 }} />
                           </Box>
                           <Typography variant="caption" color="text.secondary">
@@ -565,7 +570,7 @@ export default function DossierMedical() {
                         <PictureAsPdf sx={{ color: '#7b1fa2', fontSize: 28 }} />
                         <Box sx={{ flex: 1 }}>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Typography variant="body2" fontWeight="bold">Analyse #{ai + 1}</Typography>
+                            <Typography variant="body2" fontWeight="bold">{a.createdAt ? new Date(a.createdAt).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : `Analyse #${ai + 1}`}</Typography>
                             <Chip label="Ajouté après" size="small" icon={<PostAdd sx={{ fontSize: '14px !important' }} />} sx={{ bgcolor: '#e1bee7', color: '#6a1b9a', fontWeight: 600, fontSize: 11, height: 20 }} />
                           </Box>
                           <Typography variant="caption" color="text.secondary">

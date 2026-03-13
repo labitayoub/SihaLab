@@ -344,7 +344,7 @@ export default function Consultations() {
                       <Box key={o.id} sx={{ mb: 1 }}>
                         <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', alignItems: 'center' }}>
                           <Chip
-                            label={`#${idx + 1} - ${getStatusLabel(o.status)}`}
+                            label={`${o.createdAt ? new Date(o.createdAt).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : `#${idx + 1}`} - ${getStatusLabel(o.status)}`}
                             size="small"
                             color={getOrdonnanceChipColor(o.status)}
                           />
@@ -417,7 +417,7 @@ export default function Consultations() {
                       <Box key={a.id} sx={{ mb: 1 }}>
                         <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', alignItems: 'center' }}>
                           <Chip
-                            label={`#${idx + 1} - ${getStatusLabel(a.status)}`}
+                            label={`${a.createdAt ? new Date(a.createdAt).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : `#${idx + 1}`} - ${getStatusLabel(a.status)}`}
                             size="small"
                             color={getAnalyseChipColor(a.status)}
                           />
