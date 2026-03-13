@@ -299,6 +299,19 @@ export default function Consultations() {
                             size="small"
                             color={getOrdonnanceChipColor(o.status)}
                           />
+                          {/* PDF preview button */}
+                          {o.pdfUrl && (
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              startIcon={<Visibility />}
+                              href={o.pdfUrl}
+                              target="_blank"
+                              sx={{ textTransform: 'none', fontSize: '0.7rem', ml: 0.5 }}
+                            >
+                              Voir PDF
+                            </Button>
+                          )}
                           {/* Affichage pharmacie assignée */}
                           {o.pharmacienId && (() => {
                             const ph = pharmaciens.find((p) => p.id === o.pharmacienId);
@@ -356,6 +369,20 @@ export default function Consultations() {
                             size="small"
                             color={getAnalyseChipColor(a.status)}
                           />
+                          {/* PDF preview button */}
+                          {a.pdfUrl && (
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              color="info"
+                              startIcon={<Visibility />}
+                              href={a.pdfUrl}
+                              target="_blank"
+                              sx={{ textTransform: 'none', fontSize: '0.7rem', ml: 0.5 }}
+                            >
+                              Voir PDF
+                            </Button>
+                          )}
                           {/* Affichage laboratoire assigné */}
                           {a.labId && (() => {
                             const lab = laboratoires.find((l) => l.id === a.labId);

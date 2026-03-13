@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import PDFDocument = require('pdfkit');
-import * as QRCode from 'qrcode';
 import { PassThrough } from 'stream';
 
 /**
@@ -12,7 +11,7 @@ import { PassThrough } from 'stream';
  * 3. We NEVER use continued: true (it can silently advance y)
  * 4. We track y manually with a local variable, never read doc.y after text()
  * 5. We save/restore doc.y around watermark
- * 6. QR image is placed at absolute coordinates
+ * 6. Footer/signature are absolute coordinates (single page)
  * 7. We collect chunks via PassThrough to avoid any bufferedPages weirdness
  */
 @Injectable()
@@ -79,29 +78,31 @@ export class PdfGeneratorService {
 
     // Doctor details on left
     doc.font('Helvetica-Bold').fontSize(22).fillColor('#0f172a');
-    doc.text(`Dr. ${info.doctor.lastName} ${info.doctor.firstName}`, L, y, { lineBreak: false });
+    doc.text(`Dr. ${info.doctor.firstName} ${info.doctor.lastName}`, L, y, { lineBreak: false });
 
     const specY = y + 26;
     doc.font('Helvetica-Bold').fontSize(11).fillColor('#475569');
     doc.text(info.doctor.specialite?.toUpperCase() || 'MÉDECIN GÉNÉRALISTE', L, specY, { lineBreak: false, characterSpacing: 0.5 });
 
-    // Contact on Right
+    // Contact on Right - Better formatting
     let ry = y;
     doc.font('Helvetica').fontSize(10).fillColor('#475569');
-    const contactWidth = 200;
+    const contactWidth = 220;
+    
     if (info.doctor.address) {
-      doc.text(info.doctor.address, R - contactWidth, ry, { width: contactWidth, align: 'left' });
-      ry += 15;
+      doc.text(info.doctor.address, R - contactWidth, ry, { width: contactWidth, align: 'left', lineBreak: false });
+      ry += 14;
     }
     if (info.doctor.ville) {
-      doc.text(info.doctor.ville, R - contactWidth, ry, { width: contactWidth, align: 'left' });
-      ry += 15;
+      doc.text(info.doctor.ville, R - contactWidth, ry, { width: contactWidth, align: 'left', lineBreak: false });
+      ry += 14;
     }
     if (info.doctor.phone) {
-      doc.text(`Tél : ${info.doctor.phone}`, R - contactWidth, ry, { width: contactWidth, align: 'left' });
+      doc.text(`Tél : ${info.doctor.phone}`, R - contactWidth, ry, { width: contactWidth, align: 'left', lineBreak: false });
+      ry += 14;
     }
 
-    y = Math.max(specY, ry) + 30;
+    y = Math.max(specY, ry) + 24;
 
     // Minimalist Divider
     doc.moveTo(L, y).lineTo(R, y).strokeColor('#e2e8f0').lineWidth(1).stroke();
@@ -109,7 +110,7 @@ export class PdfGeneratorService {
 
     // ----- Title -----
     doc.font('Helvetica-Bold').fontSize(18).fillColor('#0f172a');
-    doc.text(info.title.toUpperCase(), L, y, { width: W - 100, align: 'center', characterSpacing: 2 });
+    doc.text(info.title.toUpperCase(), L, y, { width: W - 100, align: 'center', characterSpacing: 2, lineBreak: false });
     y += 26;
 
     // ----- Meta Row (Reference, Date) -----
@@ -123,11 +124,11 @@ export class PdfGeneratorService {
 
     // Patient Label
     doc.font('Helvetica').fontSize(10).fillColor('#64748b');
-    doc.text('NOM COMPLET', L + 20, y + 16, { characterSpacing: 0.5 });
+    doc.text('NOM COMPLET', L + 20, y + 16, { characterSpacing: 0.5, lineBreak: false });
 
     // Patient Value
     doc.font('Helvetica-Bold').fontSize(14).fillColor('#0f172a');
-    doc.text(`${info.patient.lastName.toUpperCase()} ${info.patient.firstName}`, L + 20, y + 36);
+    doc.text(`${info.patient.lastName.toUpperCase()} ${info.patient.firstName}`, L + 20, y + 36, { lineBreak: false });
 
     return y + 100; // Return next Y after patient box
   }
@@ -135,38 +136,35 @@ export class PdfGeneratorService {
   /** Draw footer with QR at absolute position */
   private async footer(
     doc: InstanceType<typeof PDFDocument>,
-    qrPayload: string,
+    _qrPayload: string,
     doctor: { phone?: string; address?: string; ville?: string }
   ) {
     const W = doc.page.width;
     const H = doc.page.height;
 
-    // Signature Title
-    const sigY = H - 160;
+    // CRITICAL: Signature zone at fixed position (150px from bottom = 842 - 150 = 692pt)
+    const sigY = H - 150;
     doc.font('Helvetica-Bold').fontSize(11).fillColor('#0f172a');
-    doc.text('Signature et Cachet du Médecin', W - 250, sigY, { width: 200, align: 'center' });
+    doc.text('Signature et Cachet du Médecin', W - 250, sigY, { width: 200, align: 'center', lineBreak: false });
 
-    // Signature Line Box
-    doc.moveTo(W - 250, sigY + 100).lineTo(W - 50, sigY + 100).strokeColor('#cbd5e1').dash(3, { space: 3 }).lineWidth(1).stroke();
+    // Signature line
+    doc.moveTo(W - 250, sigY + 18).lineTo(W - 50, sigY + 18).strokeColor('#cbd5e1').dash(3, { space: 3 }).lineWidth(1).stroke();
     doc.undash();
 
-    // Bottom Divider
-    const footY = H - 30;
+    // CRITICAL: Bottom footer at fixed position (40px from bottom = 842 - 40 = 802pt)
+    const footY = H - 60;
     doc.moveTo(50, footY).lineTo(W - 50, footY).strokeColor('#e2e8f0').lineWidth(1).stroke();
 
     // Footer Text
     doc.font('Helvetica').fontSize(9).fillColor('#94a3b8');
     const parts = [doctor.address, doctor.ville].filter(p => !!p);
     const ftxt = parts.join(' - ');
-    doc.text(ftxt, 50, footY + 14, { width: W - 100, align: 'center' });
-    doc.fontSize(8);
+    doc.text(ftxt, 50, footY + 12, { width: W - 100, align: 'center', lineBreak: false });
+    
     if (doctor.phone) {
-      doc.text(`Tél : ${doctor.phone}`, 50, footY + 28, { width: W - 100, align: 'center' });
+      doc.fontSize(8);
+      doc.text(`Tél : ${doctor.phone}`, 50, footY + 26, { width: W - 100, align: 'center', lineBreak: false });
     }
-
-    // QR Code in bottom left
-    const qrBuf = await QRCode.toBuffer(qrPayload, { width: 40, margin: 0 });
-    doc.image(qrBuf, 50, footY - 35, { width: 40 });
   }
 
   // ═══════════════════════════════════════════════
@@ -185,10 +183,23 @@ export class PdfGeneratorService {
       patient: { firstName: string; lastName: string };
     },
   ): Promise<Buffer> {
-    const doc = new PDFDocument({ size: 'A4', margin: 50, autoFirstPage: false });
+    const doc = new PDFDocument({ 
+      size: 'A4', 
+      margin: 50, 
+      autoFirstPage: false,
+      bufferPages: true
+    });
     const bufferPromise = this.collectBuffer(doc);
 
     doc.addPage();
+    
+    // CRITICAL: Override addPage to prevent any automatic page creation
+    const originalAddPage = doc.addPage.bind(doc);
+    doc.addPage = function() {
+      console.warn('Attempted to add a new page - blocked!');
+      return this;
+    };
+    
     this.watermark(doc);
 
     const dateStr = new Date(consultation.date).toLocaleDateString('fr-FR', {
@@ -211,32 +222,51 @@ export class PdfGeneratorService {
       }
     }
 
-    // Footer zone starts at page.height - 85
-    const maxY = doc.page.height - 85;
+    // CRITICAL: Keep a strict safe area so signature/footer always remain visible.
+    // A4 height = 842pt, footer starts at 662pt (842-180), so max content Y = 612pt
+    const maxY = doc.page.height - 230;
 
-    for (const med of meds) {
-      if (y >= maxY) break;
+    // Prescription section heading
+    doc.font('Helvetica-Bold').fontSize(14).fillColor('#0f172a');
+    doc.text('PRESCRIPTION', 50, y, { lineBreak: false, characterSpacing: 0.6 });
+    y += 12;
+    doc.moveTo(50, y).lineTo(doc.page.width - 50, y).strokeColor('#e2e8f0').lineWidth(1).stroke();
+    y += 16;
 
-      // No bullet, just pure text flow like the modern design
+    // Calculate how many medications we can fit
+    const cardH = 42;
+    const cardSpacing = 8;
+    const totalCardHeight = cardH + cardSpacing;
+    const availableHeight = maxY - y;
+    const maxMeds = Math.floor(availableHeight / totalCardHeight);
+    
+    // Only render medications that fit on the page
+    const medsToRender = meds.slice(0, maxMeds);
+
+    for (let i = 0; i < medsToRender.length; i++) {
+      const med = medsToRender[i];
       
-      // Med name
+      // Double check we don't exceed maxY
+      if (y + cardH > maxY) break;
+
+      // Medication card
+      doc.roundedRect(50, y, doc.page.width - 100, cardH, 4).strokeColor('#cbd5e1').dash(2, { space: 2 }).lineWidth(1).stroke();
+      doc.undash();
+
       doc.font('Helvetica-Bold').fontSize(12).fillColor('#0f172a');
-      doc.text(med.nom || 'Médicament', 60, y, { lineBreak: false });
-      y += 16;
+      doc.text(`${i + 1}. ${med.nom || 'Médicament'}`, 58, y + 10, { lineBreak: false });
 
       // Posology
       const parts: string[] = [];
-      if (med.dosage) parts.push(med.dosage);
-      if (med.frequence) parts.push(med.frequence);
-      if (med.duree) parts.push(`pendant ${med.duree}`);
-      
-      if (parts.length > 0 && y < maxY) {
-        doc.font('Helvetica-Oblique').fontSize(11).fillColor('#475569');
-        doc.text(parts.join(' — '), 60, y, { lineBreak: false });
-        y += 20;
-      } else {
-        y += 12;
-      }
+      if (med.dosage) parts.push(`Dosage : ${med.dosage}`);
+      if (med.frequence) parts.push(`Fréquence : ${med.frequence}`);
+      if (med.duree) parts.push(`Durée : ${med.duree}`);
+
+      const posologyText = parts.length > 0 ? parts.join(' | ') : '-';
+      doc.font('Helvetica').fontSize(10).fillColor('#475569');
+      doc.text(posologyText, 58, y + 26, { lineBreak: false, width: doc.page.width - 116 });
+
+      y += totalCardHeight;
     }
 
     // Footer
@@ -268,10 +298,23 @@ export class PdfGeneratorService {
       patient: { firstName: string; lastName: string };
     },
   ): Promise<Buffer> {
-    const doc = new PDFDocument({ size: 'A4', margin: 50, autoFirstPage: false });
+    const doc = new PDFDocument({ 
+      size: 'A4', 
+      margin: 50, 
+      autoFirstPage: false,
+      bufferPages: true
+    });
     const bufferPromise = this.collectBuffer(doc);
 
     doc.addPage();
+    
+    // CRITICAL: Override addPage to prevent any automatic page creation
+    const originalAddPage = doc.addPage.bind(doc);
+    doc.addPage = function() {
+      console.warn('Attempted to add a new page - blocked!');
+      return this;
+    };
+    
     this.watermark(doc);
 
     const dateStr = new Date(consultation.date).toLocaleDateString('fr-FR', {
@@ -286,11 +329,11 @@ export class PdfGeneratorService {
       date: dateStr,
     });
 
-    const maxY = doc.page.height - 85;
+    const maxY = doc.page.height - 230;
 
     // Analysis List Header
     doc.font('Helvetica-Bold').fontSize(14).fillColor('#0f172a');
-    doc.text('DÉTAILS DES ANALYSES', 50, y, { characterSpacing: 1 });
+    doc.text('DÉTAILS DE L\'ANALYSE', 50, y, { characterSpacing: 1, lineBreak: false });
     y += 24;
     doc.moveTo(50, y).lineTo(doc.page.width - 50, y).strokeColor('#e2e8f0').lineWidth(1).stroke();
     y += 24;
@@ -298,42 +341,42 @@ export class PdfGeneratorService {
     for (const an of analyses) {
       if (y >= maxY) break;
 
-      // Clean list format with checkboxes
+      // Clean list format with checkboxes (bounded to one page)
       const items = (an.description || '').split(/[\n,]+/).map(i => i.trim()).filter(i => i.length > 0);
 
       for (let i = 0; i < items.length; i++) {
-        if (y >= maxY - 40) {
-          doc.addPage();
-          y = 50;
-        }
+        if (y >= maxY - 24) break;
         // Draw checkbox box
         doc.lineWidth(1.5).strokeColor('#64748b').roundedRect(54, y + 1, 14, 14, 2).stroke();
 
         // Draw text next to it
         doc.font('Helvetica').fontSize(12).fillColor('#0f172a');
-        doc.text(items[i], 82, y + 2, { lineBreak: false });
+        const trimmedItem = items[i].length > 60 ? `${items[i].slice(0, 60)}...` : items[i];
+        doc.text(trimmedItem, 82, y + 2, { lineBreak: false });
 
         y += 26;
       }
 
       y += 6;
 
-      // Result
-      if (an.resultat && y < maxY) {
+      // Result - only if space available
+      if (an.resultat && y < maxY - 40) {
         doc.font('Helvetica-Bold').fontSize(10).fillColor('#0f172a');
-        doc.text('RÉSULTAT CLINIQUE', 60, y);
+        doc.text('RÉSULTAT CLINIQUE', 60, y, { lineBreak: false });
         y += 14;
 
         doc.font('Helvetica').fontSize(10).fillColor('#334155');
-        doc.text(an.resultat, 60, y, { width: doc.page.width - 110, lineBreak: true });
-
-        const resHeight = doc.heightOfString(an.resultat, { width: doc.page.width - 110 });
-        y += resHeight + 10;
+        const maxChars = 150;
+        const shortResult = an.resultat.length > maxChars ? `${an.resultat.slice(0, maxChars)}...` : an.resultat;
+        doc.text(shortResult, 60, y, { width: doc.page.width - 110, lineBreak: false });
+        y += 18;
       }
 
-      // Bottom divider for item
-      doc.moveTo(50, y).lineTo(doc.page.width - 50, y).strokeColor('#f1f5f9').lineWidth(1).stroke();
-      y += 20;
+      // Bottom divider for item - only if space available
+      if (y < maxY - 10) {
+        doc.moveTo(50, y).lineTo(doc.page.width - 50, y).strokeColor('#f1f5f9').lineWidth(1).stroke();
+        y += 20;
+      }
     }
 
     await this.footer(doc, JSON.stringify({

@@ -27,10 +27,18 @@ function OrdonnanceView({ ordonnance }: OrdonnanceViewProps) {
   return (
     <>
       <style>{`
+        .ordonnance-wrapper {
+          height: 297mm;
+          min-height: 297mm;
+          max-height: 297mm;
+          overflow: hidden;
+        }
         .ordonnance-a4 {
           position: relative;
           width: 210mm;
           height: 297mm;
+          min-height: 297mm;
+          max-height: 297mm;
           background: #ffffff;
           margin: 0 auto;
           overflow: hidden;
@@ -53,10 +61,10 @@ function OrdonnanceView({ ordonnance }: OrdonnanceViewProps) {
           z-index: 0;
         }
         .content-layer { position: relative; z-index: 1; }
-        .header-flex { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
+        .header-flex { display: flex !important; justify-content: space-between !important; align-items: flex-start; margin-bottom: 16px; }
         .dr-name { font-size: 26px; font-weight: 700; color: #0f172a; line-height: 1.2; }
         .dr-spec { font-size: 13px; color: #475569; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
-        .contact-info { text-align: left; max-width: 250px; font-size: 11px; color: #475569; line-height: 1.5; }
+        .contact-info { text-align: left; max-width: 260px; font-size: 11px; color: #475569; line-height: 1.6; }
         .minimal-divider { border-top: 1px solid #e2e8f0; margin: 16px 0 18px; }
         .doc-title { text-align: center; margin-bottom: 18px; }
         .doc-title h1 { font-size: 20px; font-weight: 700; color: #0f172a; letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 10px; }
@@ -68,24 +76,26 @@ function OrdonnanceView({ ordonnance }: OrdonnanceViewProps) {
         .analysis-grid { display: grid; grid-template-columns: 180px 1fr; padding: 4px 0; margin-bottom: 8px; }
         .analysis-label { color: #64748b; font-size: 12px; font-weight: 500; }
         .analysis-val { color: #334155; font-size: 13px; }
-        .med-content { max-height: 600px; overflow: hidden; padding-bottom: 192px; }
+        .med-content { max-height: 650px; overflow: hidden; }
         .med-list { display: grid; gap: 8px; }
         .med-item { border: 1px dashed #cbd5e1; border-radius: 6px; padding: 10px 12px; background: #ffffff; }
         .med-name { font-weight: 700; color: #0f172a; margin-bottom: 3px; font-size: 15px; }
         .med-meta { font-size: 12px; color: #475569; line-height: 1.5; }
-        .signature-area { position: absolute; bottom: 160px; right: 48px; display: flex; justify-content: flex-end; }
+        .signature-area { position: absolute; bottom: 150px; right: 48px; display: flex; justify-content: flex-end; }
         .signature-box { text-align: center; width: 240px; }
         .signature-title { font-size: 13px; font-weight: 600; color: #0f172a; border-bottom: 1px dashed #cbd5e1; padding-bottom: 8px; }
-        .doc-footer { position: absolute; bottom: 32px; left: 48px; right: 48px; text-align: center; font-size: 11px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 16px; }
+        .doc-footer { position: absolute; bottom: 40px; left: 48px; right: 48px; text-align: center; font-size: 11px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 16px; }
         @media print {
           @page { size: A4; margin: 0; }
           body { margin: 0; padding: 0; background: #ffffff; }
-          .ordonnance-a4 { box-shadow: none; border-radius: 0; }
+          .ordonnance-wrapper { height: 297mm; min-height: 297mm; max-height: 297mm; page-break-after: avoid; page-break-inside: avoid; }
+          .ordonnance-a4 { box-shadow: none; border-radius: 0; page-break-after: avoid; page-break-inside: avoid; }
           .no-print { display: none !important; }
         }
       `}</style>
 
-      <div className="ordonnance-a4">
+      <div className="ordonnance-wrapper">
+        <div className="ordonnance-a4">
         <div className="watermark-bg">
           <CaduceusLogo />
         </div>
@@ -102,9 +112,15 @@ function OrdonnanceView({ ordonnance }: OrdonnanceViewProps) {
             </div>
 
             <div className="contact-info">
-              {ordonnance.consultation?.doctor?.address && <div>{ordonnance.consultation.doctor.address}</div>}
-              {ordonnance.consultation?.doctor?.ville && <div>{ordonnance.consultation.doctor.ville}</div>}
-              {ordonnance.consultation?.doctor?.phone && <div>Tel : {ordonnance.consultation.doctor.phone}</div>}
+              {ordonnance.consultation?.doctor?.address && (
+                <div style={{ marginBottom: '4px' }}>{ordonnance.consultation.doctor.address}</div>
+              )}
+              {ordonnance.consultation?.doctor?.ville && (
+                <div style={{ marginBottom: '4px' }}>{ordonnance.consultation.doctor.ville}</div>
+              )}
+              {ordonnance.consultation?.doctor?.phone && (
+                <div>Tel : {ordonnance.consultation.doctor.phone}</div>
+              )}
             </div>
           </div>
 
@@ -162,6 +178,7 @@ function OrdonnanceView({ ordonnance }: OrdonnanceViewProps) {
             {ordonnance.consultation?.doctor?.phone ? `Tel : ${ordonnance.consultation.doctor.phone}` : ''}
           </div>
         </div>
+      </div>
       </div>
     </>
   );
@@ -301,7 +318,7 @@ export default function Ordonnances() {
   const handlePrintSheet = () => {
     if (!printRef.current) return;
     const printContents = printRef.current.innerHTML;
-    const win = window.open('', '_blank', 'width=800,height=1100');
+    const win = window.open('', '_blank', 'width=210mm,height=297mm');
     if (!win) return;
 
     win.document.write(`
@@ -311,19 +328,42 @@ export default function Ordonnances() {
           <style>
             @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
             * { margin: 0; padding: 0; box-sizing: border-box; }
-            body {
+            html, body {
               font-family: 'Inter', sans-serif;
               background-color: #ffffff;
               color: #334155;
               padding: 0;
               margin: 0;
+              width: 210mm;
+              height: 297mm;
+              overflow: hidden;
             }
             .no-print {
               display: none !important;
             }
+            @page { 
+              size: 210mm 297mm;
+              margin: 0;
+            }
             @media print {
-              @page { size: A4; margin: 0; }
-              body { margin: 0; background: transparent; padding: 0; }
+              html, body {
+                width: 210mm;
+                height: 297mm;
+                margin: 0;
+                padding: 0;
+                overflow: hidden;
+              }
+              .ordonnance-wrapper {
+                height: 297mm !important;
+                min-height: 297mm !important;
+                max-height: 297mm !important;
+                page-break-after: avoid !important;
+                page-break-inside: avoid !important;
+              }
+              .ordonnance-a4 {
+                page-break-after: avoid !important;
+                page-break-inside: avoid !important;
+              }
             }
           </style>
         </head>
@@ -385,7 +425,7 @@ export default function Ordonnances() {
     {
       field: 'actions',
       headerName: 'Actions',
-      width: 240,
+      width: 200,
       renderCell: (params) => (
         <Box sx={{ display: 'flex', gap: 0.5 }}>
           <IconButton size="small" color="primary" onClick={() => handleOpenView(params.row)} title="Voir la feuille d'ordonnance">
