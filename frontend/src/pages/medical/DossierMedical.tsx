@@ -58,8 +58,11 @@ function getAnalyseStatusColor(status: AnalyseStatus): 'warning' | 'success' | '
 export default function DossierMedical() {
   // Pharmaciens pour affichage pharmacie assignée
   const [pharmaciens, setPharmaciens] = useState<any[]>([]);
+  // Laboratoires pour affichage labo assigné
+  const [laboratoires, setLaboratoires] = useState<any[]>([]);
   useEffect(() => {
-    api.get('/users/pharmaciens').then(({ data }) => setPharmaciens(data.data || data || [])).catch(() => setPharmaciens([]));
+    api.get('/users/pharmaciens').then(({ data}) => setPharmaciens(data.data || data || [])).catch(() => setPharmaciens([]));
+    api.get('/users/laboratoires').then(({ data }) => setLaboratoires(data.data || data || [])).catch(() => setLaboratoires([]));
   }, []);
   const { patientId } = useParams<{ patientId: string }>();
   const { user } = useAuth();
@@ -346,7 +349,13 @@ export default function DossierMedical() {
                             <Box>
                               <Typography variant="caption" color="primary" fontWeight="bold">Pharmacie assignée</Typography>
                               <Typography variant="body2" fontWeight={500}>{ph.firstName} {ph.lastName}</Typography>
-                              {ph.address && <Typography variant="body2" sx={{ color: '#888' }}>Adresse: {ph.address}</Typography>}
+                              {ph.address && (
+                                <Typography variant="body2" sx={{ color: '#888' }}>
+                                  Adresse: {ph.address}
+                                  {ph.ville && `, ${ph.ville}`}
+                                  {ph.pays && `, ${ph.pays}`}
+                                </Typography>
+                              )}
                               {ph.phone && <Typography variant="body2" sx={{ color: '#888' }}>Tél: {ph.phone}</Typography>}
                             </Box>
                           </Box>
@@ -392,11 +401,42 @@ export default function DossierMedical() {
                           color={getAnalyseStatusColor(a.status)}
                         />
                       </Box>
-                      {a.laboratoire && (
-                        <Typography variant="body2" color="text.secondary">
-                          Laboratoire: {a.laboratoire.firstName || a.laboratoire.id}
-                        </Typography>
-                      )}
+                      {a.labId && (() => {
+                        const lab = a.laboratoire || laboratoires.find((l) => l.id === a.labId);
+                        if (!lab) return null;
+                        return (
+                          <Box sx={{
+                            bgcolor: '#fff',
+                            boxShadow: '0 2px 8px rgba(76,175,80,0.10)',
+                            border: '1px solid #81c784',
+                            p: 1,
+                            borderRadius: 2,
+                            minWidth: 160,
+                            mt: 1,
+                            display: 'flex',
+                            alignItems: 'flex-start',
+                            gap: 1
+                          }}>
+                            <span style={{marginRight: 6, color: '#4caf50'}}>
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M13 11.33L18 18H6l5-6.67V6h2m6-2h-2.18C14.4 2.84 13.3 2 12 2s-2.4.84-2.82 2H7c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2m-7 0c0-.55.45-1 1-1s1 .45 1 1 -.45 1-1 1-1-.45-1-1z"/>
+                              </svg>
+                            </span>
+                            <Box>
+                              <Typography variant="caption" sx={{ color: '#4caf50', fontWeight: 'bold' }}>Laboratoire assigné</Typography>
+                              <Typography variant="body2" fontWeight={500}>{lab.firstName} {lab.lastName}</Typography>
+                              {lab.address && (
+                                <Typography variant="body2" sx={{ color: '#888' }}>
+                                  Adresse: {lab.address}
+                                  {lab.ville && `, ${lab.ville}`}
+                                  {lab.pays && `, ${lab.pays}`}
+                                </Typography>
+                              )}
+                              {lab.phone && <Typography variant="body2" sx={{ color: '#888' }}>Tél: {lab.phone}</Typography>}
+                            </Box>
+                          </Box>
+                        );
+                      })()}
                       {a.resultat && (
                         <Typography variant="body2" color="text.secondary">
                           Résultat: {a.resultat}
