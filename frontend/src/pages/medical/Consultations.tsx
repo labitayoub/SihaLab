@@ -20,6 +20,7 @@ import { OrdonnanceStatus } from '../../types/ordonnance.types';
 import { AnalyseStatus } from '../../types/analyse.types';
 import api from '../../config/api';
 import { toast } from '../../utils/toast';
+import { ToastMessages } from '../../utils/toastMessages';
 
 function formatDate(d: string | null) {
   if (!d) return '—';
@@ -122,7 +123,7 @@ export default function Consultations() {
     try {
       const { data } = await api.get('/consultations');
       setConsultations(data);
-    } catch { toast.error('Erreur de chargement'); }
+    } catch { toast.error(ToastMessages.consultations.loadError); }
   };
 
   const loadMyPatients = async () => {
@@ -178,7 +179,7 @@ export default function Consultations() {
     setMedicaments(prev => prev.map((m, i) => i === idx ? { ...m, [field]: value } : m));
 
   const handleCreate = async () => {
-    if (!formData.motif.trim()) { toast.error('Le motif est obligatoire'); return; }
+    if (!formData.motif.trim()) { toast.error(ToastMessages.consultations.motifRequired); return; }
     setCreating(true);
     try {
       let patientId = '';
@@ -190,7 +191,7 @@ export default function Consultations() {
         const { data: newPat } = await api.post('/users/create-patient', { ...newPatientData, role: 'patient' });
         patientId = newPat.id;
       }
-      if (!patientId) { toast.error('Aucun patient sélectionné'); return; }
+      if (!patientId) { toast.error(ToastMessages.consultations.noPatientSelected); return; }
 
       const payload: any = { patientId, ...formData };
       if (dialogTab === 0 && selectedAppointment) payload.appointmentId = selectedAppointment.id;
@@ -208,12 +209,12 @@ export default function Consultations() {
         }
       }
 
-      toast.success('Consultation créée — Redirection vers les détails');
+      toast.success(ToastMessages.consultations.createSuccess);
       setOpen(false);
       resetDialog();
       navigate(`/consultations/${consultationId}`);
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Erreur lors de la création');
+      toast.error(ToastMessages.consultations.createError(error.response?.data?.message));
     } finally {
       setCreating(false);
     }

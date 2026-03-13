@@ -7,6 +7,7 @@ import { UserRole } from '../../types/user.types';
 import { Livraison, LivraisonStatus } from '../../types/livraison.types';
 import api from '../../config/api';
 import { toast } from '../../utils/toast';
+import { ToastMessages } from '../../utils/toastMessages';
 
 export default function Livraisons() {
   const { user } = useAuth();
@@ -35,7 +36,7 @@ export default function Livraisons() {
       const { data } = await api.get(endpoint);
       setLivraisons(data);
     } catch (error) {
-      toast.error('Erreur de chargement');
+      toast.error(ToastMessages.livraisons.loadError);
     }
   };
 
@@ -51,21 +52,21 @@ export default function Livraisons() {
   const handleCreate = async () => {
     try {
       await api.post('/livraisons', formData);
-      toast.success('Livraison créée');
+      toast.success(ToastMessages.livraisons.createSuccess);
       setOpen(false);
       loadLivraisons();
     } catch (error) {
-      toast.error('Erreur');
+      toast.error(ToastMessages.livraisons.createError);
     }
   };
 
   const handleUpdateStatut = async (id: string, statut: LivraisonStatus) => {
     try {
       await api.patch(`/livraisons/${id}/statut`, { statut, description: `Statut changé en ${statut}` });
-      toast.success('Statut mis à jour');
+      toast.success(ToastMessages.livraisons.updateStatusSuccess);
       loadLivraisons();
     } catch (error) {
-      toast.error('Erreur');
+      toast.error(ToastMessages.livraisons.updateStatusError);
     }
   };
 

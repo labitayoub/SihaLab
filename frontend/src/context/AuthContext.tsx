@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import api from '../config/api';
 import { User } from '../types/user.types';
 import { toast } from '../utils/toast';
+import { ToastMessages } from '../utils/toastMessages';
 
 interface AuthContextType {
   user: User | null;
@@ -46,9 +47,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       localStorage.setItem('accessToken', data.accessToken);
       localStorage.setItem('refreshToken', data.refreshToken);
       setUser(data.user);
-      toast.success('Connexion réussie');
+      toast.success(ToastMessages.auth.loginSuccess);
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Erreur de connexion');
+      toast.error(ToastMessages.auth.loginError(error.response?.data?.message));
       throw error;
     }
   };
@@ -56,9 +57,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const register = async (registerData: any) => {
     try {
       await api.post('/auth/register', registerData);
-      toast.success('Inscription réussie');
+      toast.success(ToastMessages.auth.registerSuccess);
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Erreur d\'inscription');
+      toast.error(ToastMessages.auth.registerError(error.response?.data?.message));
       throw error;
     }
   };
@@ -66,7 +67,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logout = () => {
     localStorage.clear();
     setUser(null);
-    toast.info('Déconnexion réussie');
+    toast.info(ToastMessages.auth.logoutSuccess);
   };
 
   return (

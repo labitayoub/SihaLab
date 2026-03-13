@@ -8,6 +8,7 @@ import { UserRole } from '../../types/user.types';
 import { Ordonnance, OrdonnanceStatus } from '../../types/ordonnance.types';
 import api from '../../config/api';
 import { toast } from '../../utils/toast';
+import { ToastMessages } from '../../utils/toastMessages';
 
 type OrdonnanceWithPdf = Ordonnance & { pdfUrl?: string };
 
@@ -243,7 +244,7 @@ export default function Ordonnances() {
       const { data } = await api.get(endpoint);
       setOrdonnances(data);
     } catch (error) {
-      toast.error('Erreur de chargement');
+      toast.error(ToastMessages.ordonnances.loadError);
     }
   };
 
@@ -267,9 +268,9 @@ export default function Ordonnances() {
       // Génération automatique du PDF dédié à cette ordonnance
       try {
         await api.post(`/consultations/${newOrd.consultationId}/generate-ordonnance-pdf/${newOrd.id}`);
-        toast.success('Ordonnance créée et PDF généré automatiquement');
+        toast.success(ToastMessages.ordonnances.pdfGenerateSuccess);
       } catch {
-        toast.success('Ordonnance créée (PDF sera généré depuis la consultation)');
+        toast.success(ToastMessages.ordonnances.pdfGenerateFallback);
       }
       setOpen(false);
       loadOrdonnances();
@@ -278,17 +279,17 @@ export default function Ordonnances() {
       setSelectedCountryName('');
       setSelectedVille('');
     } catch (error) {
-      toast.error('Erreur lors de la création');
+      toast.error(ToastMessages.ordonnances.createError());
     }
   };
 
   const handleDelivrer = async (id: string) => {
     try {
       await api.post(`/ordonnances/${id}/delivrer`);
-      toast.success('Ordonnance délivrée');
+      toast.success(ToastMessages.ordonnances.deliverSuccess);
       loadOrdonnances();
     } catch (error) {
-      toast.error('Erreur');
+      toast.error(ToastMessages.ordonnances.deliverError);
     }
   };
 

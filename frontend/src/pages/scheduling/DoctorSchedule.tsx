@@ -10,6 +10,7 @@ import { useAuth } from '../../context/AuthContext';
 import { UserRole } from '../../types/user.types';
 import api from '../../config/api';
 import { toast } from '../../utils/toast';
+import { ToastMessages } from '../../utils/toastMessages';
 
 const DEFAULT_SCHEDULES: DayScheduleForm[] = [
   { dayOfWeek: 1, isActive: true, morningActive: true, morningStart: '08:00', morningEnd: '12:00', afternoonActive: true, afternoonStart: '14:00', afternoonEnd: '18:00', slotDuration: 30 },
@@ -89,7 +90,7 @@ export default function DoctorSchedulePage() {
       if (!s.isActive) continue;
       if (s.morningActive) {
         if (s.morningStart >= s.morningEnd) {
-          toast.error(`${DAY_LABELS[s.dayOfWeek]} Matin : l'heure de fin doit être après le début`);
+          toast.error(ToastMessages.schedule.morningEndBeforeStart(DAY_LABELS[s.dayOfWeek]));
           return;
         }
         bulkSchedules.push({
@@ -103,11 +104,11 @@ export default function DoctorSchedulePage() {
       }
       if (s.afternoonActive) {
         if (s.afternoonStart >= s.afternoonEnd) {
-          toast.error(`${DAY_LABELS[s.dayOfWeek]} Après-midi : l'heure de fin doit être après le début`);
+          toast.error(ToastMessages.schedule.afternoonEndBeforeStart(DAY_LABELS[s.dayOfWeek]));
           return;
         }
         if (s.morningActive && s.afternoonStart <= s.morningEnd) {
-          toast.error(`${DAY_LABELS[s.dayOfWeek]} : l'après-midi doit commencer après la fin du matin (pause déjeuner)`);
+          toast.error(ToastMessages.schedule.afternoonBeforeMorning(DAY_LABELS[s.dayOfWeek]));
           return;
         }
         bulkSchedules.push({
@@ -124,10 +125,10 @@ export default function DoctorSchedulePage() {
     setSaving(true);
     try {
       await api.post('/schedules/bulk', { schedules: bulkSchedules });
-      toast.success('Horaires sauvegardés avec succès');
+      toast.success(ToastMessages.schedule.saveSuccess);
       navigate('/dashboard');
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Erreur lors de la sauvegarde');
+      toast.error(ToastMessages.schedule.saveError(error.response?.data?.message));
     } finally {
       setSaving(false);
     }

@@ -14,6 +14,7 @@ import { Appointment, AppointmentStatus } from '../../types/appointment.types';
 import { DoctorAvailability, DoctorSchedule } from '../../types/schedule.types';
 import api from '../../config/api';
 import { toast, confirm } from '../../utils/toast';
+import { ToastMessages } from '../../utils/toastMessages';
 
 const SHORT_DAY = ['Dim.', 'Lun.', 'Mar.', 'Mer.', 'Jeu.', 'Ven.', 'Sam.'];
 const MONTH_NAMES = [
@@ -91,7 +92,7 @@ export default function Appointments() {
       const { data } = await api.get('/appointments');
       setAppointments(data);
     } catch (error) {
-      toast.error('Erreur de chargement');
+      toast.error(ToastMessages.appointments.loadError);
     }
   };
 
@@ -150,7 +151,7 @@ export default function Appointments() {
   const handleCreate = async () => {
     try {
       await api.post('/appointments', formData);
-      toast.success('Rendez-vous créé avec succès !');
+      toast.success(ToastMessages.appointments.createSuccess);
       setOpen(false);
       loadAppointments();
       setFormData({ doctorId: '', date: '', time: '', motif: '' });
@@ -158,7 +159,7 @@ export default function Appointments() {
       setDoctorSchedules([]);
       setHasActiveRdv(false);
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Erreur');
+      toast.error(ToastMessages.appointments.createError(error.response?.data?.message));
     }
   };
 
@@ -173,7 +174,7 @@ export default function Appointments() {
     if (!ok) return;
     try {
       const { data } = await api.post(`/appointments/${id}/confirm`);
-      toast.success('Rendez-vous confirmé ! Dossier médical créé automatiquement.');
+      toast.success(ToastMessages.appointments.confirmSuccess);
       loadAppointments();
       if (data?.consultation?.id) {
         setTimeout(async () => {
@@ -189,7 +190,7 @@ export default function Appointments() {
         }, 400);
       }
     } catch (error) {
-      toast.error('Erreur lors de la confirmation');
+      toast.error(ToastMessages.appointments.confirmError);
     }
   };
 
@@ -204,10 +205,10 @@ export default function Appointments() {
     if (!ok) return;
     try {
       await api.post(`/appointments/${id}/cancel`);
-      toast.success('Rendez-vous annulé');
+      toast.success(ToastMessages.appointments.cancelSuccess);
       loadAppointments();
     } catch (error) {
-      toast.error('Erreur lors de l\'annulation');
+      toast.error(ToastMessages.appointments.cancelError);
     }
   };
 

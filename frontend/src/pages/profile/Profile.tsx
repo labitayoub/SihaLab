@@ -8,6 +8,7 @@ import { useAuth } from '../../context/AuthContext';
 import { UserRole } from '../../types/user.types';
 import api from '../../config/api';
 import { toast } from '../../utils/toast';
+import { ToastMessages } from '../../utils/toastMessages';
 
 const ROLE_LABELS: Record<string, string> = {
   [UserRole.ADMIN]: 'Administrateur',
@@ -53,11 +54,11 @@ export default function Profile() {
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      toast.error('Veuillez sélectionner une image');
+      toast.error(ToastMessages.profile.avatarInvalidType);
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
-      toast.error('Image trop grande (max 5MB)');
+      toast.error(ToastMessages.profile.avatarTooLarge);
       return;
     }
 
@@ -69,9 +70,9 @@ export default function Profile() {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       await refreshUser();
-      toast.success('Photo de profil mise à jour');
+      toast.success(ToastMessages.profile.avatarUploadSuccess);
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Erreur lors du téléchargement');
+      toast.error(ToastMessages.profile.avatarUploadError(error.response?.data?.message));
     } finally {
       setUploadingAvatar(false);
       e.target.value = '';
@@ -84,9 +85,9 @@ export default function Profile() {
       await api.patch('/users/me', formData);
       await refreshUser();
       setEditing(false);
-      toast.success('Profil mis à jour');
+      toast.success(ToastMessages.profile.updateSuccess);
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Erreur lors de la mise à jour');
+      toast.error(ToastMessages.profile.updateError(error.response?.data?.message));
     } finally {
       setSaving(false);
     }

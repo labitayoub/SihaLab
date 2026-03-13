@@ -8,6 +8,7 @@ import { UserRole } from '../../types/user.types';
 import { Analyse, AnalyseStatus } from '../../types/analyse.types';
 import api from '../../config/api';
 import { toast } from '../../utils/toast';
+import { ToastMessages } from '../../utils/toastMessages';
 
 type AnalysisRequestViewProps = {
   analyse: Analyse;
@@ -244,7 +245,7 @@ export default function Analyses() {
       const { data } = await api.get(endpoint);
       setAnalyses(data);
     } catch (error) {
-      toast.error('Erreur de chargement');
+      toast.error(ToastMessages.analyses.loadError);
     }
   };
 
@@ -267,9 +268,9 @@ export default function Analyses() {
       const { data: newAnalyse } = await api.post('/analyses', payload);
       try {
         await api.post(`/consultations/${newAnalyse.consultationId}/generate-analyse-pdf/${newAnalyse.id}`);
-        toast.success('Analyse demandée et PDF généré automatiquement');
+        toast.success(ToastMessages.analyses.pdfGenerateSuccess);
       } catch {
-        toast.success('Analyse demandée (PDF sera généré depuis la consultation)');
+        toast.success(ToastMessages.analyses.pdfGenerateFallback);
       }
       setOpen(false);
       loadAnalyses();
@@ -278,7 +279,7 @@ export default function Analyses() {
       setSelectedCountryName('');
       setSelectedVille('');
     } catch (error) {
-      toast.error('Erreur lors de la création');
+      toast.error(ToastMessages.analyses.createError());
     }
   };
 
@@ -288,12 +289,12 @@ export default function Analyses() {
         resultat,
         fileUrl: '/uploads/resultat.pdf',
       });
-      toast.success('Résultat uploadé');
+      toast.success(ToastMessages.analyses.resultUploadSuccess);
       setUploadOpen(false);
       loadAnalyses();
       setResultat('');
     } catch (error) {
-      toast.error('Erreur');
+      toast.error(ToastMessages.analyses.resultUploadError);
     }
   };
 

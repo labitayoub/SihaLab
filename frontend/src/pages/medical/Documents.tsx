@@ -4,6 +4,7 @@ import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { Upload } from '@mui/icons-material';
 import api from '../../config/api';
 import { toast } from '../../utils/toast';
+import { ToastMessages } from '../../utils/toastMessages';
 
 export default function Documents() {
   const [documents, setDocuments] = useState<any[]>([]);
@@ -17,7 +18,7 @@ export default function Documents() {
       const { data } = await api.get('/documents');
       setDocuments(data);
     } catch (error) {
-      toast.error('Erreur de chargement');
+      toast.error(ToastMessages.documents.loadError);
     }
   };
 
