@@ -20,6 +20,7 @@ export class AnalysesService {
   async findAll(status?: AnalyseStatus, labId?: string, consultationId?: string) {
     const query = this.analyseRepository.createQueryBuilder('analyse')
       .leftJoinAndSelect('analyse.consultation', 'consultation')
+      .leftJoinAndSelect('analyse.laboratoire', 'laboratoire')
       .leftJoinAndSelect('consultation.patient', 'patient')
       .leftJoinAndSelect('consultation.doctor', 'doctor');
 

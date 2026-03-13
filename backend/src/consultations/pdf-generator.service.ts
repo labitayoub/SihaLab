@@ -30,13 +30,31 @@ export class PdfGeneratorService {
     });
   }
 
-  /** Draw watermark — saves and restores y so it won't affect layout */
+  /** Draw caduceus watermark */
   private watermark(doc: InstanceType<typeof PDFDocument>) {
     const y0 = doc.y;
     doc.save();
-    doc.opacity(0.025);
-    doc.font('Helvetica-Bold').fontSize(160);
-    doc.text('⚕', doc.page.width / 2 - 45, doc.page.height / 2 - 90, { lineBreak: false });
+
+    // Position center of the page
+    const cx = doc.page.width / 2;
+    const cy = doc.page.height / 2;
+
+    doc.translate(cx - 150, cy - 130); // Center a 300x300 roughly
+    doc.scale(3); // Scale up the 100x100 SVG to 300x300
+
+    doc.opacity(0.02);
+    doc.lineWidth(2);
+    doc.strokeColor('#0f172a');
+
+    // Draw Caduceus SVG path from the frontend version
+    // Wings & Staff
+    doc.path('M50 5 L50 95 M46 92 L50 98 L54 92 M35 25 C45 25 50 15 50 10 C50 15 55 25 65 25 C80 25 85 30 85 35 C85 45 70 45 60 40 C55 37 45 37 40 40 C30 45 15 45 15 35 C15 30 20 25 35 25 Z').stroke();
+    // Snakes
+    doc.lineWidth(1.5);
+    doc.path('M40 50 C30 50 30 40 40 40 C50 40 50 50 60 50 C70 50 70 60 60 60 C50 60 50 70 40 70 C30 70 30 80 40 80 M60 50 C70 50 70 40 60 40 C50 40 50 50 40 50 C30 50 30 60 40 60 C50 60 50 70 60 70 C70 70 70 80 60 80').stroke();
+    // Top dot
+    doc.circle(50, 10, 2).fillAndStroke('#0f172a', '#0f172a');
+
     doc.restore();
     doc.y = y0;
   }
@@ -45,7 +63,7 @@ export class PdfGeneratorService {
   private header(
     doc: InstanceType<typeof PDFDocument>,
     info: {
-      doctor: { firstName: string; lastName: string; specialite?: string; phone?: string; address?: string };
+      doctor: { firstName: string; lastName: string; specialite?: string; phone?: string; address?: string; ville?: string };
       patient: { firstName: string; lastName: string };
       title: string;
       numero: string;
@@ -56,84 +74,99 @@ export class PdfGeneratorService {
     const L = 50;
     const R = W - 50;
 
-    // Blue bar
-    doc.rect(0, 0, W, 8).fill('#1565c0');
+    // ----- Top Row: Doctor on Left, Contact on Right -----
+    let y = 80;
 
-    // Doctor
-    doc.font('Helvetica-Bold').fontSize(16).fillColor('#1565c0');
-    doc.text(`Dr ${info.doctor.firstName} ${info.doctor.lastName}`, L, 18, { lineBreak: false });
+    // Doctor details on left
+    doc.font('Helvetica-Bold').fontSize(22).fillColor('#0f172a');
+    doc.text(`Dr. ${info.doctor.lastName} ${info.doctor.firstName}`, L, y, { lineBreak: false });
 
-    let iy = 38;
-    if (info.doctor.specialite) {
-      doc.font('Helvetica').fontSize(9).fillColor('#555');
-      doc.text(info.doctor.specialite, L, iy, { lineBreak: false });
-      iy += 12;
+    const specY = y + 26;
+    doc.font('Helvetica-Bold').fontSize(11).fillColor('#475569');
+    doc.text(info.doctor.specialite?.toUpperCase() || 'MÉDECIN GÉNÉRALISTE', L, specY, { lineBreak: false, characterSpacing: 0.5 });
+
+    // Contact on Right
+    let ry = y;
+    doc.font('Helvetica').fontSize(10).fillColor('#475569');
+    const contactWidth = 200;
+    if (info.doctor.address) {
+      doc.text(info.doctor.address, R - contactWidth, ry, { width: contactWidth, align: 'left' });
+      ry += 15;
     }
-    if (info.doctor.phone || info.doctor.address) {
-      doc.font('Helvetica').fontSize(8).fillColor('#999');
-      doc.text([info.doctor.phone, info.doctor.address].filter(Boolean).join(' • '), L, iy, { lineBreak: false });
+    if (info.doctor.ville) {
+      doc.text(info.doctor.ville, R - contactWidth, ry, { width: contactWidth, align: 'left' });
+      ry += 15;
+    }
+    if (info.doctor.phone) {
+      doc.text(`Tél : ${info.doctor.phone}`, R - contactWidth, ry, { width: contactWidth, align: 'left' });
     }
 
-    // Date / Numero box
-    doc.roundedRect(R - 150, 16, 150, 38, 3).lineWidth(0.6).strokeColor('#bbb').stroke();
-    doc.font('Helvetica').fontSize(8).fillColor('#666');
-    doc.text('Date :', R - 144, 22, { lineBreak: false });
-    doc.font('Helvetica-Bold').fontSize(9).fillColor('#333');
-    doc.text(info.date, R - 106, 22, { lineBreak: false });
-    doc.font('Helvetica').fontSize(8).fillColor('#666');
-    doc.text('N° :', R - 144, 38, { lineBreak: false });
-    doc.font('Helvetica-Bold').fontSize(9).fillColor('#333');
-    doc.text(info.numero, R - 122, 38, { lineBreak: false });
+    y = Math.max(specY, ry) + 30;
 
-    // Line
-    doc.moveTo(L, 64).lineTo(R, 64).strokeColor('#e0e0e0').lineWidth(1).stroke();
+    // Minimalist Divider
+    doc.moveTo(L, y).lineTo(R, y).strokeColor('#e2e8f0').lineWidth(1).stroke();
+    y += 30;
 
-    // Patient row
-    doc.rect(L, 70, R - L, 20).fillColor('#f0f5ff').fill();
-    doc.font('Helvetica').fontSize(9).fillColor('#444');
-    doc.text('Patient(e) :', L + 8, 75, { lineBreak: false });
-    doc.font('Helvetica-Bold').fontSize(10).fillColor('#1565c0');
-    doc.text(`${info.patient.lastName.toUpperCase()} ${info.patient.firstName}`, L + 75, 75, { lineBreak: false });
+    // ----- Title -----
+    doc.font('Helvetica-Bold').fontSize(18).fillColor('#0f172a');
+    doc.text(info.title.toUpperCase(), L, y, { width: W - 100, align: 'center', characterSpacing: 2 });
+    y += 26;
 
-    // Title
-    const titleW = doc.widthOfString(info.title);
-    doc.font('Helvetica-Bold').fontSize(12).fillColor('#1565c0');
-    doc.text(info.title, (W - titleW) / 2, 100, { lineBreak: false });
+    // ----- Meta Row (Reference, Date) -----
+    doc.font('Helvetica').fontSize(11).fillColor('#475569');
+    doc.text(`Référence : ${info.numero}`, L, y, { lineBreak: false });
+    doc.text(`Date : ${info.date}`, R - 200, y, { width: 200, align: 'right', lineBreak: false });
+    y += 24;
 
-    // Underline
-    doc.moveTo(W / 2 - 22, 116).lineTo(W / 2 + 22, 116).strokeColor('#1565c0').lineWidth(1.5).stroke();
+    // ----- Patient Box -----
+    doc.roundedRect(L, y, W - 100, 70, 6).fillAndStroke('#f8fafc', '#e2e8f0');
 
-    return 128;
+    // Patient Label
+    doc.font('Helvetica').fontSize(10).fillColor('#64748b');
+    doc.text('NOM COMPLET', L + 20, y + 16, { characterSpacing: 0.5 });
+
+    // Patient Value
+    doc.font('Helvetica-Bold').fontSize(14).fillColor('#0f172a');
+    doc.text(`${info.patient.lastName.toUpperCase()} ${info.patient.firstName}`, L + 20, y + 36);
+
+    return y + 100; // Return next Y after patient box
   }
 
   /** Draw footer with QR at absolute position */
   private async footer(
     doc: InstanceType<typeof PDFDocument>,
     qrPayload: string,
-    sigText: string,
+    doctor: { phone?: string; address?: string; ville?: string }
   ) {
     const W = doc.page.width;
     const H = doc.page.height;
 
-    // Line
-    doc.moveTo(50, H - 58).lineTo(W - 50, H - 58).strokeColor('#e0e0e0').lineWidth(0.5).stroke();
+    // Signature Title
+    const sigY = H - 160;
+    doc.font('Helvetica-Bold').fontSize(11).fillColor('#0f172a');
+    doc.text('Signature et Cachet du Médecin', W - 250, sigY, { width: 200, align: 'center' });
 
-    // QR
-    const qrBuf = await QRCode.toBuffer(qrPayload, { width: 50, margin: 0 });
-    doc.image(qrBuf, 50, H - 52, { width: 28 });
+    // Signature Line Box
+    doc.moveTo(W - 250, sigY + 100).lineTo(W - 50, sigY + 100).strokeColor('#cbd5e1').dash(3, { space: 3 }).lineWidth(1).stroke();
+    doc.undash();
 
-    // Signature
-    doc.font('Helvetica-Bold').fontSize(8).fillColor('#444');
-    doc.text(sigText, W - 190, H - 50, { lineBreak: false });
+    // Bottom Divider
+    const footY = H - 30;
+    doc.moveTo(50, footY).lineTo(W - 50, footY).strokeColor('#e2e8f0').lineWidth(1).stroke();
 
-    // Footer text
-    doc.font('Helvetica').fontSize(5.5).fillColor('#bbb');
-    const ftxt = 'Document généré par SihatiLab — Plateforme Médicale';
-    const fw = doc.widthOfString(ftxt);
-    doc.text(ftxt, (W - fw) / 2, H - 16, { lineBreak: false });
+    // Footer Text
+    doc.font('Helvetica').fontSize(9).fillColor('#94a3b8');
+    const parts = [doctor.address, doctor.ville].filter(p => !!p);
+    const ftxt = parts.join(' - ');
+    doc.text(ftxt, 50, footY + 14, { width: W - 100, align: 'center' });
+    doc.fontSize(8);
+    if (doctor.phone) {
+      doc.text(`Tél : ${doctor.phone}`, 50, footY + 28, { width: W - 100, align: 'center' });
+    }
 
-    // Bottom bar
-    doc.rect(0, H - 5, W, 5).fill('#1565c0');
+    // QR Code in bottom left
+    const qrBuf = await QRCode.toBuffer(qrPayload, { width: 40, margin: 0 });
+    doc.image(qrBuf, 50, footY - 35, { width: 40 });
   }
 
   // ═══════════════════════════════════════════════
@@ -148,7 +181,7 @@ export class PdfGeneratorService {
     consultation: {
       id: string;
       date: Date;
-      doctor: { firstName: string; lastName: string; specialite?: string; phone?: string; address?: string };
+      doctor: { firstName: string; lastName: string; specialite?: string; phone?: string; address?: string; ville?: string };
       patient: { firstName: string; lastName: string };
     },
   ): Promise<Buffer> {
@@ -178,30 +211,32 @@ export class PdfGeneratorService {
       }
     }
 
-    // Footer zone starts at page.height - 65
-    const maxY = doc.page.height - 68;
+    // Footer zone starts at page.height - 85
+    const maxY = doc.page.height - 85;
 
     for (const med of meds) {
       if (y >= maxY) break;
 
-      // Bullet
-      doc.circle(58, y + 4, 2).fill('#1565c0');
-
-      // Med name + dosage
-      doc.font('Helvetica-Bold').fontSize(10).fillColor('#333');
-      doc.text(`${med.nom || 'Médicament'}  ${med.dosage || ''}`, 68, y, { lineBreak: false });
-      y += 14;
+      // No bullet, just pure text flow like the modern design
+      
+      // Med name
+      doc.font('Helvetica-Bold').fontSize(12).fillColor('#0f172a');
+      doc.text(med.nom || 'Médicament', 60, y, { lineBreak: false });
+      y += 16;
 
       // Posology
       const parts: string[] = [];
+      if (med.dosage) parts.push(med.dosage);
       if (med.frequence) parts.push(med.frequence);
       if (med.duree) parts.push(`pendant ${med.duree}`);
+      
       if (parts.length > 0 && y < maxY) {
-        doc.font('Helvetica').fontSize(8).fillColor('#777');
-        doc.text(parts.join(' — '), 68, y, { lineBreak: false });
+        doc.font('Helvetica-Oblique').fontSize(11).fillColor('#475569');
+        doc.text(parts.join(' — '), 60, y, { lineBreak: false });
+        y += 20;
+      } else {
         y += 12;
       }
-      y += 5;
     }
 
     // Footer
@@ -210,7 +245,7 @@ export class PdfGeneratorService {
       dr: consultation.doctor.lastName,
       p: consultation.patient.lastName,
       n: meds.length,
-    }), 'Signature et Cachet :');
+    }), consultation.doctor);
 
     doc.end();
     return bufferPromise;
@@ -229,7 +264,7 @@ export class PdfGeneratorService {
     consultation: {
       id: string;
       date: Date;
-      doctor: { firstName: string; lastName: string; specialite?: string; phone?: string; address?: string };
+      doctor: { firstName: string; lastName: string; specialite?: string; phone?: string; address?: string; ville?: string };
       patient: { firstName: string; lastName: string };
     },
   ): Promise<Buffer> {
@@ -251,35 +286,54 @@ export class PdfGeneratorService {
       date: dateStr,
     });
 
-    const maxY = doc.page.height - 68;
+    const maxY = doc.page.height - 85;
+
+    // Analysis List Header
+    doc.font('Helvetica-Bold').fontSize(14).fillColor('#0f172a');
+    doc.text('DÉTAILS DES ANALYSES', 50, y, { characterSpacing: 1 });
+    y += 24;
+    doc.moveTo(50, y).lineTo(doc.page.width - 50, y).strokeColor('#e2e8f0').lineWidth(1).stroke();
+    y += 24;
 
     for (const an of analyses) {
       if (y >= maxY) break;
 
-      // Stripe bg
-      doc.rect(50, y, doc.page.width - 100, 16).fillColor('#f4f6f9').fill();
-      doc.circle(60, y + 8, 2).fill('#1565c0');
+      // Clean list format with checkboxes
+      const items = (an.description || '').split(/[\n,]+/).map(i => i.trim()).filter(i => i.length > 0);
 
-      doc.font('Helvetica-Bold').fontSize(9).fillColor('#333');
-      doc.text(an.description, 72, y + 3, { lineBreak: false });
-      y += 20;
+      for (let i = 0; i < items.length; i++) {
+        if (y >= maxY - 40) {
+          doc.addPage();
+          y = 50;
+        }
+        // Draw checkbox box
+        doc.lineWidth(1.5).strokeColor('#64748b').roundedRect(54, y + 1, 14, 14, 2).stroke();
 
-      // Status
-      if (y < maxY) {
-        const lbl = an.status === 'terminee' ? 'Terminée' : an.status === 'en_cours' ? 'En cours' : 'En attente';
-        doc.font('Helvetica').fontSize(7.5).fillColor('#999');
-        doc.text(`Statut : ${lbl}`, 72, y, { lineBreak: false });
-        y += 11;
+        // Draw text next to it
+        doc.font('Helvetica').fontSize(12).fillColor('#0f172a');
+        doc.text(items[i], 82, y + 2, { lineBreak: false });
+
+        y += 26;
       }
+
+      y += 6;
 
       // Result
       if (an.resultat && y < maxY) {
-        doc.font('Helvetica').fontSize(7.5).fillColor('#666');
-        doc.text(`Résultat : ${an.resultat}`, 72, y, { lineBreak: false });
-        y += 11;
+        doc.font('Helvetica-Bold').fontSize(10).fillColor('#0f172a');
+        doc.text('RÉSULTAT CLINIQUE', 60, y);
+        y += 14;
+
+        doc.font('Helvetica').fontSize(10).fillColor('#334155');
+        doc.text(an.resultat, 60, y, { width: doc.page.width - 110, lineBreak: true });
+
+        const resHeight = doc.heightOfString(an.resultat, { width: doc.page.width - 110 });
+        y += resHeight + 10;
       }
 
-      y += 4;
+      // Bottom divider for item
+      doc.moveTo(50, y).lineTo(doc.page.width - 50, y).strokeColor('#f1f5f9').lineWidth(1).stroke();
+      y += 20;
     }
 
     await this.footer(doc, JSON.stringify({
@@ -287,7 +341,7 @@ export class PdfGeneratorService {
       dr: consultation.doctor.lastName,
       p: consultation.patient.lastName,
       n: analyses.length,
-    }), 'Signature et Cachet du Médecin :');
+    }), consultation.doctor);
 
     doc.end();
     return bufferPromise;

@@ -17,6 +17,7 @@ export interface Analyse {
   status: AnalyseStatus;
   resultat?: string;
   resultatFileUrl?: string;
+  pdfUrl?: string;
   dateResultat?: string;
   createdAt: string;
 }

@@ -10,6 +10,15 @@ const api = axios.create({
 // Request interceptor
 api.interceptors.request.use(
   (config) => {
+    // Ensure baseURL ends with a slash to prevent dropping the last path segment (e.g., /v1)
+    if (config.baseURL && !config.baseURL.endsWith('/')) {
+      config.baseURL += '/';
+    }
+    // Remove leading slash from URL to make it relative to the baseURL
+    if (config.url && config.url.startsWith('/')) {
+      config.url = config.url.substring(1);
+    }
+
     const token = localStorage.getItem('accessToken');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -36,9 +45,10 @@ api.interceptors.response.use(
           throw new Error('No refresh token');
         }
 
-        const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1';
+        const rawBaseURL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1';
+        const cleanBaseURL = rawBaseURL.endsWith('/') ? rawBaseURL.slice(0, -1) : rawBaseURL;
         const { data } = await axios.post(
-          `${baseURL}/auth/refresh`,
+          `${cleanBaseURL}/auth/refresh`,
           { refreshToken }
         );
 
