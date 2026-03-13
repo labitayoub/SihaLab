@@ -101,6 +101,40 @@ export default function Consultations() {
   // Common consultation form
   const [formData, setFormData] = useState({ motif: '', diagnostic: '', notes: '' });
 
+  // Location selection for pharmacy/lab
+  const [pharmaciePays, setPharmaciePays] = useState('');
+  const [pharmacieVille, setPharmacieVille] = useState('');
+  const [selectedPharmacieId, setSelectedPharmacieId] = useState('');
+  
+  const [laboPays, setLaboPays] = useState('');
+  const [laboVille, setLaboVille] = useState('');
+  const [selectedLaboId, setSelectedLaboId] = useState('');
+
+  // Country/City data using country-state-city library
+  const [pharmacieCountryIso, setPharmacieCountryIso] = useState('');
+  const [laboCountryIso, setLaboCountryIso] = useState('');
+
+  const pharmacieCities = useMemo(
+    () => pharmacieCountryIso ? (City.getCitiesOfCountry(pharmacieCountryIso) ?? []) : [],
+    [pharmacieCountryIso]
+  );
+
+  const laboCities = useMemo(
+    () => laboCountryIso ? (City.getCitiesOfCountry(laboCountryIso) ?? []) : [],
+    [laboCountryIso]
+  );
+
+  // Filtered pharmacies and labs based on location
+  const filteredPharmacies = useMemo(() => {
+    if (!pharmaciePays || !pharmacieVille) return [];
+    return pharmaciens.filter(p => p.pays === pharmaciePays && p.ville === pharmacieVille);
+  }, [pharmaciens, pharmaciePays, pharmacieVille]);
+
+  const filteredLaboratoires = useMemo(() => {
+    if (!laboPays || !laboVille) return [];
+    return laboratoires.filter(l => l.pays === laboPays && l.ville === laboVille);
+  }, [laboratoires, laboPays, laboVille]);
+
   // Ordonnance
   const [addOrdonnance, setAddOrdonnance] = useState(false);
   const [medicaments, setMedicaments] = useState([{ nom: '', dosage: '', frequence: '', duree: '' }]);
@@ -153,6 +187,14 @@ export default function Consultations() {
     setNewPatPhoneError('');
     setShowNewPwd(false);
     setFormData({ motif: '', diagnostic: '', notes: '' });
+    setPharmaciePays('');
+    setPharmacieVille('');
+    setPharmacieCountryIso('');
+    setSelectedPharmacieId('');
+    setLaboPays('');
+    setLaboVille('');
+    setLaboCountryIso('');
+    setSelectedLaboId('');
     setAddOrdonnance(false);
     setMedicaments([{ nom: '', dosage: '', frequence: '', duree: '' }]);
     setAddAnalyse(false);
@@ -201,11 +243,17 @@ export default function Consultations() {
 
       if (addOrdonnance) {
         const validMeds = medicaments.filter(m => m.nom.trim());
-        if (validMeds.length > 0) await api.post('/ordonnances', { consultationId, medicaments: validMeds });
+        if (validMeds.length > 0) {
+          const ordPayload: any = { consultationId, medicaments: validMeds };
+          if (selectedPharmacieId) ordPayload.pharmacienId = selectedPharmacieId;
+          await api.post('/ordonnances', ordPayload);
+        }
       }
       if (addAnalyse) {
         for (const desc of analyseDescriptions.filter(d => d.trim())) {
-          await api.post('/analyses', { consultationId, description: desc });
+          const analysePayload: any = { consultationId, description: desc };
+          if (selectedLaboId) analysePayload.labId = selectedLaboId;
+          await api.post('/analyses', analysePayload);
         }
       }
 
@@ -300,22 +348,9 @@ export default function Consultations() {
                             size="small"
                             color={getOrdonnanceChipColor(o.status)}
                           />
-                          {/* PDF preview button */}
-                          {o.pdfUrl && (
-                            <Button
-                              size="small"
-                              variant="outlined"
-                              startIcon={<Visibility />}
-                              href={o.pdfUrl}
-                              target="_blank"
-                              sx={{ textTransform: 'none', fontSize: '0.7rem', ml: 0.5 }}
-                            >
-                              Voir PDF
-                            </Button>
-                          )}
                           {/* Affichage pharmacie assignée */}
                           {o.pharmacienId && (() => {
-                            const ph = pharmaciens.find((p) => p.id === o.pharmacienId);
+                            const ph = o.pharmacien || pharmaciens.find((p) => p.id === o.pharmacienId);
                             if (!ph) return null;
                             return (
                               <Box sx={{
@@ -329,7 +364,7 @@ export default function Consultations() {
                                 gap: 1.5
                               }}>
                                 <LocalPharmacy sx={{ color: '#3b82f6', fontSize: 20 }} />
-                                <Box>
+                                <Box sx={{ flex: 1 }}>
                                   <Typography variant="caption" sx={{ color: '#3b82f6', fontWeight: 700, display: 'block', mb: 0.3 }}>
                                     Pharmacie assignée
                                   </Typography>
@@ -344,9 +379,25 @@ export default function Consultations() {
                                   {ph.address && (
                                     <Typography variant="caption" sx={{ color: '#64748b', display: 'block' }}>
                                       📍 {ph.address}
+                                      {ph.ville && `, ${ph.ville}`}
+                                      {ph.pays && `, ${ph.pays}`}
                                     </Typography>
                                   )}
                                 </Box>
+                                {/* PDF preview button inside pharmacy box */}
+                                {o.pdfUrl && (
+                                  <Button
+                                    size="small"
+                                    variant="outlined"
+                                    color="primary"
+                                    startIcon={<Visibility />}
+                                    href={o.pdfUrl}
+                                    target="_blank"
+                                    sx={{ textTransform: 'none', fontSize: '0.7rem', whiteSpace: 'nowrap' }}
+                                  >
+                                    Voir PDF
+                                  </Button>
+                                )}
                               </Box>
                             );
                           })()}
@@ -370,23 +421,9 @@ export default function Consultations() {
                             size="small"
                             color={getAnalyseChipColor(a.status)}
                           />
-                          {/* PDF preview button */}
-                          {a.pdfUrl && (
-                            <Button
-                              size="small"
-                              variant="outlined"
-                              color="info"
-                              startIcon={<Visibility />}
-                              href={a.pdfUrl}
-                              target="_blank"
-                              sx={{ textTransform: 'none', fontSize: '0.7rem', ml: 0.5 }}
-                            >
-                              Voir PDF
-                            </Button>
-                          )}
                           {/* Affichage laboratoire assigné */}
                           {a.labId && (() => {
-                            const lab = laboratoires.find((l) => l.id === a.labId);
+                            const lab = a.laboratoire || laboratoires.find((l) => l.id === a.labId);
                             if (!lab) return null;
                             return (
                               <Box sx={{
@@ -400,7 +437,7 @@ export default function Consultations() {
                                 gap: 1.5
                               }}>
                                 <Science sx={{ color: '#22c55e', fontSize: 20 }} />
-                                <Box>
+                                <Box sx={{ flex: 1 }}>
                                   <Typography variant="caption" sx={{ color: '#22c55e', fontWeight: 700, display: 'block', mb: 0.3 }}>
                                     Laboratoire assigné
                                   </Typography>
@@ -415,9 +452,25 @@ export default function Consultations() {
                                   {lab.address && (
                                     <Typography variant="caption" sx={{ color: '#64748b', display: 'block' }}>
                                       📍 {lab.address}
+                                      {lab.ville && `, ${lab.ville}`}
+                                      {lab.pays && `, ${lab.pays}`}
                                     </Typography>
                                   )}
                                 </Box>
+                                {/* PDF preview button inside lab box */}
+                                {a.pdfUrl && (
+                                  <Button
+                                    size="small"
+                                    variant="outlined"
+                                    color="success"
+                                    startIcon={<Visibility />}
+                                    href={a.pdfUrl}
+                                    target="_blank"
+                                    sx={{ textTransform: 'none', fontSize: '0.7rem', whiteSpace: 'nowrap' }}
+                                  >
+                                    Voir PDF
+                                  </Button>
+                                )}
                               </Box>
                             );
                           })()}
@@ -804,6 +857,206 @@ export default function Consultations() {
                   </Button>
                 </Collapse>
               </Paper>
+
+              {/* ── Location & Assignment section ── */}
+              {(addOrdonnance || addAnalyse) && (
+                <Paper variant="outlined" sx={{ p: 2, mt: 1.5, borderRadius: 2, bgcolor: '#fef3c7', border: '1px solid #fbbf24' }}>
+                  <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 1.5, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <LocationOn fontSize="small" color="warning" />
+                    Localisation et Attribution
+                  </Typography>
+                  
+                  {/* Pharmacie Section */}
+                  {addOrdonnance && (
+                    <>
+                      <Divider sx={{ mb: 2 }}>
+                        <Chip icon={<LocalPharmacy />} label="Pharmacie" color="primary" size="small" />
+                      </Divider>
+                      <Grid container spacing={2} sx={{ mb: 2 }}>
+                        {/* Pays Pharmacie */}
+                        <Grid item xs={12} sm={6}>
+                          <Autocomplete
+                            options={allCountries}
+                            getOptionLabel={(opt) => `${opt.flag ?? ''} ${opt.name}`}
+                            isOptionEqualToValue={(opt, val) => opt.isoCode === val.isoCode}
+                            value={allCountries.find(c => c.isoCode === pharmacieCountryIso) ?? null}
+                            onChange={(_, country) => {
+                              const iso = country?.isoCode ?? '';
+                              const name = country?.name ?? '';
+                              setPharmacieCountryIso(iso);
+                              setPharmaciePays(name);
+                              setPharmacieVille('');
+                              setSelectedPharmacieId('');
+                            }}
+                            renderInput={(params) => <TextField {...params} label="Pays" size="small" />}
+                          />
+                        </Grid>
+
+                        {/* Ville Pharmacie */}
+                        <Grid item xs={12} sm={6}>
+                          {pharmacieCities.length > 0 ? (
+                            <TextField
+                              select
+                              fullWidth
+                              label="Ville"
+                              size="small"
+                              value={pharmacieVille}
+                              onChange={(e) => {
+                                setPharmacieVille(e.target.value);
+                                setSelectedPharmacieId('');
+                              }}
+                              disabled={!pharmacieCountryIso}
+                              InputProps={{
+                                startAdornment: <InputAdornment position="start"><LocationOn fontSize="small" color="action" /></InputAdornment>
+                              }}
+                            >
+                              <MenuItem value="">-- Sélectionner --</MenuItem>
+                              {pharmacieCities.map((c) => (
+                                <MenuItem key={`${c.name}-${(c as any).stateCode ?? ''}`} value={c.name}>{c.name}</MenuItem>
+                              ))}
+                            </TextField>
+                          ) : (
+                            <TextField
+                              fullWidth
+                              label="Ville"
+                              size="small"
+                              value={pharmacieVille}
+                              onChange={(e) => {
+                                setPharmacieVille(e.target.value);
+                                setSelectedPharmacieId('');
+                              }}
+                              disabled={!pharmacieCountryIso}
+                              helperText={!pharmacieCountryIso ? "Sélectionnez d'abord un pays" : ''}
+                              InputProps={{
+                                startAdornment: <InputAdornment position="start"><LocationOn fontSize="small" color="action" /></InputAdornment>
+                              }}
+                            />
+                          )}
+                        </Grid>
+
+                        {/* Pharmacie Selection */}
+                        <Grid item xs={12}>
+                          <TextField
+                            select
+                            fullWidth
+                            label="Pharmacie assignée"
+                            size="small"
+                            value={selectedPharmacieId}
+                            onChange={(e) => setSelectedPharmacieId(e.target.value)}
+                            disabled={!pharmacieVille}
+                            helperText={!pharmacieVille ? "Sélectionnez d'abord une ville" : `${filteredPharmacies.length} pharmacie(s) disponible(s)`}
+                            InputProps={{
+                              startAdornment: <InputAdornment position="start"><LocalPharmacy fontSize="small" color="primary" /></InputAdornment>
+                            }}
+                          >
+                            <MenuItem value="">-- Aucune (optionnel) --</MenuItem>
+                            {filteredPharmacies.map((ph) => (
+                              <MenuItem key={ph.id} value={ph.id}>
+                                {ph.firstName} {ph.lastName} — {ph.address}
+                              </MenuItem>
+                            ))}
+                          </TextField>
+                        </Grid>
+                      </Grid>
+                    </>
+                  )}
+
+                  {/* Laboratoire Section */}
+                  {addAnalyse && (
+                    <>
+                      <Divider sx={{ mb: 2 }}>
+                        <Chip icon={<Science />} label="Laboratoire" color="success" size="small" />
+                      </Divider>
+                      <Grid container spacing={2}>
+                        {/* Pays Laboratoire */}
+                        <Grid item xs={12} sm={6}>
+                          <Autocomplete
+                            options={allCountries}
+                            getOptionLabel={(opt) => `${opt.flag ?? ''} ${opt.name}`}
+                            isOptionEqualToValue={(opt, val) => opt.isoCode === val.isoCode}
+                            value={allCountries.find(c => c.isoCode === laboCountryIso) ?? null}
+                            onChange={(_, country) => {
+                              const iso = country?.isoCode ?? '';
+                              const name = country?.name ?? '';
+                              setLaboCountryIso(iso);
+                              setLaboPays(name);
+                              setLaboVille('');
+                              setSelectedLaboId('');
+                            }}
+                            renderInput={(params) => <TextField {...params} label="Pays" size="small" />}
+                          />
+                        </Grid>
+
+                        {/* Ville Laboratoire */}
+                        <Grid item xs={12} sm={6}>
+                          {laboCities.length > 0 ? (
+                            <TextField
+                              select
+                              fullWidth
+                              label="Ville"
+                              size="small"
+                              value={laboVille}
+                              onChange={(e) => {
+                                setLaboVille(e.target.value);
+                                setSelectedLaboId('');
+                              }}
+                              disabled={!laboCountryIso}
+                              InputProps={{
+                                startAdornment: <InputAdornment position="start"><LocationOn fontSize="small" color="action" /></InputAdornment>
+                              }}
+                            >
+                              <MenuItem value="">-- Sélectionner --</MenuItem>
+                              {laboCities.map((c) => (
+                                <MenuItem key={`${c.name}-${(c as any).stateCode ?? ''}`} value={c.name}>{c.name}</MenuItem>
+                              ))}
+                            </TextField>
+                          ) : (
+                            <TextField
+                              fullWidth
+                              label="Ville"
+                              size="small"
+                              value={laboVille}
+                              onChange={(e) => {
+                                setLaboVille(e.target.value);
+                                setSelectedLaboId('');
+                              }}
+                              disabled={!laboCountryIso}
+                              helperText={!laboCountryIso ? "Sélectionnez d'abord un pays" : ''}
+                              InputProps={{
+                                startAdornment: <InputAdornment position="start"><LocationOn fontSize="small" color="action" /></InputAdornment>
+                              }}
+                            />
+                          )}
+                        </Grid>
+
+                        {/* Laboratoire Selection */}
+                        <Grid item xs={12}>
+                          <TextField
+                            select
+                            fullWidth
+                            label="Laboratoire assigné"
+                            size="small"
+                            value={selectedLaboId}
+                            onChange={(e) => setSelectedLaboId(e.target.value)}
+                            disabled={!laboVille}
+                            helperText={!laboVille ? "Sélectionnez d'abord une ville" : `${filteredLaboratoires.length} laboratoire(s) disponible(s)`}
+                            InputProps={{
+                              startAdornment: <InputAdornment position="start"><Science fontSize="small" color="success" /></InputAdornment>
+                            }}
+                          >
+                            <MenuItem value="">-- Aucun (optionnel) --</MenuItem>
+                            {filteredLaboratoires.map((lab) => (
+                              <MenuItem key={lab.id} value={lab.id}>
+                                {lab.firstName} {lab.lastName} — {lab.address}
+                              </MenuItem>
+                            ))}
+                          </TextField>
+                        </Grid>
+                      </Grid>
+                    </>
+                  )}
+                </Paper>
+              )}
 
               <Button
                 fullWidth

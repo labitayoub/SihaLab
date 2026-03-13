@@ -50,7 +50,11 @@ export class ConsultationsService {
   async findAll(patientId?: string, doctorId?: string) {
     const query = this.consultationRepository.createQueryBuilder('consultation')
       .leftJoinAndSelect('consultation.patient', 'patient')
-      .leftJoinAndSelect('consultation.doctor', 'doctor');
+      .leftJoinAndSelect('consultation.doctor', 'doctor')
+      .leftJoinAndSelect('consultation.ordonnances', 'ordonnances')
+      .leftJoinAndSelect('ordonnances.pharmacien', 'pharmacien')
+      .leftJoinAndSelect('consultation.analyses', 'analyses')
+      .leftJoinAndSelect('analyses.laboratoire', 'laboratoire');
 
     if (patientId) {
       query.andWhere('consultation.patientId = :patientId', { patientId });
@@ -341,6 +345,11 @@ export class ConsultationsService {
         dateISO, consultationId, fileName,
       );
       const fileUrl = await this.minioService.uploadFile(objectName, pdfBuffer, 'application/pdf');
+
+      // Update all analyses pdfUrl
+      for (const analyse of consultation.analyses) {
+        await this.analyseRepository.update(analyse.id, { pdfUrl: fileUrl });
+      }
 
       // Save URL on consultation itself
       await this.consultationRepository.update(consultationId, { analysePdfUrl: fileUrl });

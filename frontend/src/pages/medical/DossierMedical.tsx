@@ -453,6 +453,18 @@ export default function DossierMedical() {
                           Voir PDF: {a.resultatFileUrl.split('/').pop()}
                         </Button>
                       )}
+                      {a.pdfUrl && !a.pdfUrl.includes(c.analysePdfUrl || '') && (
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          startIcon={<Visibility />}
+                          href={a.pdfUrl}
+                          target="_blank"
+                          sx={{ mt: 0.5, ml: 1, textTransform: 'none', fontSize: '0.75rem' }}
+                        >
+                          Voir PDF
+                        </Button>
+                      )}
                       {a.pdfUrl && a.pdfUrl !== c.analysePdfUrl && (
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1, pt: 1, borderTop: '1px dashed #ce93d8', flexWrap: 'wrap' }}>
                           <Chip
