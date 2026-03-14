@@ -490,4 +490,69 @@ export class ConsultationsService {
 
     return { message: 'PDF analyse généré', analyseUrl: fileUrl, analyseFileName: fileName };
   }
+
+  async uploadFiles(consultationId: string, files: Express.Multer.File[], fileNames: string[], doctorId: string) {
+    const consultation = await this.findOne(consultationId);
+
+    if (!files || files.length === 0) {
+      throw new BadRequestException('Aucun fichier fourni');
+    }
+
+    // Validate file types (PDF, images, and documents)
+    const allowedMimeTypes = [
+      'application/pdf',
+      'image/jpeg',
+      'image/jpg',
+      'image/png',
+      'image/gif',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    ];
+
+    for (const file of files) {
+      if (!allowedMimeTypes.includes(file.mimetype)) {
+        throw new BadRequestException(`Type de fichier non autorisé: ${file.mimetype}`);
+      }
+    }
+
+    // Upload files to MinIO
+    const uploadedFiles: { name: string; url: string }[] = [];
+    const dateISO = new Date(consultation.date).toISOString().split('T')[0];
+    const patientLast = consultation.patient?.lastName || 'Patient';
+    const patientFirst = consultation.patient?.firstName || '';
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const customName = fileNames[i];
+      const extension = file.originalname.split('.').pop() || 'file';
+      const fileName = `${customName}.${extension}`;
+      
+      const objectName = this.buildObjectPath(
+        consultation.doctor?.lastName || 'Medecin',
+        consultation.doctor?.firstName || '',
+        patientLast,
+        patientFirst,
+        dateISO,
+        consultationId,
+        fileName,
+      );
+
+      const fileUrl = await this.minioService.uploadFile(objectName, file.buffer, file.mimetype);
+      uploadedFiles.push({ name: customName, url: fileUrl });
+    }
+
+    // Add to existing uploaded files or create new array
+    const existingFiles = consultation.uploadedFiles || [];
+    consultation.uploadedFiles = [...existingFiles, ...uploadedFiles];
+
+    await this.consultationRepository.save(consultation);
+
+    return {
+      message: `${files.length} fichier(s) uploadé(s) avec succès`,
+      uploadedFiles,
+      totalFiles: consultation.uploadedFiles.length,
+    };
+  }
 }

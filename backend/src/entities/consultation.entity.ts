@@ -61,6 +61,9 @@ export class Consultation {
   @Column({ nullable: true })
   analysePdfUrl: string;
 
+  @Column('jsonb', { nullable: true })
+  uploadedFiles: { name: string; url: string }[];
+
   @CreateDateColumn()
   createdAt: Date;
 

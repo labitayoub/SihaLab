@@ -19,5 +19,6 @@ export interface Consultation {
   examenClinique?: any;
   ordonnancePdfUrl?: string;
   analysePdfUrl?: string;
+  uploadedFiles?: { name: string; url: string }[];
   createdAt: string;
 }

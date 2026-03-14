@@ -1,4 +1,5 @@
-import { Controller, Get, Post, Body, Patch, Param, Query, Delete, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Query, Delete, UseGuards, UseInterceptors, UploadedFiles, BadRequestException } from '@nestjs/common';
+import { FilesInterceptor } from '@nestjs/platform-express';
 import { ConsultationsService } from './consultations.service';
 import { CreateConsultationDto } from './dto/create-consultation.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -104,5 +105,39 @@ export class ConsultationsController {
   ) {
     const doctorId = user.role === UserRole.INFIRMIER ? user.createdBy : user.id;
     return this.consultationsService.generateSingleAnalysePdf(id, analyseId, doctorId);
+  }
+
+  @Post(':id/upload-files')
+  @Roles(UserRole.MEDECIN, UserRole.INFIRMIER)
+  @UseInterceptors(FilesInterceptor('files', 10))
+  async uploadFiles(
+    @Param('id') id: string,
+    @UploadedFiles() files: Express.Multer.File[],
+    @Body('fileNames') fileNames: string,
+    @CurrentUser() user: User,
+  ) {
+    if (!files || files.length === 0) {
+      throw new BadRequestException('Aucun fichier fourni');
+    }
+
+    // Parse fileNames from JSON string
+    let parsedFileNames: string[];
+    try {
+      parsedFileNames = JSON.parse(fileNames);
+    } catch {
+      throw new BadRequestException('Format de noms de fichiers invalide');
+    }
+
+    if (parsedFileNames.length !== files.length) {
+      throw new BadRequestException('Le nombre de noms ne correspond pas au nombre de fichiers');
+    }
+
+    // Validate that all names are provided
+    if (parsedFileNames.some(name => !name || !name.trim())) {
+      throw new BadRequestException('Tous les fichiers doivent avoir un nom');
+    }
+
+    const doctorId = user.role === UserRole.INFIRMIER ? user.createdBy : user.id;
+    return this.consultationsService.uploadFiles(id, files, parsedFileNames, doctorId);
   }
 }

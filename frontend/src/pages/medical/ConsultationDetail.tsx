@@ -3,9 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box, Typography, Paper, TextField, Button, Divider, MenuItem,
   IconButton, CircularProgress, Alert, Chip, Dialog, DialogTitle,
-  DialogContent, DialogActions, Autocomplete,
+  DialogContent, DialogActions, Autocomplete, List, ListItem, ListItemText, ListItemIcon,
 } from '@mui/material';
-import { Delete, Add, Save, CheckCircle, Edit, PictureAsPdf, Cancel, Download, Visibility, Close, PostAdd, LocalPharmacy, Science } from '@mui/icons-material';
+import { Delete, Add, Save, CheckCircle, Edit, PictureAsPdf, Cancel, Download, Visibility, Close, PostAdd, LocalPharmacy, Science, UploadFile, AttachFile, Description, Image } from '@mui/icons-material';
 import { Country, City } from 'country-state-city';
 import { toast, confirm } from '../../utils/toast';
 import api from '../../config/api';
@@ -148,6 +148,11 @@ export default function ConsultationDetail() {
       (!anVille || l.ville === anVille)
     ), [laboratoires, anCountryName, anVille]);
 
+  // File upload states
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [selectedFiles, setSelectedFiles] = useState<{ file: File; name: string }[]>([]);
+  const [uploading, setUploading] = useState(false);
+
   const editAnFilteredLaboratoires = useMemo(() =>
     laboratoires.filter((l) =>
       (!editAnCountryName || l.pays === editAnCountryName) &&
@@ -220,6 +225,59 @@ export default function ConsultationDetail() {
       setEditMode(false);
     } catch {
       toast.error('Erreur lors de l\'enregistrement');
+    }
+  };
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files) {
+      const files = Array.from(event.target.files);
+      const newFiles = files.map(file => ({ file, name: file.name.replace(/\.[^/.]+$/, '') }));
+      setSelectedFiles(prev => [...prev, ...newFiles]);
+    }
+  };
+
+  const handleRemoveFile = (index: number) => {
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleFileNameChange = (index: number, newName: string) => {
+    setSelectedFiles(prev => prev.map((item, i) => i === index ? { ...item, name: newName } : item));
+  };
+
+  const handleUploadFiles = async () => {
+    if (selectedFiles.length === 0) {
+      toast.error('Veuillez sélectionner au moins un fichier');
+      return;
+    }
+
+    // Validate all files have names
+    if (selectedFiles.some(item => !item.name.trim())) {
+      toast.error('Tous les fichiers doivent avoir un nom');
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      selectedFiles.forEach(item => {
+        formData.append('files', item.file);
+      });
+      formData.append('fileNames', JSON.stringify(selectedFiles.map(item => item.name.trim())));
+
+      await api.post(`/consultations/${id}/upload-files`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      toast.success(`${selectedFiles.length} fichier(s) uploadé(s) avec succès`);
+      setUploadDialogOpen(false);
+      setSelectedFiles([]);
+      loadConsultation();
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Erreur lors de l\'upload des fichiers');
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -1148,6 +1206,88 @@ export default function ConsultationDetail() {
         </Paper>
       )}
 
+      {/* ── Fichiers Joints ── */}
+      <Paper variant="outlined" sx={{ p: 3, mb: 3, borderRadius: 2 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+          <Typography variant="subtitle1" fontWeight="bold">
+            Fichiers Joints
+          </Typography>
+          {consultation.status === 'en_cours' && (
+            <Button
+              variant="contained"
+              size="small"
+              startIcon={<UploadFile />}
+              onClick={() => setUploadDialogOpen(true)}
+              sx={{ textTransform: 'none' }}
+            >
+              Ajouter des fichiers
+            </Button>
+          )}
+        </Box>
+
+        {consultation.uploadedFiles && consultation.uploadedFiles.length > 0 ? (
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+            {consultation.uploadedFiles.map((file: { name: string; url: string }, index: number) => {
+              const isPdf = file.url.toLowerCase().endsWith('.pdf');
+              const isImage = /\.(jpg|jpeg|png|gif)$/i.test(file.url);
+              
+              return (
+                <Box
+                  key={index}
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 2,
+                    p: 1.5,
+                    borderRadius: 1,
+                    bgcolor: '#f5f5f5',
+                    border: '1px solid #e0e0e0',
+                  }}
+                >
+                  {isPdf ? (
+                    <PictureAsPdf sx={{ color: '#d32f2f', fontSize: 28 }} />
+                  ) : isImage ? (
+                    <Image sx={{ color: '#1976d2', fontSize: 28 }} />
+                  ) : (
+                    <Description sx={{ color: '#757575', fontSize: 28 }} />
+                  )}
+                  <Box sx={{ flex: 1 }}>
+                    <Typography variant="body2" fontWeight="bold">
+                      {file.name}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {isPdf ? 'Document PDF' : isImage ? 'Image' : 'Document'}
+                    </Typography>
+                  </Box>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    startIcon={<Visibility />}
+                    href={file.url}
+                    target="_blank"
+                    sx={{ textTransform: 'none' }}
+                  >
+                    Voir
+                  </Button>
+                  <Button
+                    size="small"
+                    variant="contained"
+                    startIcon={<Download />}
+                    href={file.url}
+                    download
+                    sx={{ textTransform: 'none' }}
+                  >
+                    Télécharger
+                  </Button>
+                </Box>
+              );
+            })}
+          </Box>
+        ) : (
+          <Alert severity="info">Aucun fichier joint à cette consultation.</Alert>
+        )}
+      </Paper>
+
       {/* ── Footer buttons ── */}
       <Divider sx={{ mb: 2 }} />
       <Box sx={{ display: 'flex', gap: 2, justifyContent: 'space-between' }}>
@@ -1186,6 +1326,110 @@ export default function ConsultationDetail() {
         <DialogActions>
           <Button onClick={() => setDeleteDialog(null)}>Annuler</Button>
           <Button variant="contained" color="error" onClick={handleDelete}>Supprimer</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ── File Upload Dialog ── */}
+      <Dialog open={uploadDialogOpen} onClose={() => !uploading && setUploadDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Typography variant="h6" fontWeight="bold">
+            Ajouter des fichiers
+          </Typography>
+          <IconButton onClick={() => !uploading && setUploadDialogOpen(false)} disabled={uploading}>
+            <Close />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent>
+          <Alert severity="info" sx={{ mb: 2 }}>
+            Vous pouvez uploader plusieurs fichiers (PDF, images, documents Word/Excel). Chaque fichier doit avoir un nom.
+          </Alert>
+
+          <Button
+            variant="outlined"
+            component="label"
+            fullWidth
+            startIcon={<AttachFile />}
+            sx={{ mb: 2 }}
+            disabled={uploading}
+          >
+            Sélectionner des fichiers
+            <input
+              type="file"
+              hidden
+              multiple
+              accept=".pdf,.jpg,.jpeg,.png,.gif,.doc,.docx,.xls,.xlsx"
+              onChange={handleFileSelect}
+            />
+          </Button>
+
+          {selectedFiles.length > 0 && (
+            <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, mb: 2 }}>
+              <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 1.5 }}>
+                Fichiers sélectionnés ({selectedFiles.length})
+              </Typography>
+              <List dense>
+                {selectedFiles.map((item, index) => (
+                  <ListItem
+                    key={index}
+                    sx={{ 
+                      bgcolor: '#f5f5f5', 
+                      borderRadius: 1, 
+                      mb: 1,
+                      flexDirection: 'column',
+                      alignItems: 'stretch',
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', mb: 1 }}>
+                      <ListItemIcon>
+                        {item.file.type === 'application/pdf' ? (
+                          <PictureAsPdf color="error" />
+                        ) : item.file.type.startsWith('image/') ? (
+                          <Image color="primary" />
+                        ) : (
+                          <Description color="action" />
+                        )}
+                      </ListItemIcon>
+                      <ListItemText
+                        primary={item.file.name}
+                        secondary={`${(item.file.size / 1024).toFixed(2)} KB`}
+                      />
+                      <IconButton 
+                        edge="end" 
+                        size="small" 
+                        onClick={() => handleRemoveFile(index)}
+                        disabled={uploading}
+                      >
+                        <Close fontSize="small" />
+                      </IconButton>
+                    </Box>
+                    <TextField
+                      fullWidth
+                      size="small"
+                      label="Nom du fichier *"
+                      value={item.name}
+                      onChange={(e) => handleFileNameChange(index, e.target.value)}
+                      disabled={uploading}
+                      required
+                      placeholder="Ex: Radiographie thorax, Résultats sanguins..."
+                    />
+                  </ListItem>
+                ))}
+              </List>
+            </Paper>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setUploadDialogOpen(false)} disabled={uploading}>
+            Annuler
+          </Button>
+          <Button
+            variant="contained"
+            onClick={handleUploadFiles}
+            disabled={uploading || selectedFiles.length === 0}
+            startIcon={uploading ? <CircularProgress size={20} /> : <UploadFile />}
+          >
+            {uploading ? 'Upload en cours...' : `Upload ${selectedFiles.length} fichier(s)`}
+          </Button>
         </DialogActions>
       </Dialog>
     </Box>

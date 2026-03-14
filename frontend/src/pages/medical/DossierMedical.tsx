@@ -294,6 +294,34 @@ export default function DossierMedical() {
                 </Box>
               )}
 
+              {/* Fichiers Joints */}
+              {c.uploadedFiles && c.uploadedFiles.length > 0 && (
+                <Box sx={{ mb: 2 }}>
+                  <Typography variant="subtitle2" color="secondary.main" fontWeight="bold" sx={{ mb: 1, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <AttachFile sx={{ fontSize: 16 }} />
+                    Fichiers Joints ({c.uploadedFiles.length})
+                  </Typography>
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                    {c.uploadedFiles.map((file: { name: string; url: string }, index: number) => {
+                      const isPdf = file.url.toLowerCase().endsWith('.pdf');
+                      const isImage = /\.(jpg|jpeg|png|gif)$/i.test(file.url);
+                      
+                      return (
+                        <Chip
+                          key={index}
+                          icon={isPdf ? <PictureAsPdf /> : isImage ? <Image /> : <Description />}
+                          label={file.name}
+                          onClick={() => window.open(file.url, '_blank')}
+                          color={isPdf ? 'error' : isImage ? 'primary' : 'default'}
+                          variant="outlined"
+                          sx={{ cursor: 'pointer' }}
+                        />
+                      );
+                    })}
+                  </Box>
+                </Box>
+              )}
+
               {/* ── Ordonnances ── */}
               {c.ordonnances && c.ordonnances.length > 0 && (
                 <>
