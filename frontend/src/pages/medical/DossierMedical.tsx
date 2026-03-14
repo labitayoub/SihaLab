@@ -582,14 +582,14 @@ export default function DossierMedical() {
                         <PictureAsPdf sx={{ color: '#f57f17', fontSize: 28 }} />
                         <Box sx={{ flex: 1 }}>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Typography variant="body2" fontWeight="bold">{o.createdAt ? new Date(o.createdAt).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : `Ordonnance #${oi + 1}`}</Typography>
+                            <Typography variant="body2" fontWeight="bold">Ordonnance</Typography>
                             <Chip label="Ajouté après" size="small" icon={<PostAdd sx={{ fontSize: '14px !important' }} />} sx={{ bgcolor: '#ffe082', color: '#e65100', fontWeight: 600, fontSize: 11, height: 20 }} />
                           </Box>
                           <Typography variant="caption" color="text.secondary">
                             Patient : {patientInfo?.lastName} {patientInfo?.firstName} — {new Date(o.createdAt).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                           </Typography>
                           <Typography variant="caption" display="block" color="text.disabled" sx={{ fontSize: 10 }}>
-                            {o.medicaments?.map((m: any) => m.nom).filter(Boolean).join(', ') || 'Ordonnance'}
+                            {o.medicaments?.map((m: any) => m.nom).filter(Boolean).join(', ') || 'Médicaments'}
                           </Typography>
                         </Box>
                         <Button size="small" variant="outlined" startIcon={<Visibility />} href={o.pdfUrl} target="_blank" sx={{ textTransform: 'uppercase', fontSize: '0.7rem', mr: 0.5 }}>Voir</Button>
@@ -626,14 +626,14 @@ export default function DossierMedical() {
                         <PictureAsPdf sx={{ color: '#7b1fa2', fontSize: 28 }} />
                         <Box sx={{ flex: 1 }}>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Typography variant="body2" fontWeight="bold">{a.createdAt ? new Date(a.createdAt).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : `Analyse #${ai + 1}`}</Typography>
+                            <Typography variant="body2" fontWeight="bold">Analyse</Typography>
                             <Chip label="Ajouté après" size="small" icon={<PostAdd sx={{ fontSize: '14px !important' }} />} sx={{ bgcolor: '#e1bee7', color: '#6a1b9a', fontWeight: 600, fontSize: 11, height: 20 }} />
                           </Box>
                           <Typography variant="caption" color="text.secondary">
                             Patient : {patientInfo?.lastName} {patientInfo?.firstName} — {new Date(a.createdAt).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                           </Typography>
                           <Typography variant="caption" display="block" color="text.disabled" sx={{ fontSize: 10 }}>
-                            {a.description || 'Analyse'}
+                            {a.description || 'Description'}
                           </Typography>
                         </Box>
                         <Button size="small" variant="outlined" startIcon={<Visibility />} href={a.pdfUrl} target="_blank" sx={{ textTransform: 'uppercase', fontSize: '0.7rem', mr: 0.5 }}>Voir</Button>

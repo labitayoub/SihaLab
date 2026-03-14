@@ -1136,7 +1136,7 @@ export default function ConsultationDetail() {
                   <PictureAsPdf sx={{ color: '#f57f17', fontSize: 28 }} />
                   <Box sx={{ flex: 1 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-                      <Typography variant="body2" fontWeight="bold" color="text.primary">Ordonnance #{idx + 1}</Typography>
+                      <Typography variant="body2" fontWeight="bold" color="text.primary">Ordonnance</Typography>
                       <Chip
                         label="Ajouté après"
                         size="small"
@@ -1148,7 +1148,7 @@ export default function ConsultationDetail() {
                       Patient : {consultation.patient?.lastName} {consultation.patient?.firstName} — {new Date(o.createdAt).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                     </Typography>
                     <Typography variant="caption" display="block" color="text.disabled" sx={{ fontSize: 10 }}>
-                      {o.medicaments?.map((m: any) => m.nom).filter(Boolean).join(', ') || 'Ordonnance'}
+                      {o.medicaments?.map((m: any) => m.nom).filter(Boolean).join(', ') || 'Médicaments'}
                     </Typography>
                   </Box>
                   <Button size="small" variant="outlined" startIcon={<Visibility />} href={o.pdfUrl} target="_blank" sx={{ textTransform: 'none', mr: 1 }}>Voir</Button>
@@ -1182,7 +1182,7 @@ export default function ConsultationDetail() {
                   <PictureAsPdf sx={{ color: '#7b1fa2', fontSize: 28 }} />
                   <Box sx={{ flex: 1 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-                      <Typography variant="body2" fontWeight="bold" color="text.primary">Analyse #{idx + 1}</Typography>
+                      <Typography variant="body2" fontWeight="bold" color="text.primary">Analyse</Typography>
                       <Chip
                         label="Ajouté après"
                         size="small"
@@ -1194,7 +1194,7 @@ export default function ConsultationDetail() {
                       Patient : {consultation.patient?.lastName} {consultation.patient?.firstName} — {new Date(a.createdAt).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                     </Typography>
                     <Typography variant="caption" display="block" color="text.disabled" sx={{ fontSize: 10 }}>
-                      {a.description || 'Analyse'}
+                      {a.description || 'Description'}
                     </Typography>
                   </Box>
                   <Button size="small" variant="outlined" startIcon={<Visibility />} href={a.pdfUrl} target="_blank" sx={{ textTransform: 'none', mr: 1 }}>Voir</Button>
