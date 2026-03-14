@@ -18,6 +18,7 @@ export interface Analyse {
   resultat?: string;
   resultatFileUrl?: string;
   pdfUrl?: string;
+  uploadedFiles?: string[];
   dateResultat?: string;
   createdAt: string;
 }

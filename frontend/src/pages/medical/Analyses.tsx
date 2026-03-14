@@ -154,18 +154,6 @@ function AnalysisRequestView({ analyse }: AnalysisRequestViewProps) {
                 )
               ))}
             </div>
-
-            {analyse.resultat && (
-              <div className="result-box">
-                <div className="result-title">RÉSULTAT CLINIQUE</div>
-                <div className="result-text">{analyse.resultat}</div>
-                {analyse.dateResultat && (
-                  <div style={{ fontSize: '11px', color: '#64748b', marginTop: '10px' }}>
-                    Saisi le {new Date(analyse.dateResultat).toLocaleDateString('fr-FR')}
-                  </div>
-                )}
-              </div>
-            )}
           </div>
         </div>
 
@@ -193,14 +181,12 @@ export default function Analyses() {
   const [analyses, setAnalyses] = useState<Analyse[]>([]);
   const [consultations, setConsultations] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
-  const [uploadOpen, setUploadOpen] = useState(false);
   const [selectedAnalyse, setSelectedAnalyse] = useState<string>('');
   const [formData, setFormData] = useState({
     consultationId: '',
     labId: '',
     description: '',
   });
-  const [resultat, setResultat] = useState('');
 
   const [viewOpen, setViewOpen] = useState(false);
   const [viewAnalyse, setViewAnalyse] = useState<Analyse | null>(null);
@@ -280,21 +266,6 @@ export default function Analyses() {
       setSelectedVille('');
     } catch (error) {
       toast.error(ToastMessages.analyses.createError());
-    }
-  };
-
-  const handleUploadResultat = async () => {
-    try {
-      await api.post(`/analyses/${selectedAnalyse}/upload-resultat`, {
-        resultat,
-        fileUrl: '/uploads/resultat.pdf',
-      });
-      toast.success(ToastMessages.analyses.resultUploadSuccess);
-      setUploadOpen(false);
-      loadAnalyses();
-      setResultat('');
-    } catch (error) {
-      toast.error(ToastMessages.analyses.resultUploadError);
     }
   };
 
@@ -569,27 +540,6 @@ export default function Analyses() {
           />
           <Button fullWidth variant="contained" onClick={handleCreate} sx={{ mt: 2 }}>
             Créer
-          </Button>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={uploadOpen} onClose={() => setUploadOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          Upload Résultat
-          <IconButton onClick={() => setUploadOpen(false)}><Close /></IconButton>
-        </DialogTitle>
-        <DialogContent>
-          <TextField
-            fullWidth
-            label="Résultat"
-            value={resultat}
-            onChange={(e) => setResultat(e.target.value)}
-            margin="normal"
-            multiline
-            rows={6}
-          />
-          <Button fullWidth variant="contained" onClick={handleUploadResultat} sx={{ mt: 2 }}>
-            Enregistrer
           </Button>
         </DialogContent>
       </Dialog>

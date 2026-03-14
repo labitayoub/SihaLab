@@ -435,6 +435,48 @@ export class AnalysesService {
     return this.analyseRepository.save(analyse);
   }
 
+  async uploadFiles(id: string, files: Express.Multer.File[], labId: string) {
+    const analyse = await this.findOne(id);
+    
+    // Verify access control
+    if (analyse.labId && analyse.labId !== labId) {
+      throw new ForbiddenException('Vous n\'êtes pas autorisé à modifier cette analyse');
+    }
+
+    if (!files || files.length === 0) {
+      throw new BadRequestException('Aucun fichier fourni');
+    }
+
+    // Validate file types (PDF and images only)
+    const allowedMimeTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+    for (const file of files) {
+      if (!allowedMimeTypes.includes(file.mimetype)) {
+        throw new BadRequestException(`Type de fichier non autorisé: ${file.mimetype}. Seuls les PDF et images sont acceptés.`);
+      }
+    }
+
+    // Upload files to MinIO
+    const uploadedUrls: string[] = [];
+    for (const file of files) {
+      const fileName = `analyse_${analyse.id}_${Date.now()}_${file.originalname}`;
+      const objectName = `analyses-uploads/${fileName}`;
+      const fileUrl = await this.minioService.uploadFile(objectName, file.buffer, file.mimetype);
+      uploadedUrls.push(fileUrl);
+    }
+
+    // Add to existing uploaded files or create new array
+    const existingFiles = analyse.uploadedFiles || [];
+    analyse.uploadedFiles = [...existingFiles, ...uploadedUrls];
+
+    const saved = await this.analyseRepository.save(analyse);
+
+    return {
+      message: `${files.length} fichier(s) uploadé(s) avec succès`,
+      uploadedFiles: uploadedUrls,
+      totalFiles: analyse.uploadedFiles.length,
+    };
+  }
+
   async update(id: string, data: { description?: string; labId?: string }) {
     const analyse = await this.findOne(id);
     if (data.description !== undefined) analyse.description = data.description;

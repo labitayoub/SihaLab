@@ -42,6 +42,9 @@ export class Analyse {
   @Column({ nullable: true })
   pdfUrl: string;
 
+  @Column('simple-array', { nullable: true })
+  uploadedFiles: string[];
+
   @Column({ type: 'timestamp', nullable: true })
   dateResultat: Date;
 

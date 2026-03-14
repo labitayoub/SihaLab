@@ -1,4 +1,5 @@
-import { Controller, Get, Post, Body, Param, Patch, Delete, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Patch, Delete, Query, UseGuards, UploadedFiles, UseInterceptors } from '@nestjs/common';
+import { FilesInterceptor } from '@nestjs/platform-express';
 import { AnalysesService } from './analyses.service';
 import { CreateAnalyseDto } from './dto/create-analyse.dto';
 import { UpdateAnalyseResultsDto } from './dto/update-analyse-results.dto';
@@ -81,6 +82,17 @@ export class AnalysesController {
     @Body('fileUrl') fileUrl: string,
   ) {
     return this.analysesService.uploadResultat(id, resultat, fileUrl);
+  }
+
+  @Post(':id/upload-files')
+  @Roles(UserRole.LABORATOIRE)
+  @UseInterceptors(FilesInterceptor('files', 10))
+  async uploadFiles(
+    @Param('id') id: string,
+    @UploadedFiles() files: Express.Multer.File[],
+    @CurrentUser() user: User,
+  ) {
+    return this.analysesService.uploadFiles(id, files, user.id);
   }
 
   @Patch(':id/status')

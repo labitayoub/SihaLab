@@ -7,6 +7,7 @@ import {
 import {
   ExpandMore, LocalPharmacy, Science, ArrowBack, PictureAsPdf,
   CheckCircle, HourglassEmpty, PlayArrow, Add as AddIcon, Print, Visibility, Description, PostAdd, Download,
+  AttachFile, Image,
 } from '@mui/icons-material';
 import { useAuth } from '../../context/AuthContext';
 import { UserRole } from '../../types/user.types';
@@ -481,6 +482,32 @@ export default function DossierMedical() {
                           >
                             Demande d'Analyse
                           </Button>
+                        </Box>
+                      )}
+                      {/* Uploaded Files Section */}
+                      {a.uploadedFiles && a.uploadedFiles.length > 0 && (
+                        <Box sx={{ mt: 2 }}>
+                          <Typography variant="caption" color="text.secondary" fontWeight="bold" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
+                            <AttachFile sx={{ fontSize: 16 }} />
+                            Fichiers joints ({a.uploadedFiles.length})
+                          </Typography>
+                          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                            {a.uploadedFiles.map((fileUrl: string, index: number) => {
+                              const isPdf = fileUrl.toLowerCase().endsWith('.pdf');
+                              
+                              return (
+                                <Chip
+                                  key={index}
+                                  icon={isPdf ? <PictureAsPdf /> : <Image />}
+                                  label={`Fichier ${index + 1}`}
+                                  onClick={() => window.open(fileUrl, '_blank')}
+                                  color={isPdf ? 'error' : 'primary'}
+                                  variant="outlined"
+                                  sx={{ cursor: 'pointer' }}
+                                />
+                              );
+                            })}
+                          </Box>
                         </Box>
                       )}
                     </Paper>

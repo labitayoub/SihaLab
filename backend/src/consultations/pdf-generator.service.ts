@@ -359,19 +359,6 @@ export class PdfGeneratorService {
 
       y += 6;
 
-      // Result - only if space available
-      if (an.resultat && y < maxY - 40) {
-        doc.font('Helvetica-Bold').fontSize(10).fillColor('#0f172a');
-        doc.text('RÉSULTAT CLINIQUE', 60, y, { lineBreak: false });
-        y += 14;
-
-        doc.font('Helvetica').fontSize(10).fillColor('#334155');
-        const maxChars = 150;
-        const shortResult = an.resultat.length > maxChars ? `${an.resultat.slice(0, maxChars)}...` : an.resultat;
-        doc.text(shortResult, 60, y, { width: doc.page.width - 110, lineBreak: false });
-        y += 18;
-      }
-
       // Bottom divider for item - only if space available
       if (y < maxY - 10) {
         doc.moveTo(50, y).lineTo(doc.page.width - 50, y).strokeColor('#f1f5f9').lineWidth(1).stroke();

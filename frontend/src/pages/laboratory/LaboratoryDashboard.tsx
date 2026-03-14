@@ -3,10 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import {
   Box, Typography, Paper, Chip, TextField, MenuItem, InputAdornment,
   Tabs, Tab, CircularProgress, Alert, Button, Dialog, DialogTitle,
-  DialogContent, DialogActions, IconButton, Grid, Divider,
+  DialogContent, DialogActions, IconButton, Grid, Divider, List, ListItem, ListItemText, ListItemIcon,
 } from '@mui/material';
 import {
-  Search, Science, HourglassEmpty, PlayArrow, CheckCircle, Visibility, Close, Person,
+  Search, Science, HourglassEmpty, PlayArrow, CheckCircle, Visibility, Close, Person, UploadFile, AttachFile, PictureAsPdf, Image,
 } from '@mui/icons-material';
 import { useAuth } from '../../context/AuthContext';
 import { Analyse, AnalyseStatus } from '../../types/analyse.types';
@@ -61,6 +61,11 @@ export default function LaboratoryDashboard() {
     { testName: '', resultValue: '', unit: '', normalRange: '', isAbnormal: false },
   ]);
   const [submitting, setSubmitting] = useState(false);
+
+  // File upload dialog
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     loadAnalyses();
@@ -202,6 +207,65 @@ export default function LaboratoryDashboard() {
     }
   }, [selectedAnalyse, testResults, handleCloseDialog, navigate]);
 
+  const handleOpenUploadDialog = useCallback((analyse: Analyse) => {
+    setSelectedAnalyse(analyse);
+    setUploadDialogOpen(true);
+  }, []);
+
+  const handleCloseUploadDialog = useCallback(() => {
+    setUploadDialogOpen(false);
+    setSelectedAnalyse(null);
+    setSelectedFiles([]);
+  }, []);
+
+  const handleFileSelect = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files) {
+      const files = Array.from(event.target.files);
+      // Validate file types
+      const validTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+      const validFiles = files.filter(file => validTypes.includes(file.type));
+      
+      if (validFiles.length !== files.length) {
+        toast.error('Seuls les fichiers PDF et images (JPG, PNG, GIF) sont acceptés');
+      }
+      
+      setSelectedFiles(prev => [...prev, ...validFiles]);
+    }
+  }, []);
+
+  const handleRemoveFile = useCallback((index: number) => {
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+  }, []);
+
+  const handleUploadFiles = useCallback(async () => {
+    if (!selectedAnalyse || selectedFiles.length === 0) {
+      toast.error('Veuillez sélectionner au moins un fichier');
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      selectedFiles.forEach(file => {
+        formData.append('files', file);
+      });
+
+      await api.post(`/analyses/${selectedAnalyse.id}/upload-files`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      toast.success(`${selectedFiles.length} fichier(s) uploadé(s) avec succès`);
+      handleCloseUploadDialog();
+      loadAnalyses();
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Erreur lors de l\'upload des fichiers');
+    } finally {
+      setUploading(false);
+    }
+  }, [selectedAnalyse, selectedFiles, handleCloseUploadDialog, loadAnalyses]);
+
   if (loading) {
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', pt: 8 }}>
@@ -300,9 +364,19 @@ export default function LaboratoryDashboard() {
                 variant="outlined"
                 size="small"
                 startIcon={analyse.status === AnalyseStatus.TERMINEE ? <Visibility /> : <PlayArrow />}
-                sx={{ whiteSpace: 'nowrap' }}
+                sx={{ whiteSpace: 'nowrap', mr: 1 }}
               >
                 {analyse.status === AnalyseStatus.TERMINEE ? 'Voir' : 'Traiter'}
+              </Button>
+              <Button
+                variant="outlined"
+                size="small"
+                color="secondary"
+                startIcon={<UploadFile />}
+                onClick={(e) => { e.stopPropagation(); handleOpenUploadDialog(analyse); }}
+                sx={{ whiteSpace: 'nowrap' }}
+              >
+                Fichiers
               </Button>
             </Box>
           </Paper>
@@ -462,6 +536,128 @@ export default function LaboratoryDashboard() {
               {submitting ? <CircularProgress size={20} /> : 'Marquer comme Terminée'}
             </Button>
           )}
+        </DialogActions>
+      </Dialog>
+
+      {/* File Upload Dialog */}
+      <Dialog open={uploadDialogOpen} onClose={handleCloseUploadDialog} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Typography variant="h6" fontWeight="bold">
+            Upload de Fichiers
+          </Typography>
+          <IconButton onClick={handleCloseUploadDialog}>
+            <Close />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent>
+          {selectedAnalyse && (
+            <>
+              <Paper variant="outlined" sx={{ p: 2, mb: 3, bgcolor: '#f5f5f5', borderRadius: 2 }}>
+                <Typography variant="caption" color="text.secondary">Patient</Typography>
+                <Typography variant="body2" fontWeight="bold">
+                  {selectedAnalyse.consultation?.patient?.firstName} {selectedAnalyse.consultation?.patient?.lastName}
+                </Typography>
+                <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1 }}>
+                  Analyse
+                </Typography>
+                <Typography variant="body2">{selectedAnalyse.description}</Typography>
+              </Paper>
+
+              <Button
+                variant="outlined"
+                component="label"
+                fullWidth
+                startIcon={<AttachFile />}
+                sx={{ mb: 2 }}
+              >
+                Sélectionner des fichiers (PDF ou Images)
+                <input
+                  type="file"
+                  hidden
+                  multiple
+                  accept=".pdf,.jpg,.jpeg,.png,.gif"
+                  onChange={handleFileSelect}
+                />
+              </Button>
+
+              {selectedFiles.length > 0 && (
+                <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
+                  <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 1 }}>
+                    Fichiers sélectionnés ({selectedFiles.length})
+                  </Typography>
+                  <List dense>
+                    {selectedFiles.map((file, index) => (
+                      <ListItem
+                        key={index}
+                        secondaryAction={
+                          <IconButton edge="end" size="small" onClick={() => handleRemoveFile(index)}>
+                            <Close fontSize="small" />
+                          </IconButton>
+                        }
+                      >
+                        <ListItemIcon>
+                          {file.type === 'application/pdf' ? (
+                            <PictureAsPdf color="error" />
+                          ) : (
+                            <Image color="primary" />
+                          )}
+                        </ListItemIcon>
+                        <ListItemText
+                          primary={file.name}
+                          secondary={`${(file.size / 1024).toFixed(2)} KB`}
+                        />
+                      </ListItem>
+                    ))}
+                  </List>
+                </Paper>
+              )}
+
+              {selectedAnalyse.uploadedFiles && selectedAnalyse.uploadedFiles.length > 0 && (
+                <Paper variant="outlined" sx={{ p: 2, mt: 2, borderRadius: 2, bgcolor: '#e8f5e9' }}>
+                  <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 1 }}>
+                    Fichiers déjà uploadés ({selectedAnalyse.uploadedFiles.length})
+                  </Typography>
+                  <List dense>
+                    {selectedAnalyse.uploadedFiles.map((fileUrl, index) => (
+                      <ListItem key={index}>
+                        <ListItemIcon>
+                          {fileUrl.endsWith('.pdf') ? (
+                            <PictureAsPdf color="error" />
+                          ) : (
+                            <Image color="primary" />
+                          )}
+                        </ListItemIcon>
+                        <ListItemText
+                          primary={`Fichier ${index + 1}`}
+                          secondary={
+                            <Button
+                              size="small"
+                              href={fileUrl}
+                              target="_blank"
+                              startIcon={<Visibility />}
+                            >
+                              Voir
+                            </Button>
+                          }
+                        />
+                      </ListItem>
+                    ))}
+                  </List>
+                </Paper>
+              )}
+            </>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseUploadDialog}>Fermer</Button>
+          <Button
+            variant="contained"
+            onClick={handleUploadFiles}
+            disabled={uploading || selectedFiles.length === 0}
+            startIcon={uploading ? <CircularProgress size={20} /> : <UploadFile />}
+          >
+            {uploading ? 'Upload en cours...' : `Upload ${selectedFiles.length} fichier(s)`}
+          </Button>
         </DialogActions>
       </Dialog>
     </Box>
