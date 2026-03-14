@@ -36,6 +36,7 @@ docker-compose.override.yml
 .vscode/*
 !.vscode/extensions.json
 !.vscode/settings.json
+.kiro/
 .idea/
 *.swp
 *.swo
