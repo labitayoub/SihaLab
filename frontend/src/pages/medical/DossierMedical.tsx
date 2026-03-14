@@ -443,43 +443,44 @@ export default function DossierMedical() {
                         );
                       })()}
                       {a.resultat && (
-                        <Typography variant="body2" color="text.secondary">
-                          Résultat: {a.resultat}
+                        <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                          <strong>Résultats:</strong> {(() => {
+                            try {
+                              const results = JSON.parse(a.resultat);
+                              return results.map((r: any) => `${r.testName}: ${r.resultValue}${r.unit ? ' ' + r.unit : ''}`).join(', ');
+                            } catch {
+                              return a.resultat;
+                            }
+                          })()}
                         </Typography>
                       )}
                       {a.resultatFileUrl && (
-                        <Button
-                          size="small"
-                          startIcon={<PictureAsPdf />}
-                          href={a.resultatFileUrl}
-                          target="_blank"
-                          sx={{ mt: 0.5, textTransform: 'uppercase' }}
-                        >
-                          Voir PDF: {a.resultatFileUrl.split('/').pop()}
-                        </Button>
-                      )}
-                      {a.pdfUrl && !a.pdfUrl.includes(c.analysePdfUrl || '') && (
-                        <Button
-                          size="small"
-                          variant="outlined"
-                          startIcon={<Visibility />}
-                          href={a.pdfUrl}
-                          target="_blank"
-                          sx={{ mt: 0.5, ml: 1, textTransform: 'none', fontSize: '0.75rem' }}
-                        >
-                          Voir PDF
-                        </Button>
-                      )}
-                      {a.pdfUrl && a.pdfUrl !== c.analysePdfUrl && (
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1, pt: 1, borderTop: '1px dashed #ce93d8', flexWrap: 'wrap' }}>
-                          <Chip
-                            label="Ajouté après"
+                        <Box sx={{ mt: 1, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                          <Button
                             size="small"
-                            icon={<PostAdd sx={{ fontSize: '14px !important' }} />}
-                            sx={{ bgcolor: '#e1bee7', color: '#6a1b9a', fontWeight: 600, fontSize: 11, height: 20 }}
-                          />
-                          <Button size="small" variant="outlined" startIcon={<Visibility />} href={a.pdfUrl} target="_blank" sx={{ textTransform: 'none', fontSize: '0.75rem' }}>Voir PDF</Button>
-                          <Button size="small" variant="contained" startIcon={<Download />} href={a.pdfUrl} download sx={{ textTransform: 'none', fontSize: '0.75rem', bgcolor: '#7b1fa2', '&:hover': { bgcolor: '#6a1b9a' } }}>Télécharger</Button>
+                            variant="contained"
+                            color="success"
+                            startIcon={<PictureAsPdf />}
+                            href={a.resultatFileUrl}
+                            target="_blank"
+                            sx={{ textTransform: 'none', fontSize: '0.75rem' }}
+                          >
+                            Résultats Laboratoire
+                          </Button>
+                        </Box>
+                      )}
+                      {a.pdfUrl && (
+                        <Box sx={{ mt: 1, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            startIcon={<Visibility />}
+                            href={a.pdfUrl}
+                            target="_blank"
+                            sx={{ textTransform: 'none', fontSize: '0.75rem' }}
+                          >
+                            Demande d'Analyse
+                          </Button>
                         </Box>
                       )}
                     </Paper>

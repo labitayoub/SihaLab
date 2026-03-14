@@ -38,6 +38,9 @@ const MesPatients = lazy(() => import('./pages/admin/MesPatients'));
 // Pharmacy
 const Livraisons = lazy(() => import('./pages/pharmacy/Livraisons'));
 
+// Laboratory
+const LaboratoryDashboard = lazy(() => import('./pages/laboratory/LaboratoryDashboard'));
+
 // Common
 const Profile = lazy(() => import('./pages/profile/Profile'));
 
@@ -221,6 +224,11 @@ function App() {
                 <Route path="/livraisons" element={
                   <ProtectedRoute roles={[UserRole.PATIENT, UserRole.PHARMACIEN]}>
                     <Livraisons />
+                  </ProtectedRoute>
+                } />
+                <Route path="/laboratory" element={
+                  <ProtectedRoute roles={[UserRole.LABORATOIRE]}>
+                    <LaboratoryDashboard />
                   </ProtectedRoute>
                 } />
                 <Route path="/documents" element={

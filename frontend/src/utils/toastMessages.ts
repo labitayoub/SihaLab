@@ -71,6 +71,18 @@ export const ToastMessages = {
     resultUploadError: '✗ Impossible d\'uploader le résultat. Veuillez réessayer',
   },
 
+  // ========== LABORATOIRE ==========
+  laboratory: {
+    loadError: '✗ Impossible de charger les analyses. Veuillez rafraîchir la page',
+    startSuccess: '✓ Analyse commencée',
+    startError: (details?: string) => `✗ Impossible de commencer l'analyse${details ? ` : ${details}` : ''}`,
+    submitSuccess: '✓ Résultats enregistrés — Rapport PDF généré',
+    submitError: (details?: string) => `✗ Impossible d'enregistrer les résultats${details ? ` : ${details}` : ''}`,
+    noResults: '⚠ Au moins un résultat de test est requis',
+    accessDenied: '✗ Vous n\'êtes pas autorisé à modifier cette analyse',
+    alreadyCompleted: '✗ Impossible de modifier une analyse terminée',
+  },
+
   // ========== DOCUMENTS ==========
   documents: {
     loadError: '✗ Impossible de charger les documents. Veuillez rafraîchir la page',
