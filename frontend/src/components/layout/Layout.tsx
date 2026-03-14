@@ -53,10 +53,18 @@ export default function Layout() {
         </Typography>
         <List sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
           {filteredMenuItems.map((item) => {
-            // Special handling for laboratory routes - both /laboratory and /laboratory/dossiers should highlight "Laboratoire"
-            const isActive = item.path === '/laboratory' 
-              ? location.pathname.startsWith('/laboratory')
-              : location.pathname.startsWith(item.path);
+            // Special handling for laboratory routes
+            let isActive = false;
+            if (item.path === '/laboratory') {
+              // "Laboratoire" is active only on /laboratory, not on /laboratory/dossiers
+              isActive = location.pathname === '/laboratory';
+            } else if (item.path === '/laboratory/dossiers') {
+              // "Dossiers Patients" is active on /laboratory/dossiers
+              isActive = location.pathname.startsWith('/laboratory/dossiers');
+            } else {
+              // Default behavior for other routes
+              isActive = location.pathname.startsWith(item.path);
+            }
             
             return (
               <ListItemButton 
