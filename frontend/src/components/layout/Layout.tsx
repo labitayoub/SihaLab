@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { AppBar, Toolbar, Typography, IconButton, Drawer, List, ListItemButton, ListItemIcon, ListItemText, Box, Avatar, Menu, MenuItem, useMediaQuery, useTheme } from '@mui/material';
-import { Menu as MenuIcon, Dashboard, CalendarMonth, MedicalServices, LocalPharmacy, Science, LocalShipping, Description, People, AccountCircle, GroupAdd, Schedule, FolderShared, Logout } from '@mui/icons-material';
+import { Menu as MenuIcon, Dashboard, CalendarMonth, MedicalServices, LocalPharmacy, Science, LocalShipping, Description, People, AccountCircle, GroupAdd, Schedule, FolderShared, Logout, Folder } from '@mui/icons-material';
 import { useAuth } from '../../context/AuthContext';
 import { UserRole } from '../../types/user.types';
 
@@ -25,6 +25,7 @@ export default function Layout() {
     { text: 'Ordonnances', icon: <LocalPharmacy />, path: '/ordonnances', roles: [UserRole.MEDECIN, UserRole.PATIENT, UserRole.PHARMACIEN, UserRole.INFIRMIER] },
     { text: 'Analyses', icon: <Science />, path: '/analyses', roles: [UserRole.MEDECIN, UserRole.PATIENT, UserRole.INFIRMIER] },
     { text: 'Laboratoire', icon: <Science />, path: '/laboratory', roles: [UserRole.LABORATOIRE] },
+    { text: 'Dossiers Patients', icon: <Folder />, path: '/laboratory/dossiers', roles: [UserRole.LABORATOIRE] },
     { text: 'Livraisons', icon: <LocalShipping />, path: '/livraisons', roles: [UserRole.PATIENT, UserRole.PHARMACIEN] },
     { text: 'Documents', icon: <Description />, path: '/documents', roles: [UserRole.MEDECIN, UserRole.PATIENT, UserRole.INFIRMIER] },
     { text: 'Dossier Médical', icon: <FolderShared />, path: '/dossier-medical', roles: [UserRole.PATIENT] },
@@ -52,7 +53,11 @@ export default function Layout() {
         </Typography>
         <List sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
           {filteredMenuItems.map((item) => {
-            const isActive = location.pathname.startsWith(item.path);
+            // Special handling for laboratory routes - both /laboratory and /laboratory/dossiers should highlight "Laboratoire"
+            const isActive = item.path === '/laboratory' 
+              ? location.pathname.startsWith('/laboratory')
+              : location.pathname.startsWith(item.path);
+            
             return (
               <ListItemButton 
                 key={item.path} 

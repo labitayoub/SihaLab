@@ -1,11 +1,12 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Box, Typography, Paper, Chip, TextField, MenuItem, InputAdornment,
   Tabs, Tab, CircularProgress, Alert, Button, Dialog, DialogTitle,
   DialogContent, DialogActions, IconButton, Grid, Divider,
 } from '@mui/material';
 import {
-  Search, Science, HourglassEmpty, PlayArrow, CheckCircle, Visibility, Close,
+  Search, Science, HourglassEmpty, PlayArrow, CheckCircle, Visibility, Close, Person,
 } from '@mui/icons-material';
 import { useAuth } from '../../context/AuthContext';
 import { Analyse, AnalyseStatus } from '../../types/analyse.types';
@@ -46,6 +47,7 @@ interface TestResult {
 }
 
 export default function LaboratoryDashboard() {
+  const navigate = useNavigate();
   const [analyses, setAnalyses] = useState<Analyse[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -191,17 +193,14 @@ export default function LaboratoryDashboard() {
       // Close dialog first
       handleCloseDialog();
       
-      // Update local state with the completed analysis
-      setAnalyses(prev => prev.map(a => a.id === selectedAnalyse.id ? data : a));
-      
-      // Trigger tab switch after state update
-      setShouldSwitchToCompleted(true);
+      // Redirect to patient dossiers
+      navigate('/laboratory/dossiers');
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Erreur lors de l\'enregistrement des résultats');
     } finally {
       setSubmitting(false);
     }
-  }, [selectedAnalyse, testResults, handleCloseDialog]);
+  }, [selectedAnalyse, testResults, handleCloseDialog, navigate]);
 
   if (loading) {
     return (
@@ -215,7 +214,7 @@ export default function LaboratoryDashboard() {
   return (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4" fontWeight="bold">Tableau de Bord Laboratoire</Typography>
+        <Typography variant="h4" fontWeight="bold">Gestion des Analyses</Typography>
         <Box sx={{ display: 'flex', gap: 2 }}>
           <Chip icon={<HourglassEmpty />} label={`${statusCounts.pending} En attente`} color="warning" />
           <Chip icon={<PlayArrow />} label={`${statusCounts.inProgress} En cours`} color="info" />

@@ -40,6 +40,7 @@ const Livraisons = lazy(() => import('./pages/pharmacy/Livraisons'));
 
 // Laboratory
 const LaboratoryDashboard = lazy(() => import('./pages/laboratory/LaboratoryDashboard'));
+const PatientDossiers = lazy(() => import('./pages/laboratory/PatientDossiers'));
 
 // Common
 const Profile = lazy(() => import('./pages/profile/Profile'));
@@ -229,6 +230,11 @@ function App() {
                 <Route path="/laboratory" element={
                   <ProtectedRoute roles={[UserRole.LABORATOIRE]}>
                     <LaboratoryDashboard />
+                  </ProtectedRoute>
+                } />
+                <Route path="/laboratory/dossiers" element={
+                  <ProtectedRoute roles={[UserRole.LABORATOIRE]}>
+                    <PatientDossiers />
                   </ProtectedRoute>
                 } />
                 <Route path="/documents" element={

@@ -9,6 +9,7 @@ import {
   AccessTime, CheckCircle, Warning, ArrowForward, WbSunny, NightsStay,
   FolderShared, People, Add, Person, Cancel, HourglassEmpty,
   AdminPanelSettings, LocalHospital, TrendingUp, Biotech, EventNote,
+  PlayArrow, Assessment,
 } from '@mui/icons-material';
 import { OrdonnanceStatus } from '../../types/ordonnance.types';
 import { useAuth } from '../../context/AuthContext';
@@ -38,10 +39,15 @@ export default function Dashboard() {
   const isDoctorOrInfirmier = isDoctor || isInfirmier;
   const isAdmin = user?.role === UserRole.ADMIN;
   const isPharmacien = user?.role === UserRole.PHARMACIEN;
+  const isLaboratoire = user?.role === UserRole.LABORATOIRE;
 
   // Pharmacie dashboard state
   const [pharmaOrdonnances, setPharmaOrdonnances] = useState<any[]>([]);
   const [pharmaLoading, setPharmaLoading] = useState(false);
+
+  // Laboratory dashboard state
+  const [laboAnalyses, setLaboAnalyses] = useState<any[]>([]);
+  const [laboLoading, setLaboLoading] = useState(false);
 
   // Admin state
   const [adminStats, setAdminStats] = useState({ patients: 0, medecins: 0, pharmaciens: 0, laboratoires: 0, infirmiers: 0 });
@@ -57,6 +63,8 @@ export default function Dashboard() {
       loadPatientData();
     } else if (isPharmacien) {
       loadPharmaOrdonnances();
+    } else if (isLaboratoire) {
+      loadLaboAnalyses();
     } else {
       loadStats();
       if (isDoctorOrInfirmier) {
@@ -75,6 +83,18 @@ export default function Dashboard() {
       setPharmaOrdonnances([]);
     } finally {
       setPharmaLoading(false);
+    }
+  };
+
+  const loadLaboAnalyses = async () => {
+    setLaboLoading(true);
+    try {
+      const { data } = await api.get('/analyses');
+      setLaboAnalyses(data);
+    } catch {
+      setLaboAnalyses([]);
+    } finally {
+      setLaboLoading(false);
     }
   };
 
@@ -702,6 +722,266 @@ export default function Dashboard() {
                 </Paper>
               ))
             )}
+          </Box>
+        );
+      })()}
+
+      {/* ═══════════════ LABORATOIRE DASHBOARD ═══════════════ */}
+      {isLaboratoire && (() => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const stats = {
+          total: laboAnalyses.length,
+          enAttente: laboAnalyses.filter((a) => a.status === 'EN_ATTENTE').length,
+          enCours: laboAnalyses.filter((a) => a.status === 'EN_COURS').length,
+          terminees: laboAnalyses.filter((a) => a.status === 'TERMINEE').length,
+          termineesAujourdhui: laboAnalyses.filter((a) => {
+            if (!a.dateResultat) return false;
+            const resultDate = new Date(a.dateResultat);
+            resultDate.setHours(0, 0, 0, 0);
+            return resultDate.getTime() === today.getTime() && a.status === 'TERMINEE';
+          }).length,
+          patientsUniques: new Set(
+            laboAnalyses
+              .filter((a) => a.consultation?.patient?.id)
+              .map((a) => a.consultation.patient.id)
+          ).size,
+        };
+
+        // Calculate average processing time
+        const completedWithDates = laboAnalyses.filter((a) => a.dateResultat && a.createdAt && a.status === 'TERMINEE');
+
+        // Recent completed analyses
+        const recentCompleted = [...laboAnalyses]
+          .filter((a) => a.status === 'TERMINEE')
+          .sort((a, b) => {
+            const dateA = a.dateResultat ? new Date(a.dateResultat).getTime() : 0;
+            const dateB = b.dateResultat ? new Date(b.dateResultat).getTime() : 0;
+            return dateB - dateA;
+          })
+          .slice(0, 10);
+
+        const statCards = [
+          { title: 'Total Analyses', value: stats.total, icon: <Science />, color: '#0369a1', bg: 'linear-gradient(135deg, #0369a1 0%, #0ea5e9 100%)' },
+          { title: 'En Attente', value: stats.enAttente, icon: <HourglassEmpty />, color: '#ea580c', bg: 'linear-gradient(135deg, #ea580c 0%, #fb923c 100%)' },
+          { title: 'En Cours', value: stats.enCours, icon: <PlayArrow />, color: '#0284c7', bg: 'linear-gradient(135deg, #0284c7 0%, #38bdf8 100%)' },
+          { title: 'Terminées', value: stats.terminees, icon: <CheckCircle />, color: '#16a34a', bg: 'linear-gradient(135deg, #16a34a 0%, #4ade80 100%)' },
+          { title: 'Terminées Aujourd\'hui', value: stats.termineesAujourdhui, icon: <Assessment />, color: '#15803d', bg: 'linear-gradient(135deg, #15803d 0%, #22c55e 100%)' },
+          { title: 'Patients Uniques', value: stats.patientsUniques, icon: <People />, color: '#b45309', bg: 'linear-gradient(135deg, #b45309 0%, #f59e0b 100%)' },
+        ];
+
+        return (
+          <Box sx={{ animation: 'fadeIn 0.5s ease-out', '@keyframes fadeIn': { from: { opacity: 0 }, to: { opacity: 1 } } }}>
+            {/* Header */}
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 4 }}>
+              <Box>
+                <Typography variant="h4" fontWeight={800} sx={{ letterSpacing: '-0.5px', display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                  <Science sx={{ fontSize: 36, color: '#0369a1' }} />
+                  Tableau de bord Laboratoire
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                  Vue d'ensemble des analyses médicales — {stats.patientsUniques} patients
+                </Typography>
+              </Box>
+              <Button
+                variant="contained"
+                startIcon={<FolderShared />}
+                onClick={() => navigate('/laboratory/dossiers')}
+                sx={{ textTransform: 'none', fontWeight: 600 }}
+              >
+                Dossiers Patients
+              </Button>
+            </Box>
+
+            {/* Stats Cards */}
+            <Grid container spacing={2.5} sx={{ mb: 4 }}>
+              {statCards.map((card, index) => (
+                <Grid item xs={6} sm={4} md={2} key={card.title}>
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      p: 2.5,
+                      borderRadius: 3,
+                      background: card.bg,
+                      color: '#fff',
+                      position: 'relative',
+                      overflow: 'hidden',
+                      transition: 'all 0.3s ease',
+                      animation: `slideUp 0.4s ease-out ${index * 0.08}s backwards`,
+                      '@keyframes slideUp': { from: { opacity: 0, transform: 'translateY(20px)' }, to: { opacity: 1, transform: 'translateY(0)' } },
+                      '&:hover': { transform: 'translateY(-4px)', boxShadow: `0 12px 24px ${card.color}40` },
+                    }}
+                  >
+                    <Box sx={{ position: 'absolute', top: -10, right: -10, opacity: 0.15 }}>
+                      {React.cloneElement(card.icon, { sx: { fontSize: 80 } })}
+                    </Box>
+                    <Box sx={{ position: 'relative', zIndex: 1 }}>
+                      <Typography variant="h3" fontWeight={800} sx={{ lineHeight: 1.1 }}>{card.value}</Typography>
+                      <Typography variant="body2" sx={{ mt: 0.5, opacity: 0.9, fontWeight: 600, fontSize: '0.75rem' }}>{card.title}</Typography>
+                    </Box>
+                  </Paper>
+                </Grid>
+              ))}
+            </Grid>
+
+            {/* Performance Metrics */}
+            <Grid container spacing={3} sx={{ mb: 4 }}>
+              <Grid item xs={12} md={6}>
+                <Paper variant="outlined" sx={{ p: 3, borderRadius: 3, textAlign: 'center', bgcolor: '#dbeafe', border: '1px solid #bfdbfe' }}>
+                  <TrendingUp sx={{ fontSize: 48, color: '#0369a1', mb: 1 }} />
+                  <Typography variant="h3" fontWeight={800} color="#0369a1">
+                    {stats.terminees > 0 ? Math.round((stats.termineesAujourdhui / stats.terminees) * 100) : 0}%
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" fontWeight={600}>
+                    Taux de Complétion Aujourd'hui
+                  </Typography>
+                </Paper>
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <Paper variant="outlined" sx={{ p: 3, borderRadius: 3, textAlign: 'center', bgcolor: '#fce7f3', border: '1px solid #fbcfe8' }}>
+                  <Assessment sx={{ fontSize: 48, color: '#be185d', mb: 1 }} />
+                  <Typography variant="h3" fontWeight={800} color="#be185d">
+                    {stats.enAttente + stats.enCours}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" fontWeight={600}>
+                    Analyses en Cours de Traitement
+                  </Typography>
+                </Paper>
+              </Grid>
+            </Grid>
+
+            {/* Main Content: 2 columns */}
+            <Grid container spacing={3}>
+              {/* Left Column: Pending Analyses */}
+              <Grid item xs={12} md={7}>
+                <Paper variant="outlined" sx={{ borderRadius: 3, overflow: 'hidden' }}>
+                  <Box sx={{ p: 2.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid', borderColor: 'divider', bgcolor: 'grey.50' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                      <HourglassEmpty sx={{ color: '#ea580c' }} />
+                      <Typography variant="h6" fontWeight={700}>Analyses en Attente ({stats.enAttente})</Typography>
+                    </Box>
+                    <Button size="small" onClick={() => navigate('/laboratory')} endIcon={<ArrowForward />} sx={{ textTransform: 'none', fontWeight: 600 }}>
+                      Traiter
+                    </Button>
+                  </Box>
+                  {laboLoading ? (
+                    <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
+                      <CircularProgress />
+                    </Box>
+                  ) : stats.enAttente === 0 ? (
+                    <Box sx={{ p: 4, textAlign: 'center' }}>
+                      <CheckCircle sx={{ fontSize: 48, color: '#22c55e', mb: 1 }} />
+                      <Typography color="text.secondary">Aucune analyse en attente.</Typography>
+                    </Box>
+                  ) : (
+                    <Box sx={{ maxHeight: 500, overflowY: 'auto' }}>
+                      {laboAnalyses
+                        .filter((a) => a.status === 'EN_ATTENTE')
+                        .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+                        .map((analyse, i) => (
+                          <Box
+                            key={analyse.id}
+                            sx={{
+                              p: 2,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 2,
+                              borderBottom: '1px solid',
+                              borderColor: 'divider',
+                              transition: 'background 0.2s',
+                              cursor: 'pointer',
+                              '&:hover': { bgcolor: 'action.hover' },
+                            }}
+                            onClick={() => navigate('/laboratory')}
+                          >
+                            <Avatar sx={{ bgcolor: '#ea580c', width: 44, height: 44, fontWeight: 700, fontSize: 16 }}>
+                              {(analyse.consultation?.patient?.firstName?.[0] || '?').toUpperCase()}
+                            </Avatar>
+                            <Box sx={{ flex: 1, minWidth: 0 }}>
+                              <Typography variant="subtitle2" fontWeight={700} noWrap>
+                                {analyse.consultation?.patient?.firstName} {analyse.consultation?.patient?.lastName}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary" noWrap>
+                                {analyse.description || 'Analyse médicale'}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary" display="block">
+                                Demandé le {new Date(analyse.createdAt).toLocaleDateString('fr-FR')}
+                              </Typography>
+                            </Box>
+                            <Chip
+                              label="En attente"
+                              size="small"
+                              sx={{ fontWeight: 600, bgcolor: '#fff3e0', color: '#ea580c' }}
+                            />
+                          </Box>
+                        ))}
+                    </Box>
+                  )}
+                </Paper>
+              </Grid>
+
+              {/* Right Column: Recent Completed */}
+              <Grid item xs={12} md={5}>
+                <Paper variant="outlined" sx={{ borderRadius: 3, overflow: 'hidden' }}>
+                  <Box sx={{ p: 2.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid', borderColor: 'divider', bgcolor: 'grey.50' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                      <CheckCircle sx={{ color: '#16a34a' }} />
+                      <Typography variant="h6" fontWeight={700}>Récemment Terminées</Typography>
+                    </Box>
+                    <Button size="small" onClick={() => navigate('/laboratory/dossiers')} endIcon={<ArrowForward />} sx={{ textTransform: 'none', fontWeight: 600 }}>
+                      Voir tout
+                    </Button>
+                  </Box>
+                  {recentCompleted.length === 0 ? (
+                    <Box sx={{ p: 4, textAlign: 'center' }}>
+                      <Typography color="text.secondary">Aucune analyse terminée.</Typography>
+                    </Box>
+                  ) : (
+                    <Box sx={{ maxHeight: 500, overflowY: 'auto' }}>
+                      {recentCompleted.map((analyse) => (
+                        <Box
+                          key={analyse.id}
+                          sx={{
+                            p: 2,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 2,
+                            borderBottom: '1px solid',
+                            borderColor: 'divider',
+                            '&:last-child': { borderBottom: 'none' },
+                            cursor: 'pointer',
+                            transition: 'background 0.2s',
+                            '&:hover': { bgcolor: 'action.hover' },
+                          }}
+                          onClick={() => navigate('/laboratory/dossiers')}
+                        >
+                          <Avatar sx={{ bgcolor: '#e8f5e9', color: '#16a34a', width: 44, height: 44, fontSize: 16, fontWeight: 700 }}>
+                            {(analyse.consultation?.patient?.firstName?.[0] || '?').toUpperCase()}
+                          </Avatar>
+                          <Box sx={{ flex: 1, minWidth: 0 }}>
+                            <Typography variant="subtitle2" fontWeight={700} noWrap>
+                              {analyse.consultation?.patient?.firstName || 'Patient'} {analyse.consultation?.patient?.lastName || ''}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary" noWrap>
+                              {analyse.description || 'Analyse'}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary" display="block">
+                              {analyse.dateResultat ? new Date(analyse.dateResultat).toLocaleDateString('fr-FR') : '—'}
+                            </Typography>
+                          </Box>
+                          <Chip
+                            label="Terminée"
+                            size="small"
+                            sx={{ fontWeight: 600, bgcolor: '#e8f5e9', color: '#16a34a' }}
+                          />
+                        </Box>
+                      ))}
+                    </Box>
+                  )}
+                </Paper>
+              </Grid>
+            </Grid>
           </Box>
         );
       })()}
