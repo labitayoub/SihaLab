@@ -6,6 +6,7 @@ import { CreateOrdonnanceDto } from './dto/create-ordonnance.dto';
 import { OrdonnanceStatus } from '../common/enums/status.enum';
 import * as QRCode from 'qrcode';
 import { randomBytes } from 'crypto';
+import { SseService } from '../common/sse/sse.service';
 
 export interface ConfirmPrescriptionPayload {
   servedBy: string;
@@ -25,6 +26,7 @@ export class OrdonnancesService {
   constructor(
     @InjectRepository(Ordonnance)
     private ordonnanceRepository: Repository<Ordonnance>,
+    private readonly sseService: SseService,
   ) {}
 
   private getPublicVerifyBaseUrl(): string {
@@ -192,6 +194,19 @@ export class OrdonnancesService {
 
     if (current.verificationStatus === OrdonnanceVerificationStatus.SERVED) {
       if ((updateResult.affected ?? 0) > 0) {
+        const doctorId = current.consultation?.doctorId;
+        if (doctorId) {
+          this.sseService.emitOrdonnanceServed({
+            doctorId,
+            payload: {
+              ordonnanceId: current.id,
+              consultationId: current.consultationId,
+              servedAt: current.servedAt?.toISOString(),
+              servedBy: current.servedBy,
+            },
+          });
+        }
+
         return {
           state: 'SERVED',
           message: 'Délivrance confirmée avec succès.',

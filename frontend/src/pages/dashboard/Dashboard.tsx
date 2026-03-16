@@ -74,6 +74,41 @@ export default function Dashboard() {
     }
   }, []);
 
+  useEffect(() => {
+    if (!isDoctorOrInfirmier || !user?.id) {
+      return;
+    }
+
+    const token = localStorage.getItem('accessToken');
+    if (!token) {
+      return;
+    }
+
+    const rawBase = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1';
+    const base = rawBase.endsWith('/') ? rawBase.slice(0, -1) : rawBase;
+    const streamUrl = `${base}/events/doctor-status?token=${encodeURIComponent(token)}`;
+    const eventSource = new EventSource(streamUrl);
+
+    eventSource.onmessage = (event) => {
+      try {
+        const parsed = JSON.parse(event.data);
+        if (parsed?.type === 'ordonnance.served') {
+          loadStats();
+        }
+      } catch {
+        // Ignore malformed stream events.
+      }
+    };
+
+    eventSource.onerror = () => {
+      eventSource.close();
+    };
+
+    return () => {
+      eventSource.close();
+    };
+  }, [isDoctorOrInfirmier, user?.id]);
+
   const loadPharmaOrdonnances = async () => {
     setPharmaLoading(true);
     try {

@@ -19,6 +19,7 @@ import { Livraison, LivraisonHistorique } from './entities/livraison.entity';
 import { Document } from './entities/document.entity';
 import { DoctorSchedule } from './entities/doctor-schedule.entity';
 import { SchedulesModule } from './schedules/schedules.module';
+import { SseModule } from './common/sse/sse.module';
 
 @Module({
   imports: [
@@ -55,6 +56,7 @@ import { SchedulesModule } from './schedules/schedules.module';
     LivraisonsModule,
     DocumentsModule,
     SchedulesModule,
+    SseModule,
   ],
 })
 export class AppModule {}
