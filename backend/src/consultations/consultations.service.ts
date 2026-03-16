@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { randomBytes } from 'crypto';
 import { Consultation } from '../entities/consultation.entity';
 import { Ordonnance } from '../entities/ordonnance.entity';
 import { Analyse } from '../entities/analyse.entity';
@@ -27,6 +28,41 @@ export class ConsultationsService {
     private pdfGeneratorService: PdfGeneratorService,
     private minioService: MinioService,
   ) {}
+
+  private getPublicVerifyBaseUrl(): string {
+    const raw = process.env.PUBLIC_VERIFY_BASE_URL || 'http://localhost:5173';
+    return raw.endsWith('/') ? raw.slice(0, -1) : raw;
+  }
+
+  private buildVerifyUrl(hash: string): string {
+    return `${this.getPublicVerifyBaseUrl()}/verify/${hash}`;
+  }
+
+  private async generateUniqueVerificationHash(): Promise<string> {
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      const candidate = randomBytes(24).toString('hex');
+      const exists = await this.ordonnanceRepository.exist({
+        where: { verificationHash: candidate },
+      });
+
+      if (!exists) {
+        return candidate;
+      }
+    }
+
+    throw new Error('Unable to generate unique prescription verification hash');
+  }
+
+  private async ensureOrdonnanceVerificationHash(ordonnance: Ordonnance): Promise<string> {
+    if (ordonnance.verificationHash) {
+      return ordonnance.verificationHash;
+    }
+
+    const hash = await this.generateUniqueVerificationHash();
+    await this.ordonnanceRepository.update(ordonnance.id, { verificationHash: hash });
+    ordonnance.verificationHash = hash;
+    return hash;
+  }
 
   async create(doctorId: string, createConsultationDto: CreateConsultationDto) {
     const consultation = this.consultationRepository.create({
@@ -294,8 +330,14 @@ export class ConsultationsService {
 
     // ── Generate ONE ordonnance PDF ──
     if (consultation.ordonnances.length > 0) {
+      const primaryOrdonnance = consultation.ordonnances[0];
+      const verificationHash = await this.ensureOrdonnanceVerificationHash(primaryOrdonnance);
+      const verifyUrl = this.buildVerifyUrl(verificationHash);
+
       const pdfBuffer = await this.pdfGeneratorService.generateOrdonnancePdf(
-        consultation.ordonnances, consultation,
+        consultation.ordonnances,
+        consultation,
+        verifyUrl,
       );
 
       const fileName = PdfGeneratorService.buildFileName(patientLast, patientFirst, 'Ordonnance', dateISO);
@@ -408,7 +450,9 @@ export class ConsultationsService {
     const ordonnance = await this.ordonnanceRepository.findOne({ where: { id: ordonnanceId } });
     if (!ordonnance) throw new NotFoundException('Ordonnance not found');
 
-    const pdfBuffer = await this.pdfGeneratorService.generateOrdonnancePdf([ordonnance], consultation);
+    const verificationHash = await this.ensureOrdonnanceVerificationHash(ordonnance);
+    const verifyUrl = this.buildVerifyUrl(verificationHash);
+    const pdfBuffer = await this.pdfGeneratorService.generateOrdonnancePdf([ordonnance], consultation, verifyUrl);
 
     const dateISO = new Date(consultation.date).toISOString().split('T')[0];
     const dateFr  = new Date(consultation.date).toLocaleDateString('fr-FR');

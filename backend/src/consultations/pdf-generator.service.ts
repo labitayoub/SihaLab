@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import PDFDocument = require('pdfkit');
 import { PassThrough } from 'stream';
+import * as QRCode from 'qrcode';
 
 /**
  * PDF Generator — STRICTLY 1 PAGE.
@@ -136,7 +137,7 @@ export class PdfGeneratorService {
   /** Draw footer with QR at absolute position */
   private async footer(
     doc: InstanceType<typeof PDFDocument>,
-    _qrPayload: string,
+    qrPayload: string,
     doctor: { phone?: string; address?: string; ville?: string }
   ) {
     const W = doc.page.width;
@@ -150,6 +151,20 @@ export class PdfGeneratorService {
     // Signature line
     doc.moveTo(W - 250, sigY + 18).lineTo(W - 50, sigY + 18).strokeColor('#cbd5e1').dash(3, { space: 3 }).lineWidth(1).stroke();
     doc.undash();
+
+    if (qrPayload) {
+      const qrImage = await QRCode.toBuffer(qrPayload, {
+        errorCorrectionLevel: 'M',
+        type: 'png',
+        width: 120,
+      });
+
+      const qrX = 50;
+      const qrY = H - 190;
+      doc.image(qrImage, qrX, qrY, { width: 90, height: 90 });
+      doc.font('Helvetica').fontSize(8).fillColor('#64748b');
+      doc.text('Verification ordonnance', qrX, qrY + 94, { lineBreak: false });
+    }
 
     // CRITICAL: Bottom footer at fixed position (40px from bottom = 842 - 40 = 802pt)
     const footY = H - 60;
@@ -182,6 +197,7 @@ export class PdfGeneratorService {
       doctor: { firstName: string; lastName: string; specialite?: string; phone?: string; address?: string; ville?: string };
       patient: { firstName: string; lastName: string };
     },
+    verifyUrl: string,
   ): Promise<Buffer> {
     const doc = new PDFDocument({ 
       size: 'A4', 
@@ -270,12 +286,7 @@ export class PdfGeneratorService {
     }
 
     // Footer
-    await this.footer(doc, JSON.stringify({
-      t: 'ord', id: consultation.id, d: dateStr,
-      dr: consultation.doctor.lastName,
-      p: consultation.patient.lastName,
-      n: meds.length,
-    }), consultation.doctor);
+    await this.footer(doc, verifyUrl, consultation.doctor);
 
     doc.end();
     return bufferPromise;
