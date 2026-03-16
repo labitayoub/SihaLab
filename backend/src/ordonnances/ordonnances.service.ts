@@ -5,6 +5,7 @@ import { Ordonnance, OrdonnanceVerificationStatus } from '../entities/ordonnance
 import { CreateOrdonnanceDto } from './dto/create-ordonnance.dto';
 import { OrdonnanceStatus } from '../common/enums/status.enum';
 import * as QRCode from 'qrcode';
+import { randomBytes } from 'crypto';
 
 export interface ConfirmPrescriptionPayload {
   servedBy: string;
@@ -26,12 +27,37 @@ export class OrdonnancesService {
     private ordonnanceRepository: Repository<Ordonnance>,
   ) {}
 
+  private getPublicVerifyBaseUrl(): string {
+    const raw = process.env.PUBLIC_VERIFY_BASE_URL || 'http://localhost:5173';
+    return raw.endsWith('/') ? raw.slice(0, -1) : raw;
+  }
+
+  private buildVerifyUrl(hash: string): string {
+    return `${this.getPublicVerifyBaseUrl()}/verify/${hash}`;
+  }
+
+  private async generateUniqueVerificationHash(): Promise<string> {
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      const candidate = randomBytes(24).toString('hex');
+      const exists = await this.ordonnanceRepository.exist({
+        where: { verificationHash: candidate },
+      });
+      if (!exists) {
+        return candidate;
+      }
+    }
+
+    throw new Error('Unable to generate unique prescription verification hash');
+  }
+
   async create(createOrdonnanceDto: CreateOrdonnanceDto) {
     const ordonnance = this.ordonnanceRepository.create(createOrdonnanceDto);
+    ordonnance.verificationHash = await this.generateUniqueVerificationHash();
     const saved = await this.ordonnanceRepository.save(ordonnance);
     
-    // Generate QR Code
-    const qrCode = await QRCode.toDataURL(saved.id);
+    // Encode the full public verification URL in the QR payload.
+    const verifyUrl = this.buildVerifyUrl(saved.verificationHash as string);
+    const qrCode = await QRCode.toDataURL(verifyUrl);
     saved.qrCode = qrCode;
     
     return this.ordonnanceRepository.save(saved);
