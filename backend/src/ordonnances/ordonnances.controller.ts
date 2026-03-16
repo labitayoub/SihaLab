@@ -1,10 +1,12 @@
 import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
 import { OrdonnancesService } from './ordonnances.service';
 import { CreateOrdonnanceDto } from './dto/create-ordonnance.dto';
+import { ConfirmPrescriptionDto } from './dto/confirm-prescription.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { Public } from '../auth/decorators/public.decorator';
 import { UserRole } from '../common/enums/role.enum';
 import { OrdonnanceStatus } from '../common/enums/status.enum';
 import { ApiTags } from '@nestjs/swagger';
@@ -15,6 +17,21 @@ import { User } from '../entities/user.entity';
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class OrdonnancesController {
   constructor(private ordonnancesService: OrdonnancesService) {}
+
+  @Get('verify/:hash')
+  @Public()
+  validatePrescription(@Param('hash') hash: string) {
+    return this.ordonnancesService.validatePrescription(hash);
+  }
+
+  @Post('verify/:hash/confirm')
+  @Public()
+  confirmPrescriptionServed(
+    @Param('hash') hash: string,
+    @Body() body: ConfirmPrescriptionDto,
+  ) {
+    return this.ordonnancesService.confirmPrescriptionServed(hash, body);
+  }
 
   @Post()
   @Roles(UserRole.MEDECIN, UserRole.INFIRMIER)
