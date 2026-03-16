@@ -1,10 +1,23 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Ordonnance } from '../entities/ordonnance.entity';
+import { Ordonnance, OrdonnanceVerificationStatus } from '../entities/ordonnance.entity';
 import { CreateOrdonnanceDto } from './dto/create-ordonnance.dto';
 import { OrdonnanceStatus } from '../common/enums/status.enum';
 import * as QRCode from 'qrcode';
+
+export interface ConfirmPrescriptionPayload {
+  servedBy: string;
+  servedByPhone: string;
+  pharmacyNote?: string;
+}
+
+export interface ValidatePrescriptionResult {
+  state: 'AVAILABLE' | 'ALREADY_SERVED' | 'INVALID';
+  message: string;
+  servedAt?: string;
+  ordonnance?: Ordonnance;
+}
 
 @Injectable()
 export class OrdonnancesService {
@@ -83,5 +96,95 @@ export class OrdonnancesService {
       .where('consultation.patientId = :patientId', { patientId })
       .orderBy('ordonnance.createdAt', 'DESC')
       .getMany();
+  }
+
+  async validatePrescription(hash: string): Promise<ValidatePrescriptionResult> {
+    const ordonnance = await this.ordonnanceRepository.findOne({
+      where: { verificationHash: hash },
+      relations: ['consultation', 'consultation.patient', 'consultation.doctor'],
+    });
+
+    if (!ordonnance) {
+      return {
+        state: 'INVALID',
+        message: 'Document Non-Existant / Fraude Détectée',
+      };
+    }
+
+    if (ordonnance.verificationStatus === OrdonnanceVerificationStatus.SERVED) {
+      return {
+        state: 'ALREADY_SERVED',
+        message: 'ATTENTION: Cette ordonnance a déjà été consommée.',
+        servedAt: ordonnance.servedAt?.toISOString(),
+        ordonnance,
+      };
+    }
+
+    return {
+      state: 'AVAILABLE',
+      message: 'Ordonnance valide et disponible pour délivrance.',
+      ordonnance,
+    };
+  }
+
+  async confirmPrescriptionServed(
+    hash: string,
+    payload: ConfirmPrescriptionPayload,
+  ): Promise<ValidatePrescriptionResult> {
+    const now = new Date();
+
+    const updateResult = await this.ordonnanceRepository
+      .createQueryBuilder()
+      .update(Ordonnance)
+      .set({
+        verificationStatus: OrdonnanceVerificationStatus.SERVED,
+        servedAt: now,
+        servedBy: payload.servedBy,
+        servedByPhone: payload.servedByPhone,
+        pharmacyNote: payload.pharmacyNote ?? null,
+        // Keep legacy business status in sync with the new verification lock.
+        status: OrdonnanceStatus.DELIVREE,
+        dateDelivrance: now,
+      })
+      .where('verificationHash = :hash', { hash })
+      .andWhere('verificationStatus = :available', {
+        available: OrdonnanceVerificationStatus.AVAILABLE,
+      })
+      .execute();
+
+    const current = await this.ordonnanceRepository.findOne({
+      where: { verificationHash: hash },
+      relations: ['consultation', 'consultation.patient', 'consultation.doctor'],
+    });
+
+    if (!current) {
+      return {
+        state: 'INVALID',
+        message: 'Document Non-Existant / Fraude Détectée',
+      };
+    }
+
+    if (current.verificationStatus === OrdonnanceVerificationStatus.SERVED) {
+      if ((updateResult.affected ?? 0) > 0) {
+        return {
+          state: 'AVAILABLE',
+          message: 'Délivrance confirmée avec succès.',
+          servedAt: current.servedAt?.toISOString(),
+          ordonnance: current,
+        };
+      }
+
+      return {
+        state: 'ALREADY_SERVED',
+        message: 'ATTENTION: Cette ordonnance a déjà été consommée.',
+        servedAt: current.servedAt?.toISOString(),
+        ordonnance: current,
+      };
+    }
+
+    return {
+      state: 'INVALID',
+      message: 'Document Non-Existant / Fraude Détectée',
+    };
   }
 }
