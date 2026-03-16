@@ -356,7 +356,7 @@ export default function Analyses() {
             <Button
               size="small"
               startIcon={<Upload />}
-              onClick={() => { setSelectedAnalyse(params.row.id); setUploadOpen(true); }}
+              onClick={() => { setSelectedAnalyse(params.row.id); handleOpenView(params.row); }}
             >
               Upload Résultat
             </Button>
