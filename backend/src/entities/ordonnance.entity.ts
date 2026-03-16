@@ -8,6 +8,11 @@ export enum OrdonnanceStatus {
   ANNULEE = 'annulee',
 }
 
+export enum OrdonnanceVerificationStatus {
+  AVAILABLE = 'AVAILABLE',
+  SERVED = 'SERVED',
+}
+
 @Entity('ordonnances')
 export class Ordonnance {
   @PrimaryGeneratedColumn('uuid')
@@ -29,6 +34,28 @@ export class Ordonnance {
 
   @Column({ type: 'enum', enum: OrdonnanceStatus, default: OrdonnanceStatus.EN_ATTENTE })
   status: OrdonnanceStatus;
+
+  @Column({
+    type: 'enum',
+    enum: OrdonnanceVerificationStatus,
+    default: OrdonnanceVerificationStatus.AVAILABLE,
+  })
+  verificationStatus: OrdonnanceVerificationStatus;
+
+  @Column({ type: 'varchar', unique: true, nullable: true })
+  verificationHash: string | null;
+
+  @Column({ type: 'timestamp', nullable: true })
+  servedAt: Date | null;
+
+  @Column({ type: 'varchar', length: 500, nullable: true })
+  pharmacyNote: string | null;
+
+  @Column({ type: 'varchar', length: 200, nullable: true })
+  servedBy: string | null;
+
+  @Column({ type: 'varchar', length: 30, nullable: true })
+  servedByPhone: string | null;
 
   @Column({ type: 'jsonb' })
   medicaments: Array<{
