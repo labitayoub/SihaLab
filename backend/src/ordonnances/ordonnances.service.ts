@@ -14,7 +14,7 @@ export interface ConfirmPrescriptionPayload {
 }
 
 export interface ValidatePrescriptionResult {
-  state: 'AVAILABLE' | 'ALREADY_SERVED' | 'INVALID';
+  state: 'AVAILABLE' | 'SERVED' | 'ALREADY_SERVED' | 'INVALID';
   message: string;
   servedAt?: string;
   ordonnance?: Ordonnance;
@@ -193,7 +193,7 @@ export class OrdonnancesService {
     if (current.verificationStatus === OrdonnanceVerificationStatus.SERVED) {
       if ((updateResult.affected ?? 0) > 0) {
         return {
-          state: 'AVAILABLE',
+          state: 'SERVED',
           message: 'Délivrance confirmée avec succès.',
           servedAt: current.servedAt?.toISOString(),
           ordonnance: current,

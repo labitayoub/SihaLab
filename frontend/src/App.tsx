@@ -14,6 +14,7 @@ const Register = lazy(() => import('./pages/auth/Register'));
 
 // Public
 const Landing = lazy(() => import('./pages/public/Landing'));
+const VerifyPrescription = lazy(() => import('./pages/public/VerifyPrescription'));
 
 // Dashboard
 const Dashboard = lazy(() => import('./pages/dashboard/Dashboard'));
@@ -193,6 +194,7 @@ function App() {
               {/* Routes publiques (redirige vers /dashboard si déjà connecté) */}
               <Route path="/login" element={<GuestRoute><Login /></GuestRoute>} />
               <Route path="/register" element={<GuestRoute><Register /></GuestRoute>} />
+              <Route path="/verify/:hash" element={<VerifyPrescription />} />
 
               {/* Routes protégées */}
               <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>

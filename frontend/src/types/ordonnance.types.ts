@@ -7,6 +7,11 @@ export enum OrdonnanceStatus {
   ANNULEE = 'annulee',
 }
 
+export enum OrdonnanceVerificationStatus {
+  AVAILABLE = 'AVAILABLE',
+  SERVED = 'SERVED',
+}
+
 export interface Medicament {
   nom: string;
   dosage: string;
@@ -21,6 +26,12 @@ export interface Ordonnance {
   pharmacienId?: string;
   pharmacien?: User;
   status: OrdonnanceStatus;
+  verificationStatus?: OrdonnanceVerificationStatus;
+  verificationHash?: string | null;
+  servedAt?: string | null;
+  servedBy?: string | null;
+  servedByPhone?: string | null;
+  pharmacyNote?: string | null;
   medicaments: Medicament[];
   qrCode?: string;
   dateDelivrance?: string;
